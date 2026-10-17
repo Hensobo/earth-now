@@ -1,8 +1,8 @@
-# Live Earth
+# Earth Now – Live Earth Wallpaper
 
 Animierter Desktop-Hintergrund für macOS: eine 3D-Erde mit **echtem Sonnenstand** – wo gerade Tag ist, ist die Erde hell, wo Nacht ist, leuchten die Städte – und **Live-Wolken**, die alle drei Stunden aktualisiert werden.
 
-![Live Earth](docs/preview.png)
+![Earth Now](docs/preview.png)
 
 ## Funktionen
 
@@ -25,9 +25,9 @@ Nach dem Start erscheint ein Globus-Symbol in der Menüleiste. Darüber wechsels
 Benötigt nur die Xcode Command Line Tools (`xcode-select --install`), kein Xcode.
 
 ```bash
-./build.sh            # baut LiveEarth.app
-open LiveEarth.app
-./release.sh 1.0      # baut und verpackt dist/LiveEarth-1.0.dmg
+./build.sh            # baut EarthNow.app
+open EarthNow.app
+./release.sh 1.0      # baut und verpackt dist/EarthNow-1.0.dmg
 ```
 
 `release.sh` signiert und notarisiert, wenn `DEVELOPER_ID` und `NOTARY_PROFILE` gesetzt sind (Details im Skript).
@@ -50,7 +50,9 @@ Die Webseite lässt sich auch im Browser testen: `python3 -m http.server --direc
 
 - [ ] Universal-Build (Apple Silicon + Intel) und Mindest-macOS festlegen – aktuell wird nur für den eigenen Mac gebaut
 - [ ] Apple Developer Program, dann `release.sh` mit Signatur und Notarisierung
-- [ ] Endgültigen Namen und App-Icon festlegen
+- [ ] Markenrecherche „Earth Now“ (DPMA, EUIPO, USPTO – v. a. Klasse 9) und Domain sichern
+- [ ] Eigene Bundle-ID festlegen (aktuell `local.earthnow`, z. B. `de.<deinedomain>.earthnow`)
+- [ ] App-Icon
 - [ ] Lizenz für den eigenen Code wählen
 - [ ] Wolken-Server-Betreiber informieren bzw. eigenes Hosting (siehe [CREDITS.md](CREDITS.md))
 

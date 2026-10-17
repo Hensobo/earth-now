@@ -1,6 +1,6 @@
 # Credits & Lizenzen
 
-Live Earth nutzt folgende Inhalte und Bibliotheken von Dritten.
+Earth Now nutzt folgende Inhalte und Bibliotheken von Dritten.
 
 ## Bilder & Daten
 
