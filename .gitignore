@@ -1,0 +1,6 @@
+# Build-Ergebnisse
+LiveEarth.app/
+dist/
+# Lokale Claude-Einstellungen
+.claude/
+.DS_Store
