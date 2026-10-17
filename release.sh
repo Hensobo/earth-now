@@ -1,21 +1,21 @@
 #!/bin/zsh
-# Baut LiveEarth.app und verpackt sie als LiveEarth-<version>.dmg (mit „In Programme ziehen“).
+# Baut EarthNow.app und verpackt sie als EarthNow-<version>.dmg (mit „In Programme ziehen“).
 #
 # Ohne weitere Angaben entsteht eine unsignierte DMG zum Testen.
 # Für einen echten Release (Apple Developer Program nötig):
 #
 #   DEVELOPER_ID="Developer ID Application: Vorname Nachname (TEAMID)" \
-#   NOTARY_PROFILE="liveearth-notary" \
+#   NOTARY_PROFILE="earthnow-notary" \
 #   ./release.sh 1.0
 #
 # NOTARY_PROFILE einmalig anlegen mit:
-#   xcrun notarytool store-credentials liveearth-notary --apple-id <mail> --team-id <TEAMID>
+#   xcrun notarytool store-credentials earthnow-notary --apple-id <mail> --team-id <TEAMID>
 set -e
 cd "${0:A:h}"
 
 VERSION=${1:-1.0}
-APP=LiveEarth.app
-DMG=dist/LiveEarth-$VERSION.dmg
+APP=EarthNow.app
+DMG=dist/EarthNow-$VERSION.dmg
 
 ./build.sh
 /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" $APP/Contents/Info.plist
@@ -34,7 +34,7 @@ rm -rf dist/dmg && mkdir -p dist/dmg
 cp -R $APP dist/dmg/
 ln -s /Applications dist/dmg/Programme
 rm -f $DMG
-hdiutil create -volname "Live Earth" -srcfolder dist/dmg -ov -format UDZO -quiet $DMG
+hdiutil create -volname "Earth Now" -srcfolder dist/dmg -ov -format UDZO -quiet $DMG
 rm -rf dist/dmg
 
 if [[ -n "$DEVELOPER_ID" ]]; then

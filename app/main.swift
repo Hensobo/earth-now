@@ -1,4 +1,4 @@
-// Live Earth – zeigt web/index.html als animierten Desktop-Hintergrund.
+// Earth Now (Live Earth Wallpaper) – zeigt web/index.html als animierten Desktop-Hintergrund.
 // Ein randloses Fenster pro Bildschirm auf Desktop-Ebene (unter den Desktop-Icons),
 // klick-durchlässig, auf allen Spaces. Steuerung über das Menüleisten-Symbol und
 // ein Einstellungsfenster mit Live-Vorschau.
@@ -134,6 +134,7 @@ final class Store: ObservableObject {
     var currentView: ViewPreset? { allViews.first { $0.matches(config) } }
 
     private init() {
+        Store.migrateFromLiveEarth()
         func load<T: Decodable>(_ key: String, _ fallback: T) -> T {
             guard let data = UserDefaults.standard.data(forKey: key),
                   let v = try? JSONDecoder().decode(T.self, from: data) else { return fallback }
@@ -142,6 +143,17 @@ final class Store: ObservableObject {
         config = load("config", EarthConfig())
         customViews = load("customViews", [])
         recentPlaces = load("recentPlaces", [])
+        earthLeft = UserDefaults.standard.bool(forKey: "earthLeft")  // nach der Migration neu lesen
+    }
+
+    /// Einstellungen aus der Zeit vor der Umbenennung (Bundle-ID local.liveearth) übernehmen.
+    private static func migrateFromLiveEarth() {
+        let d = UserDefaults.standard
+        guard d.object(forKey: "config") == nil,
+              let old = UserDefaults(suiteName: "local.liveearth") else { return }
+        for key in ["config", "customViews", "recentPlaces", "earthLeft"] {
+            if let v = old.object(forKey: key) { d.set(v, forKey: key) }
+        }
     }
 
     private func save<T: Encodable>(_ key: String, _ value: T) {
@@ -496,7 +508,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func applicationDidFinishLaunching(_ n: Notification) {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        statusItem.button?.image = NSImage(systemSymbolName: "globe.europe.africa.fill", accessibilityDescription: "Live Earth")
+        statusItem.button?.image = NSImage(systemSymbolName: "globe.europe.africa.fill", accessibilityDescription: "Earth Now")
         let menu = NSMenu()
         menu.delegate = self
         statusItem.menu = menu
@@ -513,9 +525,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         ws.addObserver(self, selector: #selector(resume), name: NSWorkspace.screensDidWakeNotification, object: nil)
 
         let env = ProcessInfo.processInfo.environment
-        if env["LIVEEARTH_SETTINGS"] != nil { openSettings() }
+        if env["EARTHNOW_SETTINGS"] != nil { openSettings() }
         // Debug: Bild des Einstellungsfensters (ohne WebGL-Vorschau) speichern
-        if let out = env["LIVEEARTH_SETTINGS_SNAPSHOT"] {
+        if let out = env["EARTHNOW_SETTINGS_SNAPSHOT"] {
             DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
                 guard let v = self.settingsWindow?.contentView,
                       let rep = v.bitmapImageRepForCachingDisplay(in: v.bounds) else { return }
@@ -523,8 +535,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: out))
             }
         }
-        // Debug: LIVEEARTH_SNAPSHOT=/pfad.png speichert nach 8 s ein Bild des Desktops
-        if let out = env["LIVEEARTH_SNAPSHOT"] {
+        // Debug: EARTHNOW_SNAPSHOT=/pfad.png speichert nach 8 s ein Bild des Desktops
+        if let out = env["EARTHNOW_SNAPSHOT"] {
             DispatchQueue.main.asyncAfter(deadline: .now() + 8) {
                 (self.windows.first?.contentView as? WKWebView)?.takeSnapshot(with: nil) { img, _ in
                     guard let tiff = img?.tiffRepresentation, let rep = NSBitmapImageRep(data: tiff),
@@ -568,11 +580,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 560, height: 860),
                              styleMask: [.titled, .closable, .miniaturizable, .resizable],
                              backing: .buffered, defer: false)
-            w.title = "Live Earth"
+            w.title = "Earth Now"
             w.isReleasedWhenClosed = false
             w.contentView = NSHostingView(rootView: SettingsView())
             w.center()
-            w.setFrameAutosaveName("LiveEarthSettings")
+            w.setFrameAutosaveName("EarthNowSettings")
             settingsWindow = w
         }
         NSApp.activate(ignoringOtherApps: true)
