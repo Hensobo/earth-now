@@ -1,0 +1,467 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Live Earth</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  canvas { display: block; width: 100vw; height: 100vh; }
+  #hud {
+    position: fixed; left: 32px; bottom: 28px; color: rgba(255,255,255,.55);
+    font: 500 13px/1.5 -apple-system, BlinkMacSystemFont, sans-serif; letter-spacing: .02em;
+    pointer-events: none; display: none;
+  }
+</style>
+</head>
+<body>
+<div id="hud"></div>
+<script type="module">
+import * as THREE from './lib/three.module.min.js';
+
+// ---------------------------------------------------------------------------
+// Konfiguration. Die macOS-App setzt window.__initialConfig und ruft bei
+// Änderungen window.applyConfig({...}) auf. Im Browser gehen URL-Parameter,
+// z. B. index.html?motion=fixed&lat=52.5&lon=13.4&zoom=2.4&pitch=30
+//
+//   motion   orbit | fixed | sun   Umkreisen / steht über dem Ort / folgt der Sonne
+//   speed    Umlaufgeschwindigkeit im orbit-Modus, Grad pro Sekunde
+//   lat,lon  Ort, über dem die Kamera steht
+//   zoom     Erdradius relativ zur halben Bildschirmhöhe (bei pitch 0)
+//   pitch    Kameraneigung: 0 = senkrecht auf den Ort, 70+ = Blick zum Horizont
+//   heading  Blickrichtung bei geneigter Kamera (0 = Norden)
+//   tilt     Drehung des Bildes in Grad
+//   fov      Brennweite (vertikaler Blickwinkel)
+//   x,y      Verschiebung des Bildausschnitts (-1..1)
+//   fps, hud (0/1), clouds (live|static|off), warp (Zeitraffer-Faktor)
+// ---------------------------------------------------------------------------
+const P = new URLSearchParams(location.search);
+const cfg = {
+  motion: 'orbit', speed: 0.4, lat: 28, lon: 10, place: '',
+  zoom: 0.62, pitch: 0, heading: 0, tilt: 18, fov: 30, x: 0, y: 0,
+  fps: 30, hud: false, clouds: 'live', warp: 1,
+  ...(window.__initialConfig || {}),
+};
+for (const [k, v] of P) {
+  if (!(k in cfg)) continue;
+  cfg[k] = typeof cfg[k] === 'number' ? +v : typeof cfg[k] === 'boolean' ? v === '1' : v;
+}
+
+const DEG = Math.PI / 180;
+const startReal = Date.now();
+const now = () => new Date(startReal + (Date.now() - startReal) * cfg.warp);
+
+// --- Sonnenstand (Subsolarpunkt) -------------------------------------------
+// Low-precision-Formeln des Astronomical Almanac, Genauigkeit ~0.01°.
+function subsolarPoint(date) {
+  const d = date.getTime() / 86400000 + 2440587.5 - 2451545.0;
+  const g = (357.529 + 0.98560028 * d) * DEG;
+  const q = 280.459 + 0.98564736 * d;
+  const L = (q + 1.915 * Math.sin(g) + 0.020 * Math.sin(2 * g)) * DEG;
+  const e = (23.439 - 0.00000036 * d) * DEG;
+  const ra = Math.atan2(Math.cos(e) * Math.sin(L), Math.cos(L)) / DEG;
+  const dec = Math.asin(Math.sin(e) * Math.sin(L)) / DEG;
+  const gmst = (18.697374558 + 24.06570982441908 * d) % 24;
+  let lon = ra - gmst * 15;
+  lon = ((lon + 540) % 360) - 180;
+  return { lat: dec, lon };
+}
+
+// Geografische Koordinaten -> Richtungsvektor im Erd-Koordinatensystem
+// (passend zur UV-Abwicklung von THREE.SphereGeometry).
+function latLonToVec(lat, lon, out = new THREE.Vector3()) {
+  const la = lat * DEG, lo = lon * DEG;
+  return out.set(Math.cos(la) * Math.cos(lo), Math.sin(la), -Math.cos(la) * Math.sin(lo));
+}
+
+// --- Renderer / Szene --------------------------------------------------------
+const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'low-power' });
+// 1.5-fache Auflösung reicht für die weichen Erdtexturen und spart ~45 % GPU-Arbeit.
+// Im „Flüssig“-Modus (60 fps) volle Retina-Auflösung.
+const applyPixelRatio = () => renderer.setPixelRatio(Math.min(window.devicePixelRatio, cfg.fps >= 60 ? 2 : 1.5));
+applyPixelRatio();
+renderer.setSize(innerWidth, innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(30, innerWidth / innerHeight, 0.1, 1000);
+
+const loader = new THREE.TextureLoader();
+// Sobald eine Textur fertig geladen ist, neu zeichnen (sonst bei niedriger Bildrate erst Sekunden später)
+THREE.DefaultLoadingManager.onProgress = () => requestRender();
+const maxAniso = renderer.capabilities.getMaxAnisotropy();
+function tex(url, srgb = true) {
+  const t = loader.load(url);
+  t.anisotropy = maxAniso;
+  if (srgb) t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+const dayTex = tex('textures/day.jpg');
+const nightTex = tex('textures/night.jpg');
+const specTex = tex('textures/specular.jpg', false);
+const normalTex = tex('textures/normal.jpg', false);
+let cloudTex = null;  // statische Wolken, erst bei Bedarf geladen
+function staticClouds() {
+  if (!cloudTex) { cloudTex = tex('textures/clouds.png', false); cloudTex.wrapS = THREE.RepeatWrapping; }
+  return cloudTex;
+}
+const emptyTex = new THREE.DataTexture(new Uint8Array(4), 1, 1);
+emptyTex.needsUpdate = true;
+
+const sunDir = new THREE.Vector3(1, 0, 0);
+
+// --- Erde --------------------------------------------------------------------
+const earthMat = new THREE.ShaderMaterial({
+  uniforms: {
+    dayMap: { value: dayTex },
+    nightMap: { value: nightTex },
+    specMap: { value: specTex },
+    normalMap: { value: normalTex },
+    cloudMap: { value: emptyTex },
+    cloudAmt: { value: 1 },
+    sunDir: { value: sunDir },
+    camPos: { value: camera.position },
+  },
+  vertexShader: /* glsl */`
+    varying vec2 vUv;
+    varying vec3 vNormal;
+    varying vec3 vPos;
+    void main() {
+      vUv = uv;
+      vNormal = normalize(normal);
+      vPos = position;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }`,
+  fragmentShader: /* glsl */`
+    uniform sampler2D dayMap, nightMap, specMap, normalMap, cloudMap;
+    uniform vec3 sunDir, camPos;
+    uniform float cloudAmt;
+    varying vec2 vUv;
+    varying vec3 vNormal;
+    varying vec3 vPos;
+
+    void main() {
+      vec3 N = normalize(vNormal);
+      // Leichtes Relief über die Normal-Map (Tangentenraum auf der Kugel)
+      vec3 T = normalize(vec3(-N.z, 0.0, N.x) + 1e-5);
+      vec3 B = cross(N, T);
+      vec3 nm = texture2D(normalMap, vUv).xyz * 2.0 - 1.0;
+      vec3 Nb = normalize(N + 0.35 * (nm.x * T + nm.y * B));
+
+      vec3 V = normalize(camPos - vPos);
+      float sunN = dot(N, sunDir);
+      float lit = dot(Nb, sunDir);
+
+      // Tag/Nacht-Übergang mit weicher Dämmerungszone
+      float dayAmt = smoothstep(-0.06, 0.14, sunN);
+      float twilight = smoothstep(-0.18, 0.0, sunN) * (1.0 - smoothstep(0.0, 0.22, sunN));
+
+      vec3 day = pow(texture2D(dayMap, vUv).rgb, vec3(1.12)) * 0.92;
+      vec3 night = texture2D(nightMap, vUv).rgb;
+      float ocean = texture2D(specMap, vUv).r;
+
+      // Wolkenschatten: Wolkentextur leicht Richtung Sonne versetzt
+      float cloud = texture2D(cloudMap, vUv).a * cloudAmt;
+      float shadow = texture2D(cloudMap, vUv + vec2(sunDir.x, sunDir.y) * 0.0015).a * cloudAmt;
+
+      vec3 color = day * (0.04 + 0.95 * max(lit, 0.0)) * (1.0 - 0.35 * shadow);
+
+      // Spiegelung der Sonne auf den Ozeanen
+      vec3 H = normalize(sunDir + V);
+      float spec = pow(max(dot(N, H), 0.0), 60.0) * ocean * (1.0 - cloud);
+      color += vec3(1.0, 0.92, 0.78) * spec * 0.55 * dayAmt;
+
+      // Dämmerungsfärbung
+      color = mix(color, color * vec3(1.25, 0.75, 0.5) + vec3(0.06, 0.02, 0.0), twilight * 0.6);
+
+      // Nachtseite: Stadtlichter, unter Wolken gedämpft
+      // Black Marble enthält schwach sichtbares Gelände -> nur echte Lichter durchlassen
+      float nl = dot(night, vec3(0.3, 0.5, 0.2));
+      vec3 lights = night * smoothstep(0.12, 0.45, nl) * vec3(1.0, 0.8, 0.5) * 2.2 * (1.0 - 0.75 * cloud);
+      color = mix(color, day * 0.012, 1.0 - dayAmt);
+      color += lights * (1.0 - dayAmt);
+
+      // Atmosphärischer Dunst am Rand (nur auf der beleuchteten Seite)
+      float fres = pow(1.0 - max(dot(N, V), 0.0), 4.0);
+      color += vec3(0.30, 0.55, 1.0) * fres * 0.6 * smoothstep(-0.05, 0.4, sunN);
+
+      gl_FragColor = vec4(color, 1.0);
+      #include <colorspace_fragment>
+    }`,
+});
+
+const earth = new THREE.Mesh(new THREE.SphereGeometry(1, 192, 96), earthMat);
+scene.add(earth);
+
+// --- Wolken ------------------------------------------------------------------
+const cloudMat = new THREE.ShaderMaterial({
+  uniforms: { cloudMap: { value: emptyTex }, sunDir: { value: sunDir }, drift: { value: 0 } },
+  transparent: true,
+  depthWrite: false,
+  vertexShader: /* glsl */`
+    varying vec2 vUv; varying vec3 vNormal;
+    void main() {
+      vUv = uv; vNormal = normalize(normal);
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }`,
+  fragmentShader: /* glsl */`
+    uniform sampler2D cloudMap; uniform vec3 sunDir; uniform float drift;
+    varying vec2 vUv; varying vec3 vNormal;
+    void main() {
+      float a = texture2D(cloudMap, vUv + vec2(drift, 0.0)).a;
+      float sunN = dot(normalize(vNormal), sunDir);
+      float light = smoothstep(-0.12, 0.25, sunN);
+      vec3 col = mix(vec3(0.02, 0.025, 0.04), vec3(1.0), light);
+      // Wolken an der Terminatorlinie warm anleuchten
+      float tw = smoothstep(-0.12, 0.02, sunN) * (1.0 - smoothstep(0.02, 0.2, sunN));
+      col = mix(col, vec3(1.0, 0.62, 0.38), tw * 0.7);
+      gl_FragColor = vec4(col, a * mix(0.25, 0.95, light));
+      #include <colorspace_fragment>
+    }`,
+});
+const clouds = new THREE.Mesh(new THREE.SphereGeometry(1.006, 256, 128), cloudMat);
+scene.add(clouds);
+
+// Live-Wolkenbild (alle ~3 h aktualisiert, Quelle: github.com/matteason/live-cloud-maps).
+// 8K nur für nahe Ansichten – spart sonst ~200 MB Grafikspeicher.
+const liveCloudsUrl = (res) => `https://clouds.matteason.co.uk/images/${res}/clouds-alpha.png`;
+const wantedCloudRes = () => (cfg.zoom > 1.5 ? '8192x4096' : '4096x2048');
+let liveCloudTex = null, liveCloudRes = null, liveCloudLoading = false;
+function setCloudTex(t) {
+  cloudMat.uniforms.cloudMap.value = t;
+  earthMat.uniforms.cloudMap.value = t;
+  requestRender();
+}
+function loadLiveClouds() {
+  if (cfg.clouds !== 'live' || liveCloudLoading) return;
+  const res = wantedCloudRes();
+  liveCloudLoading = true;
+  loader.setCrossOrigin('anonymous');
+  loader.load(`${liveCloudsUrl(res)}?t=${Math.floor(Date.now() / 3.6e6)}`, (t) => {
+    liveCloudLoading = false;
+    t.anisotropy = maxAniso;
+    t.wrapS = THREE.RepeatWrapping;
+    liveCloudTex?.dispose();
+    liveCloudTex = t;
+    liveCloudRes = res;
+    applyCloudMode();
+  }, undefined, () => { liveCloudLoading = false; applyCloudMode(); /* offline: statische Wolken */ });
+}
+function applyCloudMode() {
+  clouds.visible = cfg.clouds !== 'off';
+  earthMat.uniforms.cloudAmt.value = cfg.clouds === 'off' ? 0 : 1;
+  if (cfg.clouds === 'live' && (!liveCloudTex || liveCloudRes !== wantedCloudRes())) loadLiveClouds();
+  if (cfg.clouds === 'off') setCloudTex(emptyTex);
+  else setCloudTex(cfg.clouds === 'live' && liveCloudTex ? liveCloudTex : staticClouds());
+}
+const liveCloudsActive = () => cfg.clouds === 'live' && !!liveCloudTex;
+setInterval(loadLiveClouds, 60 * 60 * 1000);
+
+// --- Atmosphäre (Glow um die Erde) ---------------------------------------
+const ATMO = 1.03;
+const atmoMat = new THREE.ShaderMaterial({
+  uniforms: { sunDir: { value: sunDir }, camPos: { value: camera.position } },
+  side: THREE.BackSide,
+  transparent: true,
+  depthWrite: false,
+  blending: THREE.AdditiveBlending,
+  vertexShader: /* glsl */`
+    varying vec3 vPos;
+    void main() {
+      vPos = position;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }`,
+  fragmentShader: /* glsl */`
+    uniform vec3 sunDir, camPos;
+    varying vec3 vPos;
+    void main() {
+      // Tiefster Punkt des Sichtstrahls über der Erdoberfläche
+      vec3 D = normalize(vPos - camPos);
+      float t = max(-dot(camPos, D), 0.0);
+      vec3 closest = camPos + D * t;
+      float h = (length(closest) - 1.0) / ${(ATMO - 1).toFixed(3)};
+      float glow = pow(clamp(1.0 - h, 0.0, 1.0), 3.0);
+      // Kamera innerhalb der Lufthülle: Strahlen nach oben (t = 0) leuchten nicht
+      glow *= smoothstep(0.0, 0.08, t);
+      float sunN = dot(normalize(closest), sunDir);
+      float lit = smoothstep(-0.2, 0.25, sunN);
+      vec3 col = mix(vec3(1.0, 0.42, 0.18), vec3(0.32, 0.6, 1.0), smoothstep(-0.06, 0.18, sunN));
+      gl_FragColor = vec4(col * glow * lit * 1.5, 1.0);
+      #include <colorspace_fragment>
+    }`,
+});
+const atmo = new THREE.Mesh(new THREE.SphereGeometry(ATMO, 160, 80), atmoMat);
+scene.add(atmo);
+
+// --- Sterne ------------------------------------------------------------------
+{
+  const n = 4000, pos = new Float32Array(n * 3), col = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) {
+    const v = new THREE.Vector3().randomDirection().multiplyScalar(400);
+    pos.set([v.x, v.y, v.z], i * 3);
+    const b = Math.pow(Math.random(), 3) * 0.9 + 0.1;
+    const warm = Math.random();
+    col.set([b * (0.85 + 0.15 * warm), b * 0.9, b * (1.0 - 0.15 * warm)], i * 3);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  scene.add(new THREE.Points(g, new THREE.PointsMaterial({
+    size: 1.3, sizeAttenuation: false, vertexColors: true, transparent: true, opacity: 0.85,
+  })));
+}
+
+// --- Kamera ------------------------------------------------------------------
+// Alle Kameragrößen werden weich zum Zielwert geführt, damit Wechsel von Ort,
+// Ansicht oder Zoom wie ein Kameraflug wirken.
+const cam = { lat: cfg.lat, lon: cfg.lon, zoom: cfg.zoom, pitch: cfg.pitch, heading: cfg.heading,
+              tilt: cfg.tilt, fov: cfg.fov, x: cfg.x, y: cfg.y };
+let orbitLon = 0;
+const wrap180 = (a) => ((a % 360) + 540) % 360 - 180;
+
+function targetLon(sun) {
+  if (cfg.motion === 'orbit') return cfg.lon + orbitLon;
+  if (cfg.motion === 'sun') return sun.lon - 55;
+  return cfg.lon;
+}
+
+const _n = new THREE.Vector3(), _north = new THREE.Vector3(), _east = new THREE.Vector3();
+const _fwd = new THREE.Vector3(), _dir = new THREE.Vector3(), _up = new THREE.Vector3();
+function updateCamera(dt, sun) {
+  const k = 1 - Math.exp(-dt * 1.6);
+  for (const key of ['lat', 'zoom', 'pitch', 'heading', 'tilt', 'fov', 'x', 'y']) {
+    cam[key] += (cfg[key] - cam[key]) * k;
+  }
+  const lonErr = wrap180(targetLon(sun) - cam.lon);
+  cam.lon += lonErr * k;
+  // Noch im Kameraflug? (Orbit-Nachlauf zählt nicht: der ist gleichmäßig)
+  settling = ['lat', 'zoom', 'pitch', 'heading', 'tilt', 'fov', 'x', 'y']
+    .some((key) => Math.abs(cfg[key] - cam[key]) > (key === 'zoom' ? 0.002 : 0.02)) ||
+    (cfg.motion !== 'orbit' && Math.abs(lonErr) > 0.02) ||
+    (cfg.motion === 'orbit' && Math.abs(lonErr) > Math.abs(cfg.speed) / 1.6 + 0.5);
+
+  if (Math.abs(camera.fov - cam.fov) > 1e-4) { camera.fov = cam.fov; }
+  const halfFov = cam.fov * DEG / 2;
+  const dist = Math.max(1.004, 1 / Math.sin(Math.atan(cam.zoom * Math.tan(halfFov))));
+
+  // Lokales Koordinatensystem über dem Ort: n = oben, north/east = Tangenten
+  latLonToVec(Math.max(-89.9, Math.min(89.9, cam.lat)), cam.lon, _n);
+  _north.set(0, 1, 0).addScaledVector(_n, -_n.y).normalize();
+  _east.crossVectors(_north, _n);
+  const h = cam.heading * DEG, p = cam.pitch * DEG;
+  _fwd.copy(_north).multiplyScalar(Math.cos(h)).addScaledVector(_east, Math.sin(h));
+  _dir.copy(_n).multiplyScalar(-Math.cos(p)).addScaledVector(_fwd, Math.sin(p));
+  _up.copy(_n).multiplyScalar(Math.sin(p)).addScaledVector(_fwd, Math.cos(p));
+  _up.applyAxisAngle(_dir, cam.tilt * DEG);
+
+  camera.position.copy(_n).multiplyScalar(dist);
+  camera.up.copy(_up);
+  camera.lookAt(camera.position.x + _dir.x, camera.position.y + _dir.y, camera.position.z + _dir.z);
+  // Bildausschnitt verschieben (Lens-Shift, ohne die Perspektive zu verzerren)
+  camera.setViewOffset(innerWidth, innerHeight, -cam.x * innerWidth / 2, cam.y * innerHeight / 2, innerWidth, innerHeight);
+}
+
+window.applyConfig = (c) => {
+  const moved = ('lat' in c && c.lat !== cfg.lat) || ('lon' in c && c.lon !== cfg.lon) ||
+                ('motion' in c && c.motion !== cfg.motion);
+  // Beim Ortswechsel fliegt die Kamera hin und kreist (im Orbit-Modus) von dort weiter
+  if (moved) orbitLon = 0;
+  const cloudsChanged = 'clouds' in c && c.clouds !== cfg.clouds;
+  Object.assign(cfg, c);
+  hud.style.display = cfg.hud ? 'block' : 'none';
+  applyPixelRatio();
+  renderer.setSize(innerWidth, innerHeight);
+  if (cloudsChanged || (liveCloudRes && liveCloudRes !== wantedCloudRes())) applyCloudMode();
+  boostUntil = performance.now() + 1500;
+  requestRender();
+};
+
+// Von der App aufgerufen, wenn das Fenster verdeckt ist oder die Bildschirme schlafen
+window.setPaused = (p) => {
+  paused = !!p;
+  if (!paused) requestRender();
+};
+
+// --- HUD ---------------------------------------------------------------------
+const hud = document.getElementById('hud');
+if (cfg.hud) hud.style.display = 'block';
+function fmtCoord(v, pos, neg) { return `${Math.abs(v).toFixed(1)}° ${v >= 0 ? pos : neg}`; }
+
+// --- Loop --------------------------------------------------------------------
+// Die Bildrate passt sich an, wie schnell sich das Bild tatsächlich bewegt:
+// Kameraflüge laufen mit voller Rate, das langsame Umkreisen mit wenigen Bildern
+// pro Sekunde (Bewegung ≤ 1 px pro Bild) und eine stehende Kamera wird nur alle
+// paar Sekunden neu gezeichnet. Dazwischen schläft die Seite komplett.
+let paused = false, timer = 0, rafPending = false;
+let lastRender = 0, lastSec = performance.now() / 1000, boostUntil = 0, settling = true;
+const SIDEREAL_DEG_PER_SEC = 360 / 86164;
+
+function desiredFps() {
+  if (settling || performance.now() < boostUntil) return cfg.fps;
+  // Erdradius in Gerätepixeln; geneigte Kamera = Oberfläche näher, Bewegung schneller
+  const radiusPx = Math.min(cam.zoom, 12) * innerHeight / 2 * renderer.getPixelRatio() * (1 + 2 * Math.sin(cam.pitch * DEG));
+  const degPerSec = cfg.motion === 'orbit' ? Math.abs(cfg.speed)
+                  : cfg.motion === 'sun' ? SIDEREAL_DEG_PER_SEC * cfg.warp
+                  : 0;
+  const pxPerSec = degPerSec * DEG * radiusPx;
+  return Math.min(cfg.fps, Math.max(0.2, pxPerSec / 1.0));
+}
+
+function requestRender() {
+  clearTimeout(timer);
+  timer = 0;
+  schedule(0);
+}
+
+function schedule(delayMs) {
+  if (paused || rafPending || timer) return;
+  timer = setTimeout(() => {
+    timer = 0;
+    rafPending = true;
+    requestAnimationFrame(frame);
+  }, delayMs);
+}
+
+function frame() {
+  rafPending = false;
+  if (paused) return;
+  const sec = performance.now() / 1000;
+  const dt = sec - lastSec;
+  lastSec = sec;
+  orbitLon += cfg.speed * dt;
+
+  const date = now();
+  const sun = subsolarPoint(date);
+  latLonToVec(sun.lat, sun.lon, sunDir);
+  updateCamera(Math.min(dt, 2), sun);
+  // Statische Wolken driften leicht, Live-Wolken bleiben geografisch korrekt
+  cloudMat.uniforms.drift.value = liveCloudsActive() ? 0 : sec * 0.0002;
+
+  if (cfg.hud) {
+    hud.textContent = (cfg.place ? cfg.place + '  ·  ' : '') +
+      date.toLocaleString('de-DE', { dateStyle: 'medium', timeStyle: 'short' }) +
+      `  ·  Sonne im Zenit über ${fmtCoord(sun.lat, 'N', 'S')}, ${fmtCoord(sun.lon, 'O', 'W')}` +
+      (liveCloudsActive() ? '  ·  Wolken live' : '');
+  }
+  renderer.render(scene, camera);
+
+  const fps = desiredFps();
+  const next = Math.max(0, 1000 / fps - (performance.now() - sec * 1000) - 4);
+  lastRender = sec;
+  schedule(fps >= cfg.fps ? 0 : next);
+}
+
+applyCloudMode();
+requestRender();
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+  requestRender();
+});
+</script>
+</body>
+</html>
