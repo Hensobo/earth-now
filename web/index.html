@@ -234,20 +234,30 @@ function setCloudTex(t) {
   earthMat.uniforms.cloudMap.value = t;
   requestRender();
 }
+// Nach einem Fehlschlag (offline, Server nicht erreichbar) statische Wolken zeigen und
+// erst nach einer Wartezeit erneut versuchen: 1, 2, 4 … höchstens 60 Minuten.
+let liveCloudRetryAt = 0, liveCloudFailures = 0;
 function loadLiveClouds() {
-  if (cfg.clouds !== 'live' || liveCloudLoading) return;
+  if (cfg.clouds !== 'live' || liveCloudLoading || Date.now() < liveCloudRetryAt) return;
   const res = wantedCloudRes();
   liveCloudLoading = true;
   loader.setCrossOrigin('anonymous');
   loader.load(`${liveCloudsUrl(res)}?t=${Math.floor(Date.now() / 3.6e6)}`, (t) => {
     liveCloudLoading = false;
+    liveCloudFailures = 0;
+    liveCloudRetryAt = 0;
     t.anisotropy = maxAniso;
     t.wrapS = THREE.RepeatWrapping;
     liveCloudTex?.dispose();
     liveCloudTex = t;
     liveCloudRes = res;
     applyCloudMode();
-  }, undefined, () => { liveCloudLoading = false; applyCloudMode(); /* offline: statische Wolken */ });
+  }, undefined, () => {
+    liveCloudLoading = false;
+    liveCloudFailures++;
+    liveCloudRetryAt = Date.now() + Math.min(60, 2 ** (liveCloudFailures - 1)) * 60 * 1000;
+    applyCloudMode();  // zeigt statische Wolken; neuer Versuch erst nach liveCloudRetryAt
+  });
 }
 function applyCloudMode() {
   clouds.visible = cfg.clouds !== 'off';
@@ -440,10 +450,12 @@ function frame() {
   cloudMat.uniforms.drift.value = liveCloudsActive() ? 0 : sec * 0.0002;
 
   if (cfg.hud) {
+    const de = navigator.language.startsWith('de');
     hud.textContent = (cfg.place ? cfg.place + '  ·  ' : '') +
-      date.toLocaleString('de-DE', { dateStyle: 'medium', timeStyle: 'short' }) +
-      `  ·  Sonne im Zenit über ${fmtCoord(sun.lat, 'N', 'S')}, ${fmtCoord(sun.lon, 'O', 'W')}` +
-      (liveCloudsActive() ? '  ·  Wolken live' : '');
+      date.toLocaleString(de ? 'de-DE' : 'en-GB', { dateStyle: 'medium', timeStyle: 'short' }) +
+      (de ? `  ·  Sonne im Zenit über ${fmtCoord(sun.lat, 'N', 'S')}, ${fmtCoord(sun.lon, 'O', 'W')}`
+          : `  ·  Sun overhead at ${fmtCoord(sun.lat, 'N', 'S')}, ${fmtCoord(sun.lon, 'E', 'W')}`) +
+      (liveCloudsActive() ? (de ? '  ·  Wolken live' : '  ·  Live clouds') : '');
   }
   renderer.render(scene, camera);
 
