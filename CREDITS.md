@@ -1,25 +1,36 @@
-# Credits & Lizenzen
+# Credits & licenses
 
-Earth Now nutzt folgende Inhalte und Bibliotheken von Dritten.
+Earth Now is built on the work of others. Thank you!
 
-## Bilder & Daten
+## Images & data
 
-| Inhalt | Quelle | Lizenz / Hinweis |
+| Content | Source | License / notice |
 |---|---|---|
-| Tagesansicht der Erde (`web/textures/day.jpg`) | NASA Earth Observatory, *Blue Marble: Next Generation* (Oktober 2004, mit Topografie & Bathymetrie), Reto Stöckli | Gemeinfrei (Werk der US-Regierung). Quellenangabe erbeten: „NASA Earth Observatory“ |
-| Nachtlichter (`web/textures/night.jpg`) | NASA Earth Observatory, *Black Marble 2016* | Gemeinfrei (Werk der US-Regierung). Quellenangabe erbeten: „NASA Earth Observatory / Suomi NPP VIIRS“ |
-| Statische Wolken, Normal- & Glanzkarte (`clouds.png`, `normal.jpg`, `specular.jpg`) | three.js-Beispieltexturen (`examples/textures/planets`) | MIT-Lizenz, siehe unten |
-| Live-Wolken (zur Laufzeit geladen) | [matteason/live-cloud-maps](https://github.com/matteason/live-cloud-maps), Bilder: CC0 1.0 | **Pflichthinweis:** *Contains modified EUMETSAT data* ([EUMETSAT-Datenlizenz](https://www.eumetsat.int/eumetsat-data-licensing)) |
+| Daytime Earth (`web/textures/day.jpg`) | NASA Earth Observatory, *Blue Marble: Next Generation* (October 2004, with topography & bathymetry), Reto Stöckli | Public domain (US government work). Credit: "NASA Earth Observatory" |
+| Night lights (`web/textures/night.jpg`) | NASA Earth Observatory, *Black Marble 2016* | Public domain (US government work). Credit: "NASA Earth Observatory / Suomi NPP VIIRS" |
+| Static clouds, normal & specular maps (`clouds.png`, `normal.jpg`, `specular.jpg`) | three.js example textures (`examples/textures/planets`) | MIT License, see below |
+| Live clouds (loaded at runtime) | [matteason/live-cloud-maps](https://github.com/matteason/live-cloud-maps), images CC0 1.0 | **Required notice:** *Contains modified EUMETSAT data* ([EUMETSAT data licensing](https://www.eumetsat.int/eumetsat-data-licensing)) |
 
-Der EUMETSAT-Hinweis steht in der App im Einstellungsfenster unter „Darstellung“.
+The EUMETSAT notice is shown in the app (settings window, "Display" section, and the About window)
+and on the website.
 
 ## Software
 
-| Bibliothek | Version | Lizenz |
+| Library | Version | License |
 |---|---|---|
-| [three.js](https://threejs.org) (`web/lib/three.module.min.js`) | 0.160.0 | MIT, Lizenztext: [`licenses/three.js-LICENSE.txt`](licenses/three.js-LICENSE.txt) |
+| [three.js](https://threejs.org) (`web/lib/three.module.min.js`) | 0.160.0 | MIT, full text: [`licenses/three.js-LICENSE.txt`](licenses/three.js-LICENSE.txt) |
 
-## Vor einer kommerziellen Nutzung prüfen
+## Not affiliated
 
-- **EUMETSAT-Daten:** Die Lizenzbedingungen von EUMETSAT unterscheiden je nach Datensatz zwischen nicht-kommerzieller und kommerzieller Nutzung. Für eine kostenlose App reicht der Hinweis oben; bei einer Bezahl-App die Bedingungen vorher genau lesen.
-- **Wolken-Server:** `clouds.matteason.co.uk` ist ein privat betriebenes Projekt. Bei größerer Verbreitung den Betreiber informieren (Kontakt im README des Projekts) oder die Wolkenkarten selbst hosten.
+Earth Now is an independent open-source project. It is not affiliated with, endorsed or sponsored by
+NASA, EUMETSAT or Apple. NASA imagery is used under NASA's media usage guidelines; its use does not
+imply endorsement.
+
+## Notes for redistribution
+
+- **EUMETSAT data:** EUMETSAT's licensing distinguishes between non-commercial and commercial use for
+  some data sets. Earth Now is free and non-commercial. If you build a paid product on this code,
+  check the conditions first.
+- **Cloud server:** `clouds.matteason.co.uk` is run privately by the author of live-cloud-maps, who
+  states the maps may be used for almost any purpose. If your fork gets a lot of users, consider
+  hosting the cloud maps yourself – the project's code makes that easy.
