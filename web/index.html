@@ -34,6 +34,7 @@ import * as THREE from './lib/three.module.min.js';
 //   fov      Brennweite (vertikaler Blickwinkel)
 //   x,y      Verschiebung des Bildausschnitts (-1..1)
 //   fps, hud (0/1), clouds (live|static|off), warp (Zeitraffer-Faktor)
+//   time     Startzeitpunkt statt jetzt, ISO 8601, z. B. time=2026-06-21T18:00:00Z (für Tests/Screenshots)
 // ---------------------------------------------------------------------------
 const P = new URLSearchParams(location.search);
 const cfg = {
@@ -49,7 +50,8 @@ for (const [k, v] of P) {
 
 const DEG = Math.PI / 180;
 const startReal = Date.now();
-const now = () => new Date(startReal + (Date.now() - startReal) * cfg.warp);
+const startSim = Date.parse(P.get('time') || window.__startTime || '') || startReal;
+const now = () => new Date(startSim + (Date.now() - startReal) * cfg.warp);
 
 // --- Sonnenstand (Subsolarpunkt) -------------------------------------------
 // Low-precision-Formeln des Astronomical Almanac, Genauigkeit ~0.01°.
