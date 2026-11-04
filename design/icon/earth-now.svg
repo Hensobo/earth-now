@@ -1,0 +1,120 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <title>Earth Now – App-Icon</title>
+  <defs>
+    <!-- Hintergrund: Weltraum -->
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#16244a"/>
+      <stop offset="1" stop-color="#03060f"/>
+    </linearGradient>
+    <clipPath id="tile"><rect x="100" y="100" width="824" height="824" rx="185"/></clipPath>
+    <clipPath id="globe"><circle cx="512" cy="530" r="290"/></clipPath>
+
+    <!-- Ozean, von links oben beleuchtet -->
+    <radialGradient id="ocean" cx="0.36" cy="0.32" r="0.8">
+      <stop offset="0" stop-color="#4fb3e8"/>
+      <stop offset="0.45" stop-color="#1f6fb8"/>
+      <stop offset="1" stop-color="#0b2f66"/>
+    </radialGradient>
+    <linearGradient id="land" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#b9c98a"/>
+      <stop offset="0.5" stop-color="#6f9a56"/>
+      <stop offset="1" stop-color="#3f6b3c"/>
+    </linearGradient>
+
+    <!-- Tag/Nacht-Grenze: weiche Dämmerungszone -->
+    <linearGradient id="night" gradientUnits="userSpaceOnUse" x1="330" y1="350" x2="760" y2="760">
+      <stop offset="0.42" stop-color="#020611" stop-opacity="0"/>
+      <stop offset="0.56" stop-color="#020611" stop-opacity="0.82"/>
+      <stop offset="0.7" stop-color="#020611" stop-opacity="0.96"/>
+    </linearGradient>
+    <linearGradient id="lightsFade" gradientUnits="userSpaceOnUse" x1="330" y1="350" x2="760" y2="760">
+      <stop offset="0.5" stop-color="#fff" stop-opacity="0"/>
+      <stop offset="0.62" stop-color="#fff" stop-opacity="1"/>
+    </linearGradient>
+    <mask id="nightSide"><rect x="0" y="0" width="1024" height="1024" fill="url(#lightsFade)"/></mask>
+    <radialGradient id="dusk" gradientUnits="userSpaceOnUse" cx="600" cy="618" r="140">
+      <stop offset="0" stop-color="#ff9a4d" stop-opacity="0.14"/>
+      <stop offset="1" stop-color="#ff9a4d" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Atmosphäre -->
+    <radialGradient id="halo" gradientUnits="userSpaceOnUse" cx="512" cy="530" r="350">
+      <stop offset="0.8" stop-color="#6cc6ff" stop-opacity="0"/>
+      <stop offset="0.83" stop-color="#6cc6ff" stop-opacity="0.55"/>
+      <stop offset="0.9" stop-color="#3d8fe0" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#3d8fe0" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="rim" gradientUnits="userSpaceOnUse" cx="512" cy="530" r="290">
+      <stop offset="0.86" stop-color="#9fdcff" stop-opacity="0"/>
+      <stop offset="1" stop-color="#bfe8ff" stop-opacity="0.55"/>
+    </radialGradient>
+    <linearGradient id="rimFade" gradientUnits="userSpaceOnUse" x1="300" y1="320" x2="720" y2="740">
+      <stop offset="0.35" stop-color="#fff" stop-opacity="1"/>
+      <stop offset="0.65" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+    <mask id="daySide"><rect x="0" y="0" width="1024" height="1024" fill="url(#rimFade)"/></mask>
+    <radialGradient id="glint" gradientUnits="userSpaceOnUse" cx="420" cy="430" r="120">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3"/>
+    </filter>
+  </defs>
+
+  <g clip-path="url(#tile)">
+    <rect x="100" y="100" width="824" height="824" fill="url(#bg)"/>
+    <!-- Sterne -->
+    <g fill="#fff">
+      <circle cx="196" cy="214" r="3" opacity=".7"/>
+      <circle cx="300" cy="162" r="2" opacity=".5"/>
+      <circle cx="782" cy="190" r="3.2" opacity=".8"/>
+      <circle cx="846" cy="300" r="2" opacity=".5"/>
+      <circle cx="702" cy="146" r="1.8" opacity=".45"/>
+      <circle cx="168" cy="388" r="2" opacity=".45"/>
+      <circle cx="864" cy="842" r="2.2" opacity=".4"/>
+      <circle cx="150" cy="800" r="1.8" opacity=".35"/>
+    </g>
+
+    <circle cx="512" cy="530" r="350" fill="url(#halo)"/>
+
+    <g clip-path="url(#globe)">
+      <rect x="200" y="220" width="624" height="624" fill="url(#ocean)"/>
+      <!-- stilisierte Landmassen (Europa/Afrika-Ansicht) -->
+      <g fill="url(#land)">
+        <path d="M420 300c40-22 96-20 132-4 22 10 44 6 60 20 14 12 0 30-18 34-26 6-30 26-58 30-30 4-56-8-82 2-24 9-44-6-54-24-8-16 2-46 20-58z"/>
+        <path d="M402 420c44-14 106-8 150 6 34 11 70 20 86 50 14 26-2 52 4 80 6 30 30 52 22 84-8 34-36 50-50 80-12 26-36 44-62 34-24-9-22-40-30-64-10-30-38-46-44-78-6-30 6-56-12-80-16-22-52-14-74-34-16-15-12-48 10-58z"/>
+        <path d="M676 560c18-6 34 8 34 26 0 22-10 46-28 52-14 5-22-12-22-28 0-20 2-44 16-50z"/>
+        <path d="M250 330c30-10 64 4 70 30 6 24-14 40-36 42-28 2-52-18-50-42 1-14 6-26 16-30z" opacity=".9"/>
+      </g>
+      <!-- Wolkenbänder -->
+      <g fill="none" stroke="#fff" stroke-linecap="round" opacity=".55">
+        <path d="M300 470c60-30 140-34 210-18" stroke-width="14"/>
+        <path d="M560 400c50-14 100-8 140 14" stroke-width="10"/>
+        <path d="M330 640c50 20 120 24 180 6" stroke-width="12"/>
+        <path d="M250 560c22-8 46-8 66 0" stroke-width="9"/>
+      </g>
+      <circle cx="420" cy="430" r="120" fill="url(#glint)"/>
+      <!-- Nachtseite -->
+      <rect x="200" y="220" width="624" height="624" fill="url(#night)"/>
+      <circle cx="600" cy="618" r="140" fill="url(#dusk)"/>
+      <!-- Stadtlichter -->
+      <g mask="url(#nightSide)" fill="#ffc46b">
+        <g filter="url(#glow)" opacity=".9">
+          <circle cx="640" cy="610" r="7"/><circle cx="676" cy="582" r="6"/>
+          <circle cx="702" cy="640" r="7"/><circle cx="664" cy="680" r="5"/>
+          <circle cx="612" cy="700" r="6"/><circle cx="730" cy="560" r="5"/>
+          <circle cx="560" cy="760" r="5"/><circle cx="742" cy="700" r="4"/>
+          <circle cx="690" cy="742" r="5"/><circle cx="626" cy="652" r="4"/>
+        </g>
+        <circle cx="640" cy="610" r="3.5" fill="#fff3d6"/>
+        <circle cx="676" cy="582" r="3" fill="#fff3d6"/>
+        <circle cx="702" cy="640" r="3.5" fill="#fff3d6"/>
+        <circle cx="612" cy="700" r="3" fill="#fff3d6"/>
+        <circle cx="690" cy="742" r="2.5" fill="#fff3d6"/>
+      </g>
+      <!-- Atmosphärenrand auf der Tagseite -->
+      <circle cx="512" cy="530" r="290" fill="url(#rim)" mask="url(#daySide)"/>
+    </g>
+  </g>
+</svg>

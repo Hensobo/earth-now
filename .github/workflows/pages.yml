@@ -1,0 +1,42 @@
+# Veröffentlicht die Landingpage aus site/ auf GitHub Pages.
+#
+# Läuft bewusst NUR manuell (Actions → „Landingpage veröffentlichen“ → Run workflow),
+# damit nichts versehentlich live geht. Vorher einmalig in den Repo-Einstellungen
+# unter Settings → Pages als Quelle „GitHub Actions“ wählen.
+name: Landingpage veröffentlichen
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # site/earth ist ein Symlink auf ../web – beim Kopieren auflösen,
+      # damit die Live-Erde (inkl. Texturen und three.js) mit ausgeliefert wird.
+      - name: Seite zusammenstellen
+        run: |
+          mkdir -p _site
+          cp -RL site/. _site/
+          test -f _site/earth/index.html
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4
