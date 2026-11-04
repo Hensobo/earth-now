@@ -1,43 +1,33 @@
-# Landingpage
+# Website
 
-Statische Seite für „Earth Now – Live Earth Wallpaper“, vorbereitet für GitHub Pages.
+Static website for Earth Now, served by GitHub Pages at <https://hensobo.github.io/earth-now/>.
 
 ```
 site/
-  index.html              Landingpage (ohne externe Abhängigkeiten, keine Webfonts, kein Tracking)
-  earth -> ../web         Symlink: die Live-Erde im Hero ist dieselbe Seite wie in der App
+  index.html              the page (no external dependencies, no web fonts, no tracking)
+  earth -> ../web         symlink: the live Earth in the hero is the app's own renderer
+  assets/screenshots ->   symlink to docs/screenshots (marketing renders + app screenshots)
+  assets/icon/            favicon (SVG), Apple touch icon, 512 px app icon
   favicon.ico             16/32/48 px
-  assets/icon/            Favicon (SVG), Apple-Touch-Icon, App-Icon 512 px
-  assets/screenshots/     Kopien von docs/preview.png und docs/settings.png
-  .nojekyll               Pages soll die Dateien unverändert ausliefern
+  .nojekyll               serve files as they are
 ```
 
-## Lokal ansehen
+## Preview locally
 
 ```bash
 python3 -m http.server 8000 --directory site
 ```
 
-Dann <http://localhost:8000> öffnen. Der Hero lädt `earth/index.html?motion=sun…`, die Kamera folgt also
-der Sonne, damit Besucher immer Tagseite und Dämmerungszone sehen.
+Then open <http://localhost:8000>.
 
-## Veröffentlichen (noch nicht passiert)
+## Deployment
 
-1. Repo → Settings → Pages → Source: **GitHub Actions**.
-2. Actions → **Landingpage veröffentlichen** → *Run workflow*.
+`.github/workflows/pages.yml` deploys on every push to `main` that touches `site/` or `web/` – but only
+while the repository is public. It resolves the symlinks when copying, so `web/` and the screenshots
+are included (≈ 20 MB).
 
-Der Workflow (`.github/workflows/pages.yml`) läuft nur manuell. Er löst den Symlink auf und lädt
-`site/` inkl. `web/` (≈ 14 MB Texturen) hoch.
+One-time setup after making the repository public: **Settings › Pages › Source: GitHub Actions**, then
+run the *Website* workflow once (Actions › Website › Run workflow).
 
-## Vor dem Livegang
-
-- Download-Button: in `index.html` `href` auf die DMG setzen und `aria-disabled="true"` entfernen,
-  Hinweis „Bald verfügbar“ anpassen.
-- Impressum/Datenschutz ergänzen (in Deutschland Pflicht für eine öffentliche Produktseite).
-  Hinweis für die Datenschutzerklärung: Die Live-Erde lädt Wolkenbilder von `clouds.matteason.co.uk`,
-  dabei wird die IP-Adresse der Besucher an diesen Server übertragen.
-- Screenshots in `assets/screenshots/` nach Änderungen an `docs/` neu kopieren.
-- Der EUMETSAT-Hinweis („Contains modified EUMETSAT data“) muss sichtbar bleiben, solange Live-Wolken
-  angezeigt werden (siehe `CREDITS.md`).
-
-Das App-Icon und seine Exporte liegen in `design/icon/` (siehe dortiges README).
+The download buttons point to `releases/latest/download/EarthNow.dmg`, which the release workflow
+publishes. Keep the EUMETSAT notice visible as long as live clouds are shown (see `CREDITS.md`).
