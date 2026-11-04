@@ -1,5 +1,8 @@
 # Builds the app on every push and pull request, checks the bundle and saves
 # a DMG plus real screenshots of the app windows (English and German) as artifacts.
+#
+# Put "[screenshots]" in a commit message to have the screenshots committed to
+# docs/screenshots/app/ on that branch.
 name: CI
 
 on:
@@ -16,10 +19,14 @@ permissions:
 
 jobs:
   build:
+    # Pushes run here; pull requests only when they come from a fork (avoids duplicate runs).
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
     runs-on: macos-15
     timeout-minutes: 20
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Use newest Xcode
         run: |
@@ -37,7 +44,6 @@ jobs:
           plutil -lint $APP/Contents/Info.plist
           codesign --verify --strict --verbose=2 $APP
           test -f $APP/Contents/Resources/AppIcon.icns
-          test -f $APP/Contents/Resources/de.lproj/Localizable.strings
           test -f $APP/Contents/Resources/web/index.html
           plutil -lint $APP/Contents/Resources/de.lproj/Localizable.strings
 
@@ -56,13 +62,24 @@ jobs:
           done
           ls -la shots
 
-      - uses: actions/upload-artifact@v4
+      - name: Commit screenshots to the branch
+        if: github.event_name == 'push' && contains(github.event.head_commit.message, '[screenshots]')
+        run: |
+          mkdir -p docs/screenshots/app
+          cp shots/*.png docs/screenshots/app/
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/screenshots/app
+          git commit -m "Update app screenshots from CI" || exit 0
+          git push
+
+      - uses: actions/upload-artifact@v5
         with:
           name: EarthNow-dmg
           path: dist/*.dmg
           retention-days: 14
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: screenshots
           path: shots/

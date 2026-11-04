@@ -28,7 +28,7 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # site/earth is a symlink to ../web – resolve it so the live Earth
       # (with textures and three.js) is deployed too.
