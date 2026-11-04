@@ -20,19 +20,76 @@ func L(_ key: String) -> String { NSLocalizedString(key, comment: "") }
 
 enum Motion: String, Codable, CaseIterable, Identifiable {
     case orbit, fixed, sun
+    case fromEarth = "earth"
     var id: String { rawValue }
     var title: String {
         switch self {
         case .orbit: return L("Orbit")
         case .fixed: return L("Stay Above Place")
         case .sun: return L("Follow the Sun")
+        case .fromEarth: return L("As Seen from Earth")
         }
     }
-    var help: String {
+    func help(for body: Planet) -> String {
+        if body == .earth {
+            switch self {
+            case .orbit: return L("The camera slowly circles the Earth – day and night stay true to the real time.")
+            case .fixed: return L("The camera stays above your place – watch day turn into night there, live.")
+            case .sun, .fromEarth: return L("The line between day and night stays in view while the Earth turns beneath it in real time.")
+            }
+        }
         switch self {
-        case .orbit: return L("The camera slowly circles the Earth – day and night stay true to the real time.")
-        case .fixed: return L("The camera stays above your place – watch day turn into night there, live.")
-        case .sun: return L("The line between day and night stays in view while the Earth turns beneath it in real time.")
+        case .orbit: return L("The camera slowly circles it – day and night are exactly where they are right now.")
+        case .fixed: return L("The camera stays above the chosen place – watch the sun move across its sky.")
+        case .sun: return L("The line between day and night stays in view while it turns beneath it in real time.")
+        case .fromEarth: return L("Shows it exactly as it looks from Earth right now – with its real phase.")
+        }
+    }
+    /// "As seen from Earth" makes no sense for the Earth itself.
+    static func options(for body: Planet) -> [Motion] { body == .earth ? [.orbit, .fixed, .sun] : allCases }
+}
+
+/// The planet (or Moon) on the desktop. Raw values match the web page's `body` parameter.
+enum Planet: String, Codable, CaseIterable, Identifiable {
+    case mercury, venus, earth, moon, mars, jupiter, saturn, uranus, neptune
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .mercury: return L("Mercury")
+        case .venus: return L("Venus")
+        case .earth: return L("Earth")
+        case .moon: return L("Moon")
+        case .mars: return L("Mars")
+        case .jupiter: return L("Jupiter")
+        case .saturn: return L("Saturn")
+        case .uranus: return L("Uranus")
+        case .neptune: return L("Neptune")
+        }
+    }
+    /// Thumbnail rendered from the app's own renderer (web/thumbs)
+    var thumbnail: NSImage? {
+        Bundle.main.resourceURL.flatMap { NSImage(contentsOf: $0.appendingPathComponent("web/thumbs/\(rawValue).jpg")) }
+    }
+    /// Places to fly to (planetocentric latitude/longitude, east-positive). The first one is the default.
+    var places: [Place] {
+        switch self {
+        case .earth: return Place.quick
+        case .moon: return [.init(name: L("Near Side"), lat: 0, lon: 0), .init(name: L("Apollo 11"), lat: 0.67, lon: 23.47),
+                            .init(name: L("Tycho"), lat: -43.3, lon: -11.2), .init(name: L("Mare Imbrium"), lat: 32.8, lon: -15.6),
+                            .init(name: L("Far Side"), lat: 0, lon: 180), .init(name: L("South Pole"), lat: -85, lon: 0)]
+        case .mercury: return [.init(name: L("Equator"), lat: 0, lon: 0), .init(name: L("Caloris Basin"), lat: 30.5, lon: -170.2),
+                               .init(name: L("North Pole"), lat: 80, lon: 0)]
+        case .venus: return [.init(name: L("Equator"), lat: 0, lon: 0), .init(name: L("North Pole"), lat: 75, lon: 0),
+                             .init(name: L("South Pole"), lat: -75, lon: 0)]
+        case .mars: return [.init(name: L("Valles Marineris"), lat: -13.9, lon: -59.2), .init(name: L("Olympus Mons"), lat: 18.65, lon: -133.8),
+                            .init(name: L("Jezero Crater"), lat: 18.4, lon: 77.5), .init(name: L("Gale Crater"), lat: -5.4, lon: 137.8),
+                            .init(name: L("North Pole"), lat: 85, lon: 0)]
+        case .jupiter: return [.init(name: L("Great Red Spot"), lat: -20, lon: -47), .init(name: L("Equator"), lat: 0, lon: 0),
+                               .init(name: L("North Pole"), lat: 75, lon: 0)]
+        case .saturn: return [.init(name: L("Ring View"), lat: -25, lon: 0), .init(name: L("Equator"), lat: 0, lon: 0),
+                              .init(name: L("North Pole"), lat: 78, lon: 0)]
+        case .uranus: return [.init(name: L("North Pole"), lat: 75, lon: 0), .init(name: L("Equator"), lat: 0, lon: 0)]
+        case .neptune: return [.init(name: L("Equator"), lat: 0, lon: 0), .init(name: L("South Pole"), lat: -75, lon: 0)]
         }
     }
 }
@@ -50,6 +107,8 @@ enum CloudMode: String, Codable, CaseIterable, Identifiable {
 }
 
 struct EarthConfig: Codable, Equatable {
+    /// nil in settings saved by version 1 – that was always the Earth
+    var body: Planet? = .earth
     var motion: Motion = .orbit
     var speed: Double = 0.4
     var lat: Double = 51.0
@@ -65,6 +124,19 @@ struct EarthConfig: Codable, Equatable {
     var fps: Int = 30
     var hud: Bool = false
     var clouds: CloudMode = .live
+
+    var currentBody: Planet { body ?? .earth }
+
+    init() {}
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let d = EarthConfig()
+        func v<T: Decodable>(_ k: CodingKeys, _ fallback: T) -> T { (try? c.decodeIfPresent(T.self, forKey: k)) ?? fallback }
+        body = v(.body, Planet.earth); motion = v(.motion, d.motion); speed = v(.speed, d.speed)
+        lat = v(.lat, d.lat); lon = v(.lon, d.lon); place = v(.place, d.place); zoom = v(.zoom, d.zoom)
+        pitch = v(.pitch, d.pitch); heading = v(.heading, d.heading); tilt = v(.tilt, d.tilt); fov = v(.fov, d.fov)
+        x = v(.x, d.x); y = v(.y, d.y); fps = v(.fps, d.fps); hud = v(.hud, d.hud); clouds = v(.clouds, d.clouds)
+    }
 
     var json: String {
         String(data: try! JSONEncoder().encode(self), encoding: .utf8)!
@@ -135,6 +207,8 @@ final class Store: ObservableObject {
     @Published var config: EarthConfig { didSet { save("config", config) } }
     @Published var customViews: [ViewPreset] { didSet { save("customViews", customViews) } }
     @Published var recentPlaces: [Place] { didSet { save("recentPlaces", recentPlaces) } }
+    /// Last place per planet, so switching back returns to where you were
+    @Published var bodyPlaces: [String: Place] { didSet { save("bodyPlaces", bodyPlaces) } }
 
     var allViews: [ViewPreset] { ViewPreset.builtins + customViews }
     var currentView: ViewPreset? { allViews.first { $0.matches(config) } }
@@ -147,6 +221,7 @@ final class Store: ObservableObject {
             return v
         }
         config = load("config", EarthConfig())
+        bodyPlaces = load("bodyPlaces", [:])
         customViews = load("customViews", [])
         recentPlaces = load("recentPlaces", [])
         earthLeft = UserDefaults.standard.bool(forKey: "earthLeft")  // re-read after migration
@@ -172,7 +247,7 @@ final class Store: ObservableObject {
 
     func setPlace(_ p: Place) {
         config.lat = p.lat; config.lon = p.lon; config.place = p.name
-        if !Place.quick.contains(where: { $0.name == p.name }) {
+        if config.currentBody == .earth, !Place.quick.contains(where: { $0.name == p.name }) {
             recentPlaces.removeAll { $0.name == p.name }
             recentPlaces.insert(p, at: 0)
             recentPlaces = Array(recentPlaces.prefix(6))
@@ -188,6 +263,18 @@ final class Store: ObservableObject {
     }
 
     func applyView(_ v: ViewPreset) { v.apply(to: &config, left: earthLeft) }
+
+    func setBody(_ b: Planet) {
+        let old = config.currentBody
+        guard b != old else { return }
+        bodyPlaces[old.rawValue] = Place(name: config.place, lat: config.lat, lon: config.lon)
+        var c = config
+        c.body = b
+        let p = bodyPlaces[b.rawValue] ?? b.places[0]
+        c.lat = p.lat; c.lon = p.lon; c.place = p.name
+        if !Motion.options(for: b).contains(c.motion) { c.motion = .orbit }
+        config = c
+    }
 
     func saveCurrentView(named name: String) {
         let c = config
@@ -345,6 +432,7 @@ struct SettingsView: View {
                         .font(.caption).foregroundStyle(.white.opacity(0.6)).padding(10)
                 }
             Form {
+                bodySection
                 viewSection
                 placeSection
                 cameraSection
@@ -354,6 +442,38 @@ struct SettingsView: View {
         }
         .frame(width: 560)
         .frame(minHeight: 700)
+    }
+
+    // Planet
+    private var bodySection: some View {
+        Section {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(Planet.allCases) { b in
+                        let active = store.config.currentBody == b
+                        Button { store.setBody(b) } label: {
+                            VStack(spacing: 5) {
+                                Group {
+                                    if let img = b.thumbnail { Image(nsImage: img).resizable().interpolation(.high) }
+                                    else { Image(systemName: "circle.fill").resizable().foregroundStyle(.secondary) }
+                                }
+                                .frame(width: 46, height: 46)
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                                Text(b.title).font(.caption).lineLimit(1)
+                            }
+                            .frame(width: 70, height: 76)
+                            .background(RoundedRectangle(cornerRadius: 10)
+                                .fill(active ? Color.accentColor.opacity(0.25) : Color.secondary.opacity(0.1)))
+                            .overlay(RoundedRectangle(cornerRadius: 10)
+                                .stroke(active ? Color.accentColor : .clear, lineWidth: 2))
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.vertical, 2)
+            }
+        } header: { Text(L("Planet")) }
     }
 
     // View
@@ -420,10 +540,12 @@ struct SettingsView: View {
                 Text("\(store.config.place)  ·  \(coord(store.config.lat, "N", "S")), \(coord(store.config.lon, L("E"), "W"))")
                     .foregroundStyle(.secondary)
             }
+            if store.config.currentBody == .earth {
             TextField(L("Search Place"), text: $search.query, prompt: Text(L("Search for a city, country or address…")))
                 .textFieldStyle(.roundedBorder)
                 .labelsHidden()
-            ForEach(search.results, id: \.self) { r in
+            }
+            ForEach(store.config.currentBody == .earth ? search.results : [], id: \.self) { r in
                 Button {
                     search.resolve(r) { store.setPlace($0) }
                 } label: {
@@ -436,12 +558,12 @@ struct SettingsView: View {
                 }
                 .buttonStyle(.plain)
             }
-            placeChips(Place.quick + store.recentPlaces)
+            placeChips(store.config.currentBody == .earth ? Place.quick + store.recentPlaces : store.config.currentBody.places)
             Picker(L("Motion"), selection: $store.config.motion) {
-                ForEach(Motion.allCases) { Text($0.title).tag($0) }
+                ForEach(Motion.options(for: store.config.currentBody)) { Text($0.title).tag($0) }
             }
             .pickerStyle(.segmented)
-            Text(store.config.motion.help).font(.caption).foregroundStyle(.secondary)
+            Text(store.config.motion.help(for: store.config.currentBody)).font(.caption).foregroundStyle(.secondary)
             if store.config.motion == .orbit {
                 slider(L("Speed"), $store.config.speed, 0.02...3, log: true,
                        format: { String(format: L("%.0f min per orbit"), 360 / $0 / 60) })
@@ -476,16 +598,18 @@ struct SettingsView: View {
 
     private var displaySection: some View {
         Section {
-            Picker(L("Clouds"), selection: $store.config.clouds) {
-                ForEach(CloudMode.allCases) { Text($0.title).tag($0) }
+            if store.config.currentBody == .earth {
+                Picker(L("Clouds"), selection: $store.config.clouds) {
+                    ForEach(CloudMode.allCases) { Text($0.title).tag($0) }
+                }
+                .pickerStyle(.segmented)
             }
-            .pickerStyle(.segmented)
             Toggle(L("Show time & sun position"), isOn: $store.config.hud)
             Toggle(L("Maximum quality (60 fps, full resolution – uses more battery)"), isOn: Binding(
                 get: { store.config.fps == 60 }, set: { store.config.fps = $0 ? 60 : 30 }))
         } header: { Text(L("Display")) } footer: {
             // Credits (EUMETSAT requires this notice when its cloud data is shown)
-            Text(L("Earth imagery: NASA Blue Marble & Black Marble · Live clouds: matteason/live-cloud-maps, contains modified EUMETSAT data · 3D: three.js"))
+            Text(L("Earth imagery: NASA Blue Marble & Black Marble · Live clouds: matteason/live-cloud-maps, contains modified EUMETSAT data · Planets & Moon: Solar System Scope (CC BY 4.0) · 3D: three.js"))
                 .font(.caption2).foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -637,6 +761,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         m.addItem(settings)
         m.addItem(.separator())
 
+        let bodyItem = NSMenuItem(title: L("Planet") + ": " + store.config.currentBody.title, action: nil, keyEquivalent: "")
+        let bodies = NSMenu()
+        for (i, b) in Planet.allCases.enumerated() {
+            let item = NSMenuItem(title: b.title, action: #selector(pickBody(_:)), keyEquivalent: "")
+            item.tag = i
+            item.target = self
+            item.state = store.config.currentBody == b ? .on : .off
+            if let img = b.thumbnail { img.size = NSSize(width: 18, height: 18); item.image = img }
+            bodies.addItem(item)
+        }
+        bodyItem.submenu = bodies
+        m.addItem(bodyItem)
+        m.addItem(.separator())
+
         m.addItem(header(L("View")))
         for (i, v) in store.allViews.enumerated() {
             let item = NSMenuItem(title: v.name, action: #selector(pickView(_:)), keyEquivalent: "")
@@ -657,7 +795,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         m.addItem(.separator())
         m.addItem(header(L("Motion")))
-        for (i, mo) in Motion.allCases.enumerated() {
+        for (i, mo) in Motion.allCases.enumerated() where Motion.options(for: store.config.currentBody).contains(mo) {
             let item = NSMenuItem(title: mo.title, action: #selector(pickMotion(_:)), keyEquivalent: "")
             item.tag = i
             item.target = self
@@ -704,7 +842,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc func showAbout() {
         NSApp.activate(ignoringOtherApps: true)
         NSApp.orderFrontStandardAboutPanel(options: [
-            .credits: NSAttributedString(string: L("Earth imagery: NASA Earth Observatory. Live clouds: matteason/live-cloud-maps, contains modified EUMETSAT data. 3D: three.js (MIT)."),
+            .credits: NSAttributedString(string: L("Earth imagery: NASA Earth Observatory. Live clouds: matteason/live-cloud-maps, contains modified EUMETSAT data. Planet and Moon textures: Solar System Scope (CC BY 4.0). 3D: three.js (MIT)."),
                                          attributes: [.font: NSFont.systemFont(ofSize: 11)]),
         ])
     }
@@ -716,6 +854,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc func pickView(_ s: NSMenuItem) { Store.shared.applyView(Store.shared.allViews[s.tag]) }
     @objc func pickSide(_ s: NSMenuItem) { Store.shared.earthLeft = s.tag == 1 }
     @objc func pickMotion(_ s: NSMenuItem) { Store.shared.config.motion = Motion.allCases[s.tag] }
+    @objc func pickBody(_ s: NSMenuItem) { Store.shared.setBody(Planet.allCases[s.tag]) }
 }
 
 let app = NSApplication.shared

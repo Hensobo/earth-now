@@ -57,7 +57,6 @@
 "Show time & sun position" = "Uhrzeit & Sonnenstand einblenden";
 "Maximum quality (60 fps, full resolution – uses more battery)" = "Maximale Qualität (60 fps, volle Auflösung – braucht mehr Akku)";
 "Display" = "Darstellung";
-"Earth imagery: NASA Blue Marble & Black Marble · Live clouds: matteason/live-cloud-maps, contains modified EUMETSAT data · 3D: three.js" = "Erdbilder: NASA Blue Marble & Black Marble · Live-Wolken: matteason/live-cloud-maps, contains modified EUMETSAT data · 3D: three.js";
 "Settings…" = "Einstellungen …";
 "Earth on Left" = "Erde links";
 "Earth on Right" = "Erde rechts";
@@ -68,4 +67,36 @@
 "Check for Updates…" = "Nach Updates suchen …";
 "Couldn't change the login item" = "Anmeldeobjekt konnte nicht geändert werden";
 "Move Earth Now to your Applications folder and try again. You can also add it under System Settings › General › Login Items." = "Verschiebe Earth Now in den Programme-Ordner und versuche es erneut. Du kannst die App auch unter Systemeinstellungen › Allgemein › Anmeldeobjekte hinzufügen.";
-"Earth imagery: NASA Earth Observatory. Live clouds: matteason/live-cloud-maps, contains modified EUMETSAT data. 3D: three.js (MIT)." = "Erdbilder: NASA Earth Observatory. Live-Wolken: matteason/live-cloud-maps, contains modified EUMETSAT data. 3D: three.js (MIT).";
+
+/* Version 2: planets */
+"As Seen from Earth" = "Von der Erde aus";
+"The camera slowly circles it – day and night are exactly where they are right now." = "Die Kamera umkreist den Himmelskörper langsam – Tag und Nacht liegen genau dort, wo sie gerade sind.";
+"The camera stays above the chosen place – watch the sun move across its sky." = "Die Kamera steht über dem gewählten Ort – du siehst, wie die Sonne dort über den Himmel zieht.";
+"The line between day and night stays in view while it turns beneath it in real time." = "Die Tag-Nacht-Grenze bleibt im Bild, der Himmelskörper dreht sich in Echtzeit darunter weg.";
+"Shows it exactly as it looks from Earth right now – with its real phase." = "Zeigt ihn genau so, wie man ihn gerade von der Erde aus sieht – mit seiner echten Phase.";
+"Planet" = "Planet";
+"Mercury" = "Merkur";
+"Venus" = "Venus";
+"Earth" = "Erde";
+"Moon" = "Mond";
+"Mars" = "Mars";
+"Jupiter" = "Jupiter";
+"Saturn" = "Saturn";
+"Uranus" = "Uranus";
+"Neptune" = "Neptun";
+"Near Side" = "Vorderseite";
+"Apollo 11" = "Apollo 11";
+"Tycho" = "Tycho";
+"Mare Imbrium" = "Mare Imbrium";
+"Far Side" = "Rückseite";
+"South Pole" = "Südpol";
+"Equator" = "Äquator";
+"Caloris Basin" = "Caloris-Becken";
+"Valles Marineris" = "Valles Marineris";
+"Olympus Mons" = "Olympus Mons";
+"Jezero Crater" = "Jezero-Krater";
+"Gale Crater" = "Gale-Krater";
+"Great Red Spot" = "Großer Roter Fleck";
+"Ring View" = "Ringansicht";
+"Earth imagery: NASA Blue Marble & Black Marble · Live clouds: matteason/live-cloud-maps, contains modified EUMETSAT data · Planets & Moon: Solar System Scope (CC BY 4.0) · 3D: three.js" = "Erdbilder: NASA Blue Marble & Black Marble · Live-Wolken: matteason/live-cloud-maps, contains modified EUMETSAT data · Planeten & Mond: Solar System Scope (CC BY 4.0) · 3D: three.js";
+"Earth imagery: NASA Earth Observatory. Live clouds: matteason/live-cloud-maps, contains modified EUMETSAT data. Planet and Moon textures: Solar System Scope (CC BY 4.0). 3D: three.js (MIT)." = "Erdbilder: NASA Earth Observatory. Live-Wolken: matteason/live-cloud-maps, contains modified EUMETSAT data. Planeten- und Mondtexturen: Solar System Scope (CC BY 4.0). 3D: three.js (MIT).";

@@ -34,6 +34,9 @@ jobs:
           sudo xcode-select -s "$XC"
           echo "Using $XC"; swiftc --version
 
+      - name: Renderer tests
+        run: bash web/tests/run.sh
+
       - name: Build universal app and DMG
         run: ./release.sh
 
@@ -45,13 +48,21 @@ jobs:
           codesign --verify --strict --verbose=2 $APP
           test -f $APP/Contents/Resources/AppIcon.icns
           test -f $APP/Contents/Resources/web/index.html
+          test -f $APP/Contents/Resources/web/planets.js
+          test -f $APP/Contents/Resources/web/textures/planets/saturn-ring.png
+          test -f $APP/Contents/Resources/web/thumbs/mars.jpg
           plutil -lint $APP/Contents/Resources/de.lproj/Localizable.strings
 
       - name: Screenshots of the app windows
         run: |
           mkdir -p shots
-          # name  language  appearance  scroll   (all at the same moment, so the preview shows daylight)
-          while read -r name lang look scroll; do
+          # name  language  appearance  scroll  config (design/marketing/configs/<config>.json, "-" = default)
+          DOMAIN=io.github.hensobo.earthnow
+          while read -r name lang look scroll config; do
+            defaults delete $DOMAIN config 2>/dev/null || true
+            if [[ "$config" != "-" ]]; then
+              defaults write $DOMAIN config -data "$(xxd -p design/marketing/configs/$config.json | tr -d '\n')"
+            fi
             EARTHNOW_SETTINGS=1 EARTHNOW_APPEARANCE=$look EARTHNOW_SETTINGS_SCROLL=$scroll \
             EARTHNOW_TIME=2026-06-21T14:30:00Z \
             EARTHNOW_SETTINGS_SNAPSHOT=$PWD/shots/settings-$name.png \
@@ -62,10 +73,12 @@ jobs:
             kill $PID || true
             wait $PID 2>/dev/null || true
           done <<'EOF'
-          en-dark en dark top
-          en-bottom en dark bottom
-          en-light en light top
-          de-light de light top
+          en-dark en dark top -
+          en-bottom en dark bottom -
+          en-light en light top -
+          de-light de light top -
+          mars-dark en dark top mars
+          saturn-dark en dark top saturn
           EOF
           rm -f shots/desktop-en-dark.png shots/desktop-en-bottom.png shots/desktop-de-light.png
           ls -la shots
