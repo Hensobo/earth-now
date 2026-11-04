@@ -56,7 +56,8 @@ if (!process.argv.includes('--mockups-only')) {
 
 const mockups = [
   ['desktop-menu', 'scene=menu', 1440, 900],
-  ['desktop-settings', 'scene=settings&shot=settings-en-dark.png&second=settings-en-bottom.png&wall=close-up.jpg', 1440, 900],
+  ['desktop-settings', 'scene=settings&shot=settings-en-dark.png&wall=close-up.jpg', 1440, 900],
+  ['desktop-settings-display', 'scene=settings&shot=settings-en-bottom.png&wall=side-view.jpg', 1440, 900],
   ['social-preview', 'scene=social', 1280, 640],
 ];
 for (const [name, query, w, h] of mockups) {

@@ -56,10 +56,9 @@ where the big storms are. It's calm, it's real, and it barely touches your batte
 | ![Horizon at sunrise](docs/screenshots/views/horizon-sunrise.jpg) **Horizon** – sunrise over the Atlantic | ![City lights](docs/screenshots/views/city-lights.jpg) **City lights** – the night side before dawn |
 | ![Side View](docs/screenshots/views/side-view.jpg) **Side View** – room for your icons | ![Far Out](docs/screenshots/views/far-out.jpg) **Far Out** – a quiet, minimal desktop |
 
-<p align="center">
-  <img src="docs/screenshots/desktop-settings.jpg" alt="Settings window with live preview" width="100%">
-  <br><em>Settings with a live preview – every change shows up on your desktop right away.</em>
-</p>
+| | |
+|---|---|
+| ![Settings](docs/screenshots/desktop-settings.jpg) **Settings** with a live preview | ![Fine-tuning](docs/screenshots/desktop-settings-display.jpg) **Fine-tuning** – framing, clouds and quality |
 
 All Earth images are real renders from Earth Now. The app screenshots are taken automatically by CI
 from the actual app.
