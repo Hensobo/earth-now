@@ -1,61 +1,167 @@
-# Earth Now – Live Earth Wallpaper
+<p align="center">
+  <img src="design/icon/png/earth-now-256.png" width="128" height="128" alt="Earth Now icon">
+</p>
 
-Animierter Desktop-Hintergrund für macOS: eine 3D-Erde mit **echtem Sonnenstand** – wo gerade Tag ist, ist die Erde hell, wo Nacht ist, leuchten die Städte – und **Live-Wolken**, die alle drei Stunden aktualisiert werden.
+<h1 align="center">Earth Now</h1>
 
-![Earth Now](docs/preview.png)
+<p align="center">
+  <b>The real Earth, right now, as your Mac's desktop.</b><br>
+  Real sunlight and night, glowing cities and live clouds from weather satellites.
+</p>
 
-## Funktionen
+<p align="center">
+  <a href="https://github.com/Hensobo/earth-now/releases/latest"><img src="https://img.shields.io/github/v/release/Hensobo/earth-now?label=download&color=2f6fde" alt="Latest release"></a>
+  <img src="https://img.shields.io/badge/macOS-13%2B-lightgrey" alt="macOS 13 or later">
+  <img src="https://img.shields.io/badge/Apple%20Silicon%20%26%20Intel-universal-lightgrey" alt="Universal app">
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/Hensobo/earth-now" alt="MIT License"></a>
+  <a href="https://github.com/Hensobo/earth-now/actions/workflows/ci.yml"><img src="https://github.com/Hensobo/earth-now/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+</p>
 
-- **Echtzeit-Beleuchtung:** Sonnenstand aus Datum und Uhrzeit berechnet (Genauigkeit ~0,01°), mit Dämmerungszone, Stadtlichtern auf der Nachtseite, Sonnenspiegelung auf den Ozeanen und Atmosphäre.
-- **Live-Wolken** aus Satellitendaten, offline automatisch statische Wolken.
-- **Ansichten:** Ganze Erde, Nah dran, Horizont, Seitlich (Erde links oder rechts), Weit draußen – plus eigene, gespeicherte Ansichten.
-- **Ort:** Suche über Apple Karten; die Kamera fliegt weich zum neuen Ort.
-- **Bewegung:** Umkreisen (Tempo einstellbar), über dem Ort stehen oder der Sonne folgen.
-- **Sparsam:** Die Bildrate passt sich der tatsächlichen Bewegung an, verdeckte Bildschirme und schlafende Displays pausieren komplett.
-- Ein Fenster pro Bildschirm, auf allen Spaces, unter den Desktop-Icons, Klicks gehen durch.
+<p align="center">
+  <a href="https://github.com/Hensobo/earth-now/releases/latest/download/EarthNow.dmg"><b>⬇ Download for Mac</b></a>
+  &nbsp;·&nbsp; <a href="https://hensobo.github.io/earth-now/">Website</a>
+  &nbsp;·&nbsp; <a href="#first-launch">First launch</a>
+  &nbsp;·&nbsp; <a href="#faq">FAQ</a>
+</p>
 
-![Einstellungen](docs/settings.png)
+![Earth Now on a Mac desktop, with the menu bar menu open](docs/screenshots/desktop-menu.jpg)
 
-## Bedienung
+Earth Now turns your desktop into a window onto our planet, exactly as it looks at this moment. The
+sun rises and sets in the right places, cities light up as night falls, and the clouds are only a few
+hours old. Glance at it between two emails and you'll know where it's morning, where it's night, and
+where the big storms are. It's calm, it's real, and it barely touches your battery.
 
-Nach dem Start erscheint ein Globus-Symbol in der Menüleiste. Darüber wechselst du schnell Ansicht und Bewegung; **Einstellungen …** (⌘,) öffnet das Fenster mit Live-Vorschau. Ein Doppelklick auf die bereits laufende App öffnet ebenfalls die Einstellungen.
+## Features
 
-## Bauen
+- 🌗 **Real sunlight** – the sun's position is calculated from the date and time (accurate to about
+  0.01°), with twilight, sun glint on the oceans and a soft atmosphere.
+- ☁️ **Live clouds** from weather satellites, refreshed every three hours. Offline, built-in clouds
+  take over.
+- 🌃 **City lights** glow on the night side, from NASA's Black Marble images.
+- 🔭 **Five views** – Whole Earth, Close-up, Horizon, Side View (Earth left or right) and Far Out – or
+  fine-tune zoom, tilt and framing and save your own.
+- 📍 **Your place** – search any city or address and the camera glides there.
+- 🛰️ **Motion** – orbit the Earth, stay above your place, or follow the sun.
+- 🔋 **Easy on the battery** – the frame rate follows the actual motion (often less than one frame per
+  second); covered or sleeping screens pause completely.
+- 🖥️ **Every display, every Space** – below your desktop icons, clicks go straight through.
+- ⚙️ **Menu bar app** with a settings window and live preview, and **Open at Login**.
+- 🇬🇧 🇩🇪 English and German.
 
-Benötigt nur die Xcode Command Line Tools (`xcode-select --install`), kein Xcode.
+## Screenshots
+
+| | |
+|---|---|
+| ![Whole Earth](docs/screenshots/views/whole-earth.jpg) **Whole Earth** – day, night and twilight | ![Close-up](docs/screenshots/views/close-up.jpg) **Close-up** – your region under real clouds |
+| ![Horizon at sunrise](docs/screenshots/views/horizon-sunrise.jpg) **Horizon** – sunrise over the Atlantic | ![City lights](docs/screenshots/views/city-lights.jpg) **City lights** – the night side before dawn |
+| ![Side View](docs/screenshots/views/side-view.jpg) **Side View** – room for your icons | ![Far Out](docs/screenshots/views/far-out.jpg) **Far Out** – a quiet, minimal desktop |
+
+<p align="center">
+  <img src="docs/screenshots/desktop-settings.jpg" alt="Settings window with live preview" width="100%">
+  <br><em>Settings with a live preview – every change shows up on your desktop right away.</em>
+</p>
+
+All Earth images are real renders from Earth Now. The app screenshots are taken automatically by CI
+from the actual app.
+
+## Install
+
+1. [Download `EarthNow.dmg`](https://github.com/Hensobo/earth-now/releases/latest/download/EarthNow.dmg).
+2. Open it and drag **Earth Now** onto **Applications**.
+3. Start Earth Now from Applications. A globe appears in your menu bar.
+
+**Requirements:** macOS 13 Ventura or later · Apple Silicon or Intel · about 15 MB.
+
+### First launch
+
+Earth Now is free and isn't registered with Apple's paid developer program (yet), so the first time
+you open it macOS says it *could not verify* the app. You only need to confirm once:
+
+1. Open Earth Now. When the warning appears, click **Done**.
+2. Open **System Settings › Privacy & Security** and scroll down to **Security**.
+3. Next to "Earth Now was blocked…", click **Open Anyway** and confirm.
+
+On macOS 13 and 14 you can instead right-click the app, choose **Open** and confirm. Or, in Terminal:
 
 ```bash
-./build.sh            # baut EarthNow.app
+xattr -dr com.apple.quarantine /Applications/EarthNow.app
+```
+
+Every release is built by [GitHub Actions](.github/workflows/release.yml) straight from this source
+code. The checksum (`EarthNow.dmg.sha256`) is attached to each release.
+
+## Using Earth Now
+
+Click the **globe in the menu bar** to switch views and motion, turn on **Open at Login**, or open
+**Settings…** (⌘,). Opening the app again from Applications also opens the settings.
+
+In the settings you can:
+
+- pick a **view**, or adjust **zoom, pitch, heading, rotation, field of view and framing** and save
+  it as your own view (right-click to delete it again),
+- **search a place** or pick one of the quick places,
+- choose the **motion** and the orbit **speed**,
+- switch **clouds** between live, static and off, show the **time & sun position**, and turn on
+  **maximum quality** (60 fps, full resolution).
+
+## FAQ
+
+**Does it replace my wallpaper?** No. Earth Now places its own layer between your wallpaper and your
+desktop icons. Quit it and your wallpaper is back.
+
+**Does it drain my battery?** Barely – see "Easy on the battery" above. *Maximum quality* uses more power.
+
+**What happens without internet?** Everything keeps working with built-in clouds. Earth Now quietly
+tries again later.
+
+**How do I uninstall it?** Quit it from the globe menu (turn off "Open at Login" first if you enabled
+it) and move it to the Trash. Settings live in `~/Library/Preferences/io.github.hensobo.earthnow.plist`.
+
+**Why isn't it in the Mac App Store?** That, and getting rid of the first-launch warning, needs a paid
+Apple developer membership. For now it's distributed for free here.
+
+**Privacy?** The app collects nothing: no analytics, no accounts, no background update checks. It only
+downloads the cloud map from `clouds.matteason.co.uk` and, when you search for a place, sends the
+search text to Apple Maps. See [SECURITY.md](SECURITY.md) for details.
+
+## Build from source
+
+You need a Mac with the Xcode Command Line Tools (`xcode-select --install`) – no Xcode project.
+
+```bash
+./build.sh            # universal EarthNow.app (Apple Silicon + Intel)
 open EarthNow.app
-./release.sh 1.0      # baut und verpackt dist/EarthNow-1.0.dmg
+./release.sh          # also packages dist/EarthNow-<version>.dmg
 ```
 
-`release.sh` signiert und notarisiert, wenn `DEVELOPER_ID` und `NOTARY_PROFILE` gesetzt sind (Details im Skript).
+The Earth itself is a web page you can try in any browser:
 
-## Projektstruktur
-
-```
-app/main.swift        macOS-App: Desktop-Fenster, Menüleiste, Einstellungen (SwiftUI)
-web/index.html        Darstellung der Erde (three.js / WebGL, Shader, Sonnenstand)
-web/textures/         NASA-Erdtexturen (8K Tag, 4K Nacht) und Hilfstexturen
-web/lib/              three.js 0.160.0
-build.sh, release.sh  Build und DMG-Paket
+```bash
+python3 -m http.server --directory web
 ```
 
-Die Webseite lässt sich auch im Browser testen: `python3 -m http.server --directory web`, dann z. B.
-`http://localhost:8000/?motion=fixed&lat=52.5&lon=13.4&zoom=2.2&pitch=20&hud=1`
-(alle Parameter stehen oben in `web/index.html`).
+Then open e.g. <http://localhost:8000/?motion=fixed&lat=52.5&lon=13.4&zoom=2.2&pitch=20&hud=1>.
+All parameters are listed at the top of [`web/index.html`](web/index.html).
 
-## Vor dem ersten öffentlichen Release
+```
+app/main.swift        macOS app: desktop windows, menu bar, settings (SwiftUI)
+app/Localization/     UI translations
+web/index.html        Earth renderer (three.js / WebGL shaders, sun position)
+web/textures/         NASA Earth textures (8K day, 4K night) and helper maps
+site/                 website (GitHub Pages)
+design/               app icon and marketing images
+```
 
-- [ ] Universal-Build (Apple Silicon + Intel) und Mindest-macOS festlegen – aktuell wird nur für den eigenen Mac gebaut
-- [ ] Apple Developer Program, dann `release.sh` mit Signatur und Notarisierung
-- [ ] Markenrecherche „Earth Now“ (DPMA, EUIPO, USPTO – v. a. Klasse 9) und Domain sichern
-- [ ] Eigene Bundle-ID festlegen (aktuell `local.earthnow`, z. B. `de.<deinedomain>.earthnow`)
-- [ ] App-Icon
-- [ ] Lizenz für den eigenen Code wählen
-- [ ] Wolken-Server-Betreiber informieren bzw. eigenes Hosting (siehe [CREDITS.md](CREDITS.md))
+## Contributing
 
-## Credits
+Bug reports, ideas and pull requests are very welcome – see [CONTRIBUTING.md](CONTRIBUTING.md) and
+the [Code of Conduct](CODE_OF_CONDUCT.md). Security issues: [SECURITY.md](SECURITY.md).
 
-Erdbilder: NASA Earth Observatory (Blue Marble, Black Marble). Live-Wolken: [matteason/live-cloud-maps](https://github.com/matteason/live-cloud-maps), *contains modified EUMETSAT data*. 3D: [three.js](https://threejs.org) (MIT). Details in [CREDITS.md](CREDITS.md).
+## Credits & license
+
+Earth imagery: **NASA Earth Observatory** (Blue Marble, Black Marble). Live clouds:
+[matteason/live-cloud-maps](https://github.com/matteason/live-cloud-maps) – *contains modified
+EUMETSAT data*. 3D: [three.js](https://threejs.org) (MIT). Full details in [CREDITS.md](CREDITS.md).
+
+Earth Now is open source under the [MIT License](LICENSE). It is an independent project and not
+affiliated with, endorsed or sponsored by NASA, EUMETSAT or Apple.

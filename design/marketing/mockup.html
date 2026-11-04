@@ -106,12 +106,13 @@ if (scene === 'menu') {
     </div>
     ${menubar(true)}${menu(140)}`;
 } else if (scene === 'settings') {
-  html = `<div class="wall" style="background-image:url(${root}docs/screenshots/views/whole-earth.jpg)"></div>
-    ${menubar(false)}
-    <div class="window" style="left:${q.get('left') || 120}px; top:58px">
+  const win = (shot, left, top) => `<div class="window" style="left:${left}px; top:${top}px">
       <div class="titlebar"><div class="lights"><i></i><i></i><i></i></div>Earth Now</div>
-      <img src="${root}docs/screenshots/app/${q.get('shot') || 'settings-en-dark.png'}">
-    </div>`;
+      <img src="${root}docs/screenshots/app/${shot}"></div>`;
+  html = `<div class="wall" style="background-image:url(${root}docs/screenshots/views/${q.get('wall') || 'close-up.jpg'})"></div>
+    ${menubar(false)}
+    ${q.get('second') ? win(q.get('second'), 770, 132) : ''}
+    ${win(q.get('shot') || 'settings-en-dark.png', 110, 58)}`;
 } else if (scene === 'social') {
   html = `<div class="social"><div class="earth" style="background-image:url(${root}docs/screenshots/views/whole-earth.jpg)"></div>
     <div class="text"><img class="logo" src="${root}design/icon/png/earth-now-256.png" alt="">
