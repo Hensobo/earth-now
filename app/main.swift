@@ -250,7 +250,10 @@ final class EarthViews {
         conf.setURLSchemeHandler(BundleSchemeHandler(root: webRoot), forURLScheme: "earth")
         let ucc = conf.userContentController
         ucc.add(JSLogger.shared, name: "log")
+        // Debug/screenshots: EARTHNOW_TIME=2026-06-21T15:00:00Z starts the simulation at that moment
+        let startTime = ProcessInfo.processInfo.environment["EARTHNOW_TIME"].map { "window.__startTime = \"\($0)\";" } ?? ""
         ucc.addUserScript(WKUserScript(source: """
+            \(startTime)
             window.__initialConfig = \(Store.shared.config.json);
             const _l = m => window.webkit.messageHandlers.log.postMessage(String(m));
             addEventListener('error', e => _l('error: ' + e.message + ' @ ' + e.filename + ':' + e.lineno));
@@ -538,11 +541,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // Debug/screenshots: EARTHNOW_APPEARANCE=dark|light forces the appearance
         if let a = env["EARTHNOW_APPEARANCE"] { NSApp.appearance = NSAppearance(named: a == "dark" ? .darkAqua : .aqua) }
         if env["EARTHNOW_SETTINGS"] != nil { openSettings() }
-        // Debug: EARTHNOW_SETTINGS_HEIGHT makes the settings window taller (to show every section)
-        if let h = env["EARTHNOW_SETTINGS_HEIGHT"].flatMap(Double.init), let w = settingsWindow {
-            let top = w.frame.maxY
-            w.setContentSize(NSSize(width: w.contentLayoutRect.width, height: h))
-            w.setFrameTopLeftPoint(NSPoint(x: w.frame.minX, y: top))
+        // Debug: EARTHNOW_SETTINGS_SCROLL=bottom scrolls the settings form to its end before the snapshot
+        if env["EARTHNOW_SETTINGS_SCROLL"] == "bottom" {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                func scrollViews(_ v: NSView) -> [NSScrollView] {
+                    ((v as? NSScrollView).map { [$0] } ?? []) + v.subviews.flatMap(scrollViews)
+                }
+                guard let content = self.settingsWindow?.contentView,
+                      let sv = scrollViews(content).max(by: { $0.frame.height < $1.frame.height }),
+                      let doc = sv.documentView else { return }
+                let y = doc.isFlipped ? max(0, doc.frame.height - sv.contentView.bounds.height) : 0
+                sv.contentView.scroll(to: NSPoint(x: 0, y: y))
+                sv.reflectScrolledClipView(sv.contentView)
+            }
         }
         // Debug: save an image of the settings window (including the live preview)
         if let out = env["EARTHNOW_SETTINGS_SNAPSHOT"] {

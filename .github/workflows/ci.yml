@@ -50,9 +50,10 @@ jobs:
       - name: Screenshots of the app windows
         run: |
           mkdir -p shots
-          # name  language  appearance  window height (empty = default)
-          while read -r name lang look height; do
-            EARTHNOW_SETTINGS=1 EARTHNOW_APPEARANCE=$look EARTHNOW_SETTINGS_HEIGHT=$height \
+          # name  language  appearance  scroll   (all at the same moment, so the preview shows daylight)
+          while read -r name lang look scroll; do
+            EARTHNOW_SETTINGS=1 EARTHNOW_APPEARANCE=$look EARTHNOW_SETTINGS_SCROLL=$scroll \
+            EARTHNOW_TIME=2026-06-21T14:30:00Z \
             EARTHNOW_SETTINGS_SNAPSHOT=$PWD/shots/settings-$name.png \
             EARTHNOW_SNAPSHOT=$PWD/shots/desktop-$name.png \
               EarthNow.app/Contents/MacOS/EarthNow -AppleLanguages "($lang)" &
@@ -61,12 +62,12 @@ jobs:
             kill $PID || true
             wait $PID 2>/dev/null || true
           done <<'EOF'
-          en-light en light
-          en-dark en dark
-          en-full en dark 1480
-          de-light de light
+          en-dark en dark top
+          en-bottom en dark bottom
+          en-light en light top
+          de-light de light top
           EOF
-          rm -f shots/desktop-en-dark.png shots/desktop-en-full.png shots/desktop-de-light.png
+          rm -f shots/desktop-en-dark.png shots/desktop-en-bottom.png shots/desktop-de-light.png
           ls -la shots
 
       - name: Commit screenshots to the branch
