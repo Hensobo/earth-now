@@ -1,0 +1,29 @@
+# Fetches the planet textures (design/planets/fetch-textures.sh) and commits them.
+# Runs on demand, or on a push whose commit message contains "[textures]".
+name: Planet textures
+
+on:
+  workflow_dispatch:
+  push:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[textures]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install ImageMagick
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq imagemagick
+      - name: Fetch textures
+        run: bash design/planets/fetch-textures.sh
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add web/textures/planets
+          git commit -m "Add planet textures from Solar System Scope (CC BY 4.0)" || exit 0
+          git push
