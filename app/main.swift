@@ -1,32 +1,38 @@
-// Earth Now (Live Earth Wallpaper) – zeigt web/index.html als animierten Desktop-Hintergrund.
-// Ein randloses Fenster pro Bildschirm auf Desktop-Ebene (unter den Desktop-Icons),
-// klick-durchlässig, auf allen Spaces. Steuerung über das Menüleisten-Symbol und
-// ein Einstellungsfenster mit Live-Vorschau.
+// Earth Now (Live Earth Wallpaper) – shows web/index.html as an animated desktop background.
+// One borderless window per screen at desktop level (below the desktop icons),
+// click-through, on all Spaces. Controlled from the menu bar icon and a settings
+// window with a live preview.
+//
+// UI strings are English; translations live in app/Localization/<lang>.lproj.
 
 import AppKit
 import Combine
 import MapKit
+import ServiceManagement
 import SwiftUI
 import UniformTypeIdentifiers
 import WebKit
 
-// MARK: - Konfiguration (wird 1:1 als JSON an die Webseite übergeben)
+/// Localized UI string (English source, see app/Localization).
+func L(_ key: String) -> String { NSLocalizedString(key, comment: "") }
+
+// MARK: - Configuration (passed to the web page 1:1 as JSON)
 
 enum Motion: String, Codable, CaseIterable, Identifiable {
     case orbit, fixed, sun
     var id: String { rawValue }
     var title: String {
         switch self {
-        case .orbit: return "Umkreisen"
-        case .fixed: return "Über dem Ort"
-        case .sun: return "Sonne folgen"
+        case .orbit: return L("Orbit")
+        case .fixed: return L("Stay Above Place")
+        case .sun: return L("Follow the Sun")
         }
     }
     var help: String {
         switch self {
-        case .orbit: return "Die Kamera kreist langsam um die Erde, Tag und Nacht bleiben echt."
-        case .fixed: return "Die Kamera steht über dem Ort – du siehst live, wie dort Tag und Nacht wechseln."
-        case .sun: return "Die Tag-Nacht-Grenze bleibt im Bild, die Erde dreht sich in Echtzeit darunter weg."
+        case .orbit: return L("The camera slowly circles the Earth – day and night stay true to the real time.")
+        case .fixed: return L("The camera stays above your place – watch day turn into night there, live.")
+        case .sun: return L("The line between day and night stays in view while the Earth turns beneath it in real time.")
         }
     }
 }
@@ -36,9 +42,9 @@ enum CloudMode: String, Codable, CaseIterable, Identifiable {
     var id: String { rawValue }
     var title: String {
         switch self {
-        case .live: return "Live"
-        case .static: return "Statisch"
-        case .off: return "Aus"
+        case .live: return L("Live")
+        case .static: return L("Static")
+        case .off: return L("Off")
         }
     }
 }
@@ -48,7 +54,7 @@ struct EarthConfig: Codable, Equatable {
     var speed: Double = 0.4
     var lat: Double = 51.0
     var lon: Double = 10.0
-    var place: String = "Deutschland"
+    var place: String = L("Germany")
     var zoom: Double = 0.62
     var pitch: Double = 0
     var heading: Double = 0
@@ -65,25 +71,25 @@ struct EarthConfig: Codable, Equatable {
     }
 }
 
-/// Eine Ansicht = Kamera-Einstellungen ohne Ort und Bewegung.
+/// A view = camera settings without place and motion.
 struct ViewPreset: Codable, Identifiable, Equatable {
     var id = UUID()
     var name: String
     var symbol: String = "star"
     var zoom: Double, pitch: Double, heading: Double, tilt: Double, fov: Double, x: Double, y: Double
     var builtin = false
-    /// Spiegelbar: Erde kann links oder rechts sitzen (optional, damit alte gespeicherte Ansichten lesbar bleiben)
+    /// Mirrorable: the Earth can sit on the left or right (optional so older saved views still decode)
     var mirrorable: Bool? = nil
 
     static let builtins: [ViewPreset] = [
-        .init(name: "Ganze Erde", symbol: "globe.europe.africa", zoom: 0.62, pitch: 0, heading: 0, tilt: 18, fov: 30, x: 0, y: 0, builtin: true),
-        .init(name: "Nah dran", symbol: "circle.bottomhalf.filled", zoom: 2.2, pitch: 20, heading: 0, tilt: 0, fov: 30, x: 0, y: -0.35, builtin: true),
-        .init(name: "Horizont", symbol: "sunrise", zoom: 4.2, pitch: 66, heading: 0, tilt: 0, fov: 50, x: 0, y: 0, builtin: true),
-        .init(name: "Seitlich", symbol: "circle.righthalf.filled", zoom: 1.25, pitch: 0, heading: 0, tilt: 20, fov: 30, x: 0.55, y: 0, builtin: true, mirrorable: true),
-        .init(name: "Weit draußen", symbol: "smallcircle.filled.circle", zoom: 0.3, pitch: 0, heading: 0, tilt: 18, fov: 30, x: 0, y: 0, builtin: true),
+        .init(name: L("Whole Earth"), symbol: "globe.europe.africa", zoom: 0.62, pitch: 0, heading: 0, tilt: 18, fov: 30, x: 0, y: 0, builtin: true),
+        .init(name: L("Close-up"), symbol: "circle.bottomhalf.filled", zoom: 2.2, pitch: 20, heading: 0, tilt: 0, fov: 30, x: 0, y: -0.35, builtin: true),
+        .init(name: L("Horizon"), symbol: "sunrise", zoom: 4.2, pitch: 66, heading: 0, tilt: 0, fov: 50, x: 0, y: 0, builtin: true),
+        .init(name: L("Side View"), symbol: "circle.righthalf.filled", zoom: 1.25, pitch: 0, heading: 0, tilt: 20, fov: 30, x: 0.55, y: 0, builtin: true, mirrorable: true),
+        .init(name: L("Far Out"), symbol: "smallcircle.filled.circle", zoom: 0.3, pitch: 0, heading: 0, tilt: 18, fov: 30, x: 0, y: 0, builtin: true),
     ]
 
-    /// Linke Variante: x und Drehung gespiegelt.
+    /// Left variant: x and rotation mirrored.
     var mirrored: ViewPreset {
         var v = self; v.x = -x; v.tilt = -tilt; return v
     }
@@ -109,14 +115,14 @@ struct Place: Codable, Identifiable, Equatable {
     var lon: Double
 
     static let quick: [Place] = [
-        .init(name: "Deutschland", lat: 51.0, lon: 10.0),
-        .init(name: "Europa", lat: 48.0, lon: 12.0),
-        .init(name: "Nordamerika", lat: 40.0, lon: -98.0),
-        .init(name: "Südamerika", lat: -15.0, lon: -60.0),
-        .init(name: "Afrika", lat: 5.0, lon: 20.0),
-        .init(name: "Asien", lat: 30.0, lon: 95.0),
-        .init(name: "Australien", lat: -25.0, lon: 134.0),
-        .init(name: "Nordpol", lat: 80.0, lon: 0.0),
+        .init(name: L("Germany"), lat: 51.0, lon: 10.0),
+        .init(name: L("Europe"), lat: 48.0, lon: 12.0),
+        .init(name: L("North America"), lat: 40.0, lon: -98.0),
+        .init(name: L("South America"), lat: -15.0, lon: -60.0),
+        .init(name: L("Africa"), lat: 5.0, lon: 20.0),
+        .init(name: L("Asia"), lat: 30.0, lon: 95.0),
+        .init(name: L("Australia"), lat: -25.0, lon: 134.0),
+        .init(name: L("North Pole"), lat: 80.0, lon: 0.0),
     ]
 }
 
@@ -143,16 +149,20 @@ final class Store: ObservableObject {
         config = load("config", EarthConfig())
         customViews = load("customViews", [])
         recentPlaces = load("recentPlaces", [])
-        earthLeft = UserDefaults.standard.bool(forKey: "earthLeft")  // nach der Migration neu lesen
+        earthLeft = UserDefaults.standard.bool(forKey: "earthLeft")  // re-read after migration
     }
 
-    /// Einstellungen aus der Zeit vor der Umbenennung (Bundle-ID local.liveearth) übernehmen.
+    /// Take over settings from earlier bundle IDs (local.earthnow, and local.liveearth
+    /// from before the rename) so updating keeps the user's views and place.
     private static func migrateFromLiveEarth() {
         let d = UserDefaults.standard
-        guard d.object(forKey: "config") == nil,
-              let old = UserDefaults(suiteName: "local.liveearth") else { return }
-        for key in ["config", "customViews", "recentPlaces", "earthLeft"] {
-            if let v = old.object(forKey: key) { d.set(v, forKey: key) }
+        guard d.object(forKey: "config") == nil else { return }
+        for suite in ["local.earthnow", "local.liveearth"] {
+            guard let old = UserDefaults(suiteName: suite), old.object(forKey: "config") != nil else { continue }
+            for key in ["config", "customViews", "recentPlaces", "earthLeft"] {
+                if let v = old.object(forKey: key) { d.set(v, forKey: key) }
+            }
+            return
         }
     }
 
@@ -169,7 +179,7 @@ final class Store: ObservableObject {
         }
     }
 
-    /// Bevorzugte Seite für spiegelbare Ansichten (z. B. „Seitlich“)
+    /// Preferred side for mirrorable views (e.g. "Side View")
     @Published var earthLeft: Bool = UserDefaults.standard.bool(forKey: "earthLeft") {
         didSet {
             d.set(earthLeft, forKey: "earthLeft")
@@ -186,8 +196,8 @@ final class Store: ObservableObject {
     }
 }
 
-// MARK: - Webseite aus dem App-Bundle über ein eigenes URL-Schema ausliefern
-// (file:// erlaubt keine ES-Module; earth://app/... verhält sich wie ein Webserver.)
+// MARK: - Serve the web page from the app bundle via a custom URL scheme
+// (file:// does not allow ES modules; earth://app/... behaves like a web server.)
 
 final class BundleSchemeHandler: NSObject, WKURLSchemeHandler {
     let root: URL
@@ -221,7 +231,7 @@ final class JSLogger: NSObject, WKScriptMessageHandler {
     }
 }
 
-/// Alle Erd-Ansichten (Desktop-Fenster + Vorschau) – bekommen Änderungen live.
+/// All Earth views (desktop windows + preview) – they receive changes live.
 final class EarthViews {
     static let shared = EarthViews()
     private let views = NSHashTable<WKWebView>.weakObjects()
@@ -248,7 +258,7 @@ final class EarthViews {
             """, injectionTime: .atDocumentStart, forMainFrameOnly: true))
         let web = WKWebView(frame: frame, configuration: conf)
         web.setValue(false, forKey: "drawsBackground")
-        web.isInspectable = true
+        if #available(macOS 13.3, *) { web.isInspectable = true }
         web.load(URLRequest(url: URL(string: "earth://app/index.html")!))
         views.add(web)
         return web
@@ -256,11 +266,11 @@ final class EarthViews {
 
     func eval(_ js: String) { views.allObjects.forEach { $0.evaluateJavaScript(js) } }
 
-    /// Bildschirme schlafen → alles pausieren
+    /// Screens asleep → pause everything
     var screensAsleep = false { didSet { updatePause() } }
 
-    /// Jede Ansicht pausiert, solange ihr Fenster komplett verdeckt oder geschlossen ist
-    /// (Vollbild-Apps, geschlossenes Einstellungsfenster, Bildschirme aus).
+    /// Each view pauses while its window is fully covered or closed
+    /// (full-screen apps, closed settings window, screens off).
     func updatePause() {
         for web in views.allObjects {
             let visible = web.window.map { $0.isVisible && $0.occlusionState.contains(.visible) } ?? false
@@ -269,7 +279,7 @@ final class EarthViews {
     }
 }
 
-// MARK: - Ortssuche (Apple Karten)
+// MARK: - Place search (Apple Maps)
 
 final class PlaceSearch: NSObject, ObservableObject, MKLocalSearchCompleterDelegate {
     @Published var query = "" { didSet { update() } }
@@ -305,14 +315,14 @@ final class PlaceSearch: NSObject, ObservableObject, MKLocalSearchCompleterDeleg
     }
 }
 
-// MARK: - Einstellungsfenster
+// MARK: - Settings window
 
 struct EarthPreview: NSViewRepresentable {
     func makeNSView(context: Context) -> WKWebView { EarthViews.shared.make(frame: .zero) }
     func updateNSView(_ v: WKWebView, context: Context) {}
 }
 
-// @State ist ein Makro und braucht Xcode – mit den Command Line Tools daher ObservableObject
+// @State needs the Xcode macro plugin – with the Command Line Tools we use ObservableObject
 final class SettingsUIState: ObservableObject {
     @Published var naming = false
     @Published var newViewName = ""
@@ -328,7 +338,7 @@ struct SettingsView: View {
             EarthPreview()
                 .frame(height: 300)
                 .overlay(alignment: .bottomLeading) {
-                    Text("Vorschau – Änderungen gelten sofort auch für den Desktop")
+                    Text(L("Preview – changes apply to your desktop right away"))
                         .font(.caption).foregroundStyle(.white.opacity(0.6)).padding(10)
                 }
             Form {
@@ -343,7 +353,7 @@ struct SettingsView: View {
         .frame(minHeight: 700)
     }
 
-    // Ansicht
+    // View
     private var viewSection: some View {
         Section {
             ScrollView(.horizontal, showsIndicators: false) {
@@ -365,7 +375,7 @@ struct SettingsView: View {
                         .buttonStyle(.plain)
                         .contextMenu {
                             if !v.builtin {
-                                Button("Ansicht löschen", role: .destructive) {
+                                Button(L("Delete View"), role: .destructive) {
                                     store.customViews.removeAll { $0.id == v.id }
                                 }
                             }
@@ -375,39 +385,39 @@ struct SettingsView: View {
                 .padding(.vertical, 2)
             }
             if store.currentView?.mirrorable == true {
-                Picker("Erde sitzt", selection: $store.earthLeft) {
-                    Label("Links", systemImage: "circle.lefthalf.filled").tag(true)
-                    Label("Rechts", systemImage: "circle.righthalf.filled").tag(false)
+                Picker(L("Earth Position"), selection: $store.earthLeft) {
+                    Label(L("Left"), systemImage: "circle.lefthalf.filled").tag(true)
+                    Label(L("Right"), systemImage: "circle.righthalf.filled").tag(false)
                 }
                 .pickerStyle(.segmented)
             }
             HStack {
-                Text(store.currentView == nil ? "Eigene Einstellung (noch nicht gespeichert)"
-                                              : "Eigene Ansichten löschst du per Rechtsklick")
+                Text(store.currentView == nil ? L("Custom setting (not saved yet)")
+                                              : L("Right-click a custom view to delete it"))
                     .font(.caption).foregroundStyle(.secondary)
                 Spacer()
-                Button("Als Ansicht speichern …") { ui.newViewName = ""; ui.naming = true }
+                Button(L("Save as View…")) { ui.newViewName = ""; ui.naming = true }
                     .disabled(store.currentView != nil)
             }
-        } header: { Text("Ansicht") }
-        .alert("Ansicht speichern", isPresented: $ui.naming) {
-            TextField("Name", text: $ui.newViewName)
-            Button("Speichern") {
+        } header: { Text(L("View")) }
+        .alert(L("Save View"), isPresented: $ui.naming) {
+            TextField(L("Name"), text: $ui.newViewName)
+            Button(L("Save")) {
                 let name = ui.newViewName.trimmingCharacters(in: .whitespaces)
-                store.saveCurrentView(named: name.isEmpty ? "Meine Ansicht" : name)
+                store.saveCurrentView(named: name.isEmpty ? L("My View") : name)
             }
-            Button("Abbrechen", role: .cancel) {}
-        } message: { Text("Speichert Zoom, Neigung und Ausschnitt als eigene Ansicht.") }
+            Button(L("Cancel"), role: .cancel) {}
+        } message: { Text(L("Saves zoom, tilt and framing as a custom view.")) }
     }
 
-    // Ort & Bewegung
+    // Place & motion
     private var placeSection: some View {
         Section {
-            LabeledContent("Aktueller Ort") {
-                Text("\(store.config.place)  ·  \(coord(store.config.lat, "N", "S")), \(coord(store.config.lon, "O", "W"))")
+            LabeledContent(L("Current Place")) {
+                Text("\(store.config.place)  ·  \(coord(store.config.lat, "N", "S")), \(coord(store.config.lon, L("E"), "W"))")
                     .foregroundStyle(.secondary)
             }
-            TextField("Ort suchen", text: $search.query, prompt: Text("Ort suchen – Stadt, Land, Adresse …"))
+            TextField(L("Search Place"), text: $search.query, prompt: Text(L("Search for a city, country or address…")))
                 .textFieldStyle(.roundedBorder)
                 .labelsHidden()
             ForEach(search.results, id: \.self) { r in
@@ -424,16 +434,16 @@ struct SettingsView: View {
                 .buttonStyle(.plain)
             }
             placeChips(Place.quick + store.recentPlaces)
-            Picker("Bewegung", selection: $store.config.motion) {
+            Picker(L("Motion"), selection: $store.config.motion) {
                 ForEach(Motion.allCases) { Text($0.title).tag($0) }
             }
             .pickerStyle(.segmented)
             Text(store.config.motion.help).font(.caption).foregroundStyle(.secondary)
             if store.config.motion == .orbit {
-                slider("Tempo", $store.config.speed, 0.02...3, log: true,
-                       format: { String(format: "%.0f min / Runde", 360 / $0 / 60) })
+                slider(L("Speed"), $store.config.speed, 0.02...3, log: true,
+                       format: { String(format: L("%.0f min per orbit"), 360 / $0 / 60) })
             }
-        } header: { Text("Ort & Bewegung") }
+        } header: { Text(L("Place & Motion")) }
     }
 
     private func placeChips(_ places: [Place]) -> some View {
@@ -448,31 +458,31 @@ struct SettingsView: View {
         }
     }
 
-    // Kamera / Zoom
+    // Camera / zoom
     private var cameraSection: some View {
         Section {
-            slider("Zoom", $store.config.zoom, 0.15...8, log: true, format: { String(format: "%.2f×", $0) })
-            slider("Neigung", $store.config.pitch, 0...85, format: { "\(Int($0))°" })
-            slider("Blickrichtung", $store.config.heading, -180...180, format: { "\(Int($0))°" })
-            slider("Drehung", $store.config.tilt, -60...60, format: { "\(Int($0))°" })
-            slider("Brennweite", $store.config.fov, 12...75, format: { "\(Int($0))°" })
-            slider("Horizontal", $store.config.x, -1.5...1.5, format: { String(format: "%+.2f", $0) })
-            slider("Vertikal", $store.config.y, -1.5...1.5, format: { String(format: "%+.2f", $0) })
-        } header: { Text("Zoom & Ausschnitt") }
+            slider(L("Zoom"), $store.config.zoom, 0.15...8, log: true, format: { String(format: "%.2f×", $0) })
+            slider(L("Pitch"), $store.config.pitch, 0...85, format: { "\(Int($0))°" })
+            slider(L("Heading"), $store.config.heading, -180...180, format: { "\(Int($0))°" })
+            slider(L("Rotation"), $store.config.tilt, -60...60, format: { "\(Int($0))°" })
+            slider(L("Field of View"), $store.config.fov, 12...75, format: { "\(Int($0))°" })
+            slider(L("Horizontal"), $store.config.x, -1.5...1.5, format: { String(format: "%+.2f", $0) })
+            slider(L("Vertical"), $store.config.y, -1.5...1.5, format: { String(format: "%+.2f", $0) })
+        } header: { Text(L("Zoom & Framing")) }
     }
 
     private var displaySection: some View {
         Section {
-            Picker("Wolken", selection: $store.config.clouds) {
+            Picker(L("Clouds"), selection: $store.config.clouds) {
                 ForEach(CloudMode.allCases) { Text($0.title).tag($0) }
             }
             .pickerStyle(.segmented)
-            Toggle("Uhrzeit & Sonnenstand einblenden", isOn: $store.config.hud)
-            Toggle("Maximale Qualität (60 fps, volle Auflösung – braucht mehr Akku)", isOn: Binding(
+            Toggle(L("Show time & sun position"), isOn: $store.config.hud)
+            Toggle(L("Maximum quality (60 fps, full resolution – uses more battery)"), isOn: Binding(
                 get: { store.config.fps == 60 }, set: { store.config.fps = $0 ? 60 : 30 }))
-        } header: { Text("Darstellung") } footer: {
-            // Quellenangaben (EUMETSAT verlangt den Hinweis bei Nutzung der Wolkendaten)
-            Text("Erdbilder: NASA Blue Marble & Black Marble · Live-Wolken: matteason/live-cloud-maps, contains modified EUMETSAT data · 3D: three.js")
+        } header: { Text(L("Display")) } footer: {
+            // Credits (EUMETSAT requires this notice when its cloud data is shown)
+            Text(L("Earth imagery: NASA Blue Marble & Black Marble · Live clouds: matteason/live-cloud-maps, contains modified EUMETSAT data · 3D: three.js"))
                 .font(.caption2).foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -480,7 +490,7 @@ struct SettingsView: View {
 
     private func slider(_ title: String, _ value: Binding<Double>, _ range: ClosedRange<Double>,
                         log: Bool = false, format: @escaping (Double) -> String) -> some View {
-        // Logarithmischer Regler (Zoom, Tempo): feine Kontrolle bei kleinen Werten
+        // Logarithmic slider (zoom, speed): fine control at small values
         let b: Binding<Double> = log
             ? Binding(get: { Foundation.log(value.wrappedValue) }, set: { value.wrappedValue = exp($0) })
             : value
@@ -516,7 +526,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         rebuildWindows()
         NotificationCenter.default.addObserver(self, selector: #selector(rebuildWindows),
             name: NSApplication.didChangeScreenParametersNotification, object: nil)
-        // Rendering pausieren, wenn die Bildschirme schlafen (spart Akku)
+        // Pause rendering while the screens sleep (saves battery)
         for name in [NSWindow.didChangeOcclusionStateNotification, NSWindow.willCloseNotification] {
             NotificationCenter.default.addObserver(self, selector: #selector(visibilityChanged), name: name, object: nil)
         }
@@ -526,7 +536,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         let env = ProcessInfo.processInfo.environment
         if env["EARTHNOW_SETTINGS"] != nil { openSettings() }
-        // Debug: Bild des Einstellungsfensters (ohne WebGL-Vorschau) speichern
+        // Debug: save an image of the settings window (without the WebGL preview)
         if let out = env["EARTHNOW_SETTINGS_SNAPSHOT"] {
             DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
                 guard let v = self.settingsWindow?.contentView,
@@ -535,7 +545,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: out))
             }
         }
-        // Debug: EARTHNOW_SNAPSHOT=/pfad.png speichert nach 8 s ein Bild des Desktops
+        // Debug: EARTHNOW_SNAPSHOT=/path.png saves an image of the desktop after 8 s
         if let out = env["EARTHNOW_SNAPSHOT"] {
             DispatchQueue.main.asyncAfter(deadline: .now() + 8) {
                 (self.windows.first?.contentView as? WKWebView)?.takeSnapshot(with: nil) { img, _ in
@@ -591,17 +601,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         settingsWindow?.makeKeyAndOrderFront(nil)
     }
 
-    // MARK: Menüleiste (wird bei jedem Öffnen neu aufgebaut)
+    // MARK: Menu bar (rebuilt every time it opens)
 
     func menuNeedsUpdate(_ m: NSMenu) {
         m.removeAllItems()
         let store = Store.shared
-        let settings = NSMenuItem(title: "Einstellungen …", action: #selector(openSettings), keyEquivalent: ",")
+        let settings = NSMenuItem(title: L("Settings…"), action: #selector(openSettings), keyEquivalent: ",")
         settings.target = self
         m.addItem(settings)
         m.addItem(.separator())
 
-        m.addItem(NSMenuItem.sectionHeader(title: "Ansicht"))
+        m.addItem(header(L("View")))
         for (i, v) in store.allViews.enumerated() {
             let item = NSMenuItem(title: v.name, action: #selector(pickView(_:)), keyEquivalent: "")
             item.tag = i
@@ -609,7 +619,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             item.state = store.currentView?.id == v.id ? .on : .off
             m.addItem(item)
             if v.mirrorable == true, store.currentView?.id == v.id {
-                for (left, title) in [(true, "Erde links"), (false, "Erde rechts")] {
+                for (left, title) in [(true, L("Earth on Left")), (false, L("Earth on Right"))] {
                     let side = NSMenuItem(title: title, action: #selector(pickSide(_:)), keyEquivalent: "")
                     side.tag = left ? 1 : 0
                     side.target = self
@@ -620,7 +630,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             }
         }
         m.addItem(.separator())
-        m.addItem(NSMenuItem.sectionHeader(title: "Bewegung"))
+        m.addItem(header(L("Motion")))
         for (i, mo) in Motion.allCases.enumerated() {
             let item = NSMenuItem(title: mo.title, action: #selector(pickMotion(_:)), keyEquivalent: "")
             item.tag = i
@@ -629,10 +639,52 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             m.addItem(item)
         }
         m.addItem(.separator())
-        let reload = NSMenuItem(title: "Neu laden", action: #selector(rebuildWindows), keyEquivalent: "r")
+        let login = NSMenuItem(title: L("Open at Login"), action: #selector(toggleLoginItem), keyEquivalent: "")
+        login.target = self
+        login.state = SMAppService.mainApp.status == .enabled ? .on : .off
+        m.addItem(login)
+        let reload = NSMenuItem(title: L("Reload"), action: #selector(rebuildWindows), keyEquivalent: "r")
         reload.target = self
         m.addItem(reload)
-        m.addItem(NSMenuItem(title: "Beenden", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+        m.addItem(.separator())
+        let about = NSMenuItem(title: L("About Earth Now"), action: #selector(showAbout), keyEquivalent: "")
+        about.target = self
+        m.addItem(about)
+        let updates = NSMenuItem(title: L("Check for Updates…"), action: #selector(checkForUpdates), keyEquivalent: "")
+        updates.target = self
+        m.addItem(updates)
+        m.addItem(NSMenuItem(title: L("Quit Earth Now"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+    }
+
+    private func header(_ title: String) -> NSMenuItem {
+        if #available(macOS 14.0, *) { return NSMenuItem.sectionHeader(title: title) }
+        let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+        item.isEnabled = false
+        return item
+    }
+
+    @objc func toggleLoginItem() {
+        let service = SMAppService.mainApp
+        do {
+            if service.status == .enabled { try service.unregister() } else { try service.register() }
+        } catch {
+            let alert = NSAlert()
+            alert.messageText = L("Couldn't change the login item")
+            alert.informativeText = L("Move Earth Now to your Applications folder and try again. You can also add it under System Settings › General › Login Items.")
+            alert.runModal()
+        }
+    }
+
+    @objc func showAbout() {
+        NSApp.activate(ignoringOtherApps: true)
+        NSApp.orderFrontStandardAboutPanel(options: [
+            .credits: NSAttributedString(string: L("Earth imagery: NASA Earth Observatory. Live clouds: matteason/live-cloud-maps, contains modified EUMETSAT data. 3D: three.js (MIT)."),
+                                         attributes: [.font: NSFont.systemFont(ofSize: 11)]),
+        ])
+    }
+
+    @objc func checkForUpdates() {
+        NSWorkspace.shared.open(URL(string: "https://github.com/Hensobo/earth-now/releases/latest")!)
     }
 
     @objc func pickView(_ s: NSMenuItem) { Store.shared.applyView(Store.shared.allViews[s.tag]) }

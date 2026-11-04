@@ -1,0 +1,112 @@
+# Publishes a GitHub Release when the version in VERSION is new.
+#
+# How to release: bump VERSION, add a section to CHANGELOG.md, merge to main.
+# This workflow then builds the DMG, creates the tag v<version> and the release
+# with the matching CHANGELOG section as release notes.
+#
+# Optional: signed + notarized builds. Add these repository secrets and the
+# workflow uses them automatically (Apple Developer Program required):
+#   MACOS_CERTIFICATE_P12      base64 of the "Developer ID Application" .p12
+#   MACOS_CERTIFICATE_PASSWORD password of that .p12
+#   DEVELOPER_ID               e.g. "Developer ID Application: Name (TEAMID)"
+#   NOTARY_APPLE_ID, NOTARY_TEAM_ID, NOTARY_PASSWORD (app-specific password)
+name: Release
+
+on:
+  push:
+    branches: [main]
+    paths: [VERSION]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: macos-15
+    timeout-minutes: 30
+    env:
+      HAS_CERT: ${{ secrets.MACOS_CERTIFICATE_P12 != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read version
+        id: v
+        run: |
+          VERSION=$(tr -d '[:space:]' < VERSION)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if gh release view "v$VERSION" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Release v$VERSION already exists – nothing to do."
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Use newest Xcode
+        if: steps.v.outputs.exists != 'true'
+        run: sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)"
+
+      - name: Import signing certificate (optional)
+        if: steps.v.outputs.exists != 'true' && env.HAS_CERT == 'true'
+        env:
+          MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          NOTARY_APPLE_ID: ${{ secrets.NOTARY_APPLE_ID }}
+          NOTARY_TEAM_ID: ${{ secrets.NOTARY_TEAM_ID }}
+          NOTARY_PASSWORD: ${{ secrets.NOTARY_PASSWORD }}
+        run: |
+          KC=$RUNNER_TEMP/build.keychain-db
+          security create-keychain -p ci "$KC"
+          security set-keychain-settings -lut 21600 "$KC"
+          security unlock-keychain -p ci "$KC"
+          echo "$MACOS_CERTIFICATE_P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security import "$RUNNER_TEMP/cert.p12" -k "$KC" -P "$MACOS_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k ci "$KC"
+          security list-keychains -d user -s "$KC"
+          xcrun notarytool store-credentials earthnow-notary \
+            --apple-id "$NOTARY_APPLE_ID" --team-id "$NOTARY_TEAM_ID" --password "$NOTARY_PASSWORD"
+          echo "NOTARY_PROFILE=earthnow-notary" >> "$GITHUB_ENV"
+
+      - name: Build DMG
+        if: steps.v.outputs.exists != 'true'
+        env:
+          DEVELOPER_ID: ${{ secrets.DEVELOPER_ID }}
+          BUILD_NUMBER: ${{ github.run_number }}
+        run: |
+          ./release.sh "${{ steps.v.outputs.version }}"
+          cp "dist/EarthNow-${{ steps.v.outputs.version }}.dmg" dist/EarthNow.dmg
+          cd dist && shasum -a 256 EarthNow.dmg > EarthNow.dmg.sha256 && cat EarthNow.dmg.sha256
+
+      - name: Release notes from CHANGELOG.md
+        if: steps.v.outputs.exists != 'true'
+        run: |
+          V="${{ steps.v.outputs.version }}"
+          awk -v v="$V" '
+            $0 ~ "^## \\[" v "\\]" { on = 1; next }
+            on && /^## \[/ { exit }
+            on { print }
+          ' CHANGELOG.md > notes.md
+          cat >> notes.md <<'EOF'
+
+          ---
+
+          **Install:** download `EarthNow.dmg`, open it and drag Earth Now into Applications.
+          The first time you open it, macOS may say it can't check the app for malware –
+          see [first launch](https://github.com/${{ github.repository }}#first-launch) for the two clicks that fix this.
+
+          Requires macOS 13 Ventura or later · Apple Silicon and Intel.
+          EOF
+          cat notes.md
+
+      - name: Create release
+        if: steps.v.outputs.exists != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          V="${{ steps.v.outputs.version }}"
+          gh release create "v$V" dist/EarthNow.dmg dist/EarthNow.dmg.sha256 \
+            --title "Earth Now $V" --notes-file notes.md --target "$GITHUB_SHA" --latest

@@ -1,11 +1,14 @@
-# Veröffentlicht die Landingpage aus site/ auf GitHub Pages.
+# Publishes the website from site/ to GitHub Pages.
 #
-# Läuft bewusst NUR manuell (Actions → „Landingpage veröffentlichen“ → Run workflow),
-# damit nichts versehentlich live geht. Vorher einmalig in den Repo-Einstellungen
-# unter Settings → Pages als Quelle „GitHub Actions“ wählen.
-name: Landingpage veröffentlichen
+# Runs automatically on pushes to main – but only once the repository is public
+# (GitHub Pages is not available for private repositories on free plans).
+# One-time setup: Settings › Pages › Source: "GitHub Actions".
+name: Website
 
 on:
+  push:
+    branches: [main]
+    paths: [site/**, web/**, .github/workflows/pages.yml]
   workflow_dispatch:
 
 permissions:
@@ -19,6 +22,7 @@ concurrency:
 
 jobs:
   deploy:
+    if: ${{ !github.event.repository.private }}
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -26,9 +30,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # site/earth ist ein Symlink auf ../web – beim Kopieren auflösen,
-      # damit die Live-Erde (inkl. Texturen und three.js) mit ausgeliefert wird.
-      - name: Seite zusammenstellen
+      # site/earth is a symlink to ../web – resolve it so the live Earth
+      # (with textures and three.js) is deployed too.
+      - name: Assemble site
         run: |
           mkdir -p _site
           cp -RL site/. _site/

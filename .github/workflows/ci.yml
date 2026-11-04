@@ -1,0 +1,70 @@
+# Builds the app on every push and pull request, checks the bundle and saves
+# a DMG plus real screenshots of the app windows (English and German) as artifacts.
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use newest Xcode
+        run: |
+          XC=$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)
+          sudo xcode-select -s "$XC"
+          echo "Using $XC"; swiftc --version
+
+      - name: Build universal app and DMG
+        run: ./release.sh
+
+      - name: Check bundle
+        run: |
+          APP=EarthNow.app
+          lipo -archs $APP/Contents/MacOS/EarthNow | tee /dev/stderr | grep -q "x86_64 arm64"
+          plutil -lint $APP/Contents/Info.plist
+          codesign --verify --strict --verbose=2 $APP
+          test -f $APP/Contents/Resources/AppIcon.icns
+          test -f $APP/Contents/Resources/de.lproj/Localizable.strings
+          test -f $APP/Contents/Resources/web/index.html
+          plutil -lint $APP/Contents/Resources/de.lproj/Localizable.strings
+
+      - name: Screenshots of the app windows
+        run: |
+          mkdir -p shots
+          for lang in en de; do
+            EARTHNOW_SETTINGS=1 \
+            EARTHNOW_SETTINGS_SNAPSHOT=$PWD/shots/settings-$lang.png \
+            EARTHNOW_SNAPSHOT=$PWD/shots/desktop-$lang.png \
+              EarthNow.app/Contents/MacOS/EarthNow -AppleLanguages "($lang)" &
+            PID=$!
+            sleep 14
+            kill $PID || true
+            wait $PID 2>/dev/null || true
+          done
+          ls -la shots
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: EarthNow-dmg
+          path: dist/*.dmg
+          retention-days: 14
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: shots/
+          retention-days: 14
+          if-no-files-found: warn
