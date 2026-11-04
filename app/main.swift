@@ -535,12 +535,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         ws.addObserver(self, selector: #selector(resume), name: NSWorkspace.screensDidWakeNotification, object: nil)
 
         let env = ProcessInfo.processInfo.environment
+        // Debug/screenshots: EARTHNOW_APPEARANCE=dark|light forces the appearance
+        if let a = env["EARTHNOW_APPEARANCE"] { NSApp.appearance = NSAppearance(named: a == "dark" ? .darkAqua : .aqua) }
         if env["EARTHNOW_SETTINGS"] != nil { openSettings() }
-        // Debug: save an image of the settings window (without the WebGL preview)
+        // Debug: EARTHNOW_SETTINGS_HEIGHT makes the settings window taller (to show every section)
+        if let h = env["EARTHNOW_SETTINGS_HEIGHT"].flatMap(Double.init), let w = settingsWindow {
+            let top = w.frame.maxY
+            w.setContentSize(NSSize(width: w.contentLayoutRect.width, height: h))
+            w.setFrameTopLeftPoint(NSPoint(x: w.frame.minX, y: top))
+        }
+        // Debug: save an image of the settings window (including the live preview)
         if let out = env["EARTHNOW_SETTINGS_SNAPSHOT"] {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
-                guard let v = self.settingsWindow?.contentView,
-                      let rep = v.bitmapImageRepForCachingDisplay(in: v.bounds) else { return }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 6) {
+                guard let v = self.settingsWindow?.contentView else { return }
+                // Always render at 2x so screenshots are sharp even on non-Retina displays
+                let size = v.bounds.size
+                guard let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: Int(size.width * 2),
+                                                 pixelsHigh: Int(size.height * 2), bitsPerSample: 8,
+                                                 samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+                                                 colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)
+                else { return }
+                rep.size = size
                 v.cacheDisplay(in: v.bounds, to: rep)
                 try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: out))
             }

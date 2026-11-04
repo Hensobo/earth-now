@@ -50,16 +50,23 @@ jobs:
       - name: Screenshots of the app windows
         run: |
           mkdir -p shots
-          for lang in en de; do
-            EARTHNOW_SETTINGS=1 \
-            EARTHNOW_SETTINGS_SNAPSHOT=$PWD/shots/settings-$lang.png \
-            EARTHNOW_SNAPSHOT=$PWD/shots/desktop-$lang.png \
+          # name  language  appearance  window height (empty = default)
+          while read -r name lang look height; do
+            EARTHNOW_SETTINGS=1 EARTHNOW_APPEARANCE=$look EARTHNOW_SETTINGS_HEIGHT=$height \
+            EARTHNOW_SETTINGS_SNAPSHOT=$PWD/shots/settings-$name.png \
+            EARTHNOW_SNAPSHOT=$PWD/shots/desktop-$name.png \
               EarthNow.app/Contents/MacOS/EarthNow -AppleLanguages "($lang)" &
             PID=$!
-            sleep 14
+            sleep 15
             kill $PID || true
             wait $PID 2>/dev/null || true
-          done
+          done <<'EOF'
+          en-light en light
+          en-dark en dark
+          en-full en dark 1480
+          de-light de light
+          EOF
+          rm -f shots/desktop-en-dark.png shots/desktop-en-full.png shots/desktop-de-light.png
           ls -la shots
 
       - name: Commit screenshots to the branch
