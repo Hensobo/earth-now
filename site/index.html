@@ -1,17 +1,35 @@
 <!doctype html>
-<html lang="de">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Earth Now – Live Earth Wallpaper für macOS</title>
-<meta name="description" content="Earth Now macht die Erde zu deinem Desktop-Hintergrund: echter Sonnenstand, Stadtlichter auf der Nachtseite und Live-Wolken aus Satellitendaten.">
+<title>Earth Now – Live Earth Wallpaper for Mac</title>
+<meta name="description" content="Earth Now turns your Mac's desktop into a live view of our planet: real sunlight and night, glowing cities and live clouds from weather satellites. Free and open source.">
 <meta name="theme-color" content="#03060f">
-<meta property="og:title" content="Earth Now – Live Earth Wallpaper">
-<meta property="og:description" content="Die Erde in Echtzeit als Desktop-Hintergrund für macOS.">
-<meta property="og:image" content="assets/screenshots/preview.png">
+<link rel="canonical" href="https://hensobo.github.io/earth-now/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Earth Now – Live Earth Wallpaper for Mac">
+<meta property="og:description" content="The real Earth, right now, as your Mac's desktop. Free and open source.">
+<meta property="og:url" content="https://hensobo.github.io/earth-now/">
+<meta property="og:image" content="https://hensobo.github.io/earth-now/assets/screenshots/social-preview.png">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="640">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="icon" href="assets/icon/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="assets/icon/apple-touch-icon.png">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Earth Now",
+  "operatingSystem": "macOS 13 or later",
+  "applicationCategory": "UtilitiesApplication",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "downloadUrl": "https://github.com/Hensobo/earth-now/releases/latest/download/EarthNow.dmg",
+  "license": "https://opensource.org/licenses/MIT"
+}
+</script>
 <style>
   :root {
     --bg: #03060f;
@@ -34,27 +52,27 @@
     -webkit-font-smoothing: antialiased;
   }
   a { color: var(--accent); }
-  img { max-width: 100%; display: block; }
+  img { max-width: 100%; display: block; height: auto; }
+  code, kbd { font: 14.5px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; background: rgba(255,255,255,.07); padding: 2px 6px; border-radius: 6px; }
   .wrap { width: min(var(--max), 100% - 32px); margin-inline: auto; }
+  .skip { position: absolute; left: -999px; } .skip:focus { left: 16px; top: 16px; z-index: 10; background: #fff; color: #000; padding: 8px 12px; border-radius: 8px; }
 
   /* Navigation */
-  header.nav {
-    position: absolute; inset: 0 0 auto; z-index: 3;
-    padding: 20px 0;
-  }
+  header.nav { position: absolute; inset: 0 0 auto; z-index: 3; padding: 20px 0; }
   header.nav .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
   .brand { display: flex; align-items: center; gap: 10px; color: var(--text); text-decoration: none; font-weight: 600; letter-spacing: .01em; }
   .brand img { width: 32px; height: 32px; }
-  header.nav nav { display: flex; gap: 22px; font-size: 15px; }
+  header.nav nav { display: flex; gap: 22px; font-size: 15px; align-items: center; }
   header.nav nav a { color: var(--muted); text-decoration: none; }
   header.nav nav a:hover { color: var(--text); }
-  @media (max-width: 640px) { header.nav nav { display: none; } }
+  header.nav nav a.gh { display: inline-flex; gap: 6px; align-items: center; color: var(--text); }
+  @media (max-width: 760px) { header.nav nav a:not(.gh) { display: none; } }
 
-  /* Hero mit live eingebetteter Erde */
+  /* Hero with the live Earth */
   .hero {
     position: relative; min-height: 100vh; min-height: 100svh;
     display: flex; align-items: center; overflow: hidden;
-    background: #000 url(assets/screenshots/preview.png) 70% 50% / cover no-repeat;
+    background: #000 url(assets/screenshots/views/whole-earth.jpg) 70% 50% / cover no-repeat;
   }
   .hero iframe {
     position: absolute; inset: 0; width: 100%; height: 100%; border: 0;
@@ -79,7 +97,7 @@
     font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
   }
   .live::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #ff5a5a; box-shadow: 0 0 0 4px rgba(255,90,90,.18); }
-  .hero small.clock { display: block; margin-top: 18px; color: var(--muted); font-size: 14px; }
+  .hero small { display: block; margin-top: 18px; color: var(--muted); font-size: 14px; }
   @media (max-width: 760px) {
     .hero { align-items: flex-end; background-position: 50% 30%; }
     .hero::after { background: linear-gradient(0deg, var(--bg) 0%, rgba(3,6,15,.85) 45%, rgba(3,6,15,0) 75%); }
@@ -91,48 +109,72 @@
     padding: 14px 24px; border-radius: 999px; font-weight: 600; font-size: 16px;
     text-decoration: none; border: 1px solid transparent; cursor: pointer;
   }
+  .btn svg { width: 18px; height: 18px; flex: none; }
   .btn-primary { background: var(--text); color: #04122b; }
   .btn-primary:hover { background: #fff; }
-  .btn-primary[aria-disabled="true"] { cursor: default; }
   .btn-ghost { color: var(--text); border-color: var(--line); background: rgba(255,255,255,.04); }
   .btn-ghost:hover { border-color: rgba(255,255,255,.25); }
   .actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
   .note { color: var(--muted); font-size: 14px; }
 
-  /* Abschnitte */
+  /* Sections */
   section { padding: 96px 0; }
   section h2 { font-size: clamp(30px, 4vw, 44px); letter-spacing: -.015em; line-height: 1.1; margin: 0 0 12px; }
-  section .intro { color: var(--muted); max-width: 40rem; margin: 0 0 48px; }
+  section h3 { font-size: 20px; margin: 0 0 8px; }
+  section .intro { color: var(--muted); max-width: 42rem; margin: 0 0 48px; }
   .eyebrow { color: var(--accent); font-size: 13px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; margin: 0 0 10px; }
 
-  .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+  .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; }
   .feature { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 26px; }
   .feature svg { width: 28px; height: 28px; color: var(--accent); margin-bottom: 14px; }
-  .feature h3 { margin: 0 0 6px; font-size: 18px; }
+  .feature h3 { font-size: 18px; margin: 0 0 6px; }
   .feature p { margin: 0; color: var(--muted); font-size: 15.5px; }
 
-  .shots { display: grid; grid-template-columns: 1.6fr 1fr; gap: 20px; align-items: start; }
-  @media (max-width: 760px) { .shots { grid-template-columns: 1fr; } }
   figure { margin: 0; }
   figure img { border-radius: 14px; border: 1px solid var(--line); box-shadow: 0 30px 80px rgba(0,0,0,.5); background: #000; }
   figcaption { color: var(--muted); font-size: 14.5px; margin-top: 12px; }
-  .shots figure:last-child img { max-height: 640px; width: 100%; object-fit: cover; object-position: top; }
+  figcaption b { color: var(--text); font-weight: 600; }
+  .shot-main { margin-bottom: 28px; }
+  .views { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  @media (max-width: 900px) { .views { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 560px) { .views { grid-template-columns: 1fr; } }
+  .views img { aspect-ratio: 16 / 10; object-fit: cover; width: 100%; }
 
-  .download {
-    text-align: center; background:
-      radial-gradient(60% 80% at 50% 0%, rgba(108,198,255,.16), rgba(108,198,255,0) 70%), var(--bg-2);
-    border-block: 1px solid var(--line);
-  }
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; }
+  @media (max-width: 860px) { .split { grid-template-columns: 1fr; } }
+  .checks { list-style: none; padding: 0; margin: 0; display: grid; gap: 14px; }
+  .checks li { padding-left: 30px; position: relative; color: #c9d4e6; }
+  .checks li::before { content: ""; position: absolute; left: 0; top: 7px; width: 16px; height: 16px; border-radius: 50%;
+    background: rgba(108,198,255,.18) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.5l2.5 2.5L12 5.5' fill='none' stroke='%236cc6ff' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") center / 12px no-repeat; }
+
+  .download { background: radial-gradient(60% 80% at 50% 0%, rgba(108,198,255,.16), rgba(108,198,255,0) 70%), var(--bg-2); border-block: 1px solid var(--line); }
+  .download .head { text-align: center; }
   .download img.appicon { width: 128px; height: 128px; margin: 0 auto 20px; }
   .download .intro { margin-inline: auto; }
   .download .actions { justify-content: center; }
-  .download .note { margin-top: 16px; }
+  .steps { counter-reset: s; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-top: 56px; }
+  .step { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px 24px 22px; }
+  .step::before { counter-increment: s; content: counter(s); display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%;
+    background: rgba(108,198,255,.16); color: var(--accent); font-weight: 700; margin-bottom: 12px; }
+  .step p { margin: 0; color: var(--muted); font-size: 15.5px; }
+  .firstlaunch { margin-top: 24px; padding: 24px; border-radius: var(--radius); border: 1px solid rgba(255,196,107,.3); background: rgba(255,196,107,.06); }
+  .firstlaunch h3 { color: var(--warm); }
+  .firstlaunch ol { margin: 10px 0 0; padding-left: 22px; color: #c9d4e6; }
+  .firstlaunch li { margin: 6px 0; }
+  .firstlaunch p { color: var(--muted); margin: 12px 0 0; font-size: 15.5px; }
+  .reqs { display: flex; flex-wrap: wrap; gap: 10px 26px; justify-content: center; margin-top: 18px; color: var(--muted); font-size: 15px; }
+
+  .faq details { border-bottom: 1px solid var(--line); padding: 18px 0; }
+  .faq summary { cursor: pointer; font-weight: 600; font-size: 18px; list-style: none; display: flex; justify-content: space-between; gap: 16px; }
+  .faq summary::-webkit-details-marker { display: none; }
+  .faq summary::after { content: "+"; color: var(--accent); font-weight: 400; font-size: 24px; line-height: 1; }
+  .faq details[open] summary::after { content: "–"; }
+  .faq details p { color: #c9d4e6; margin: 12px 0 0; max-width: 46rem; }
 
   .credits table { width: 100%; border-collapse: collapse; font-size: 15px; }
   .credits th, .credits td { text-align: left; vertical-align: top; padding: 14px 12px; border-bottom: 1px solid var(--line); }
   .credits th { color: var(--muted); font-weight: 500; font-size: 13px; text-transform: uppercase; letter-spacing: .06em; }
   .credits td:first-child { font-weight: 600; white-space: nowrap; }
-  .table-scroll { overflow-x: auto; }
   @media (max-width: 760px) {
     .credits thead { display: none; }
     .credits tr, .credits td { display: block; }
@@ -140,91 +182,100 @@
     .credits td:first-child { white-space: normal; padding-top: 16px; }
     .credits tr { border-bottom: 1px solid var(--line); padding-bottom: 14px; }
   }
-  .eumetsat {
-    margin-top: 28px; padding: 18px 20px; border-radius: 14px;
-    border: 1px solid rgba(255,196,107,.35); background: rgba(255,196,107,.07);
-  }
+  .eumetsat { margin-top: 28px; padding: 18px 20px; border-radius: 14px; border: 1px solid rgba(255,196,107,.35); background: rgba(255,196,107,.07); }
   .eumetsat strong { color: var(--warm); }
+  .privacy p { color: #c9d4e6; max-width: 46rem; }
 
-  footer { padding: 40px 0 56px; color: var(--muted); font-size: 14px; }
-  footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; }
+  footer { padding: 40px 0 56px; color: var(--muted); font-size: 14px; border-top: 1px solid var(--line); }
+  footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px 32px; }
+  footer nav { display: flex; gap: 20px; flex-wrap: wrap; }
+  footer a { color: var(--muted); }
+  footer p { margin: 0; max-width: 40rem; }
 </style>
 </head>
 <body>
+<a class="skip" href="#features">Skip to content</a>
 
 <header class="nav">
   <div class="wrap">
     <a class="brand" href="#top"><img src="assets/icon/favicon.svg" alt="" width="32" height="32">Earth Now</a>
-    <nav aria-label="Seitennavigation">
-      <a href="#funktionen">Funktionen</a>
+    <nav aria-label="Main">
+      <a href="#features">Features</a>
       <a href="#screenshots">Screenshots</a>
       <a href="#download">Download</a>
-      <a href="#credits">Credits</a>
+      <a href="#faq">FAQ</a>
+      <a class="gh" href="https://github.com/Hensobo/earth-now">
+        <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        GitHub
+      </a>
     </nav>
   </div>
 </header>
 
 <main id="top">
   <section class="hero" aria-labelledby="hero-title">
-    <!-- Live-Darstellung: dieselbe Seite wie in der App (web/index.html). src setzt das Skript unten. -->
-    <iframe id="earth" title="Die Erde, wie sie gerade aussieht – Live-Darstellung" loading="eager" tabindex="-1" aria-hidden="true"></iframe>
+    <!-- The same renderer the app uses (web/index.html). The script below sets src. -->
+    <iframe id="earth" title="The Earth as it looks right now – live rendering" tabindex="-1" aria-hidden="true"></iframe>
     <div class="wrap">
-      <div class="live">Live · echter Sonnenstand</div>
-      <h1 id="hero-title">Earth Now <span>Live Earth Wallpaper für macOS</span></h1>
-      <p class="lead">Die Erde als Desktop-Hintergrund – genau so, wie sie in diesem Moment aussieht: Tag und Nacht am richtigen Ort, leuchtende Städte und Live-Wolken aus Satellitendaten.</p>
+      <div class="live">Live · real sunlight</div>
+      <h1 id="hero-title">Earth Now <span>Live Earth Wallpaper for Mac</span></h1>
+      <p class="lead">Your desktop becomes a window onto our planet – exactly as it looks right now. Day and night in the right places, glowing cities, and live clouds from weather satellites.</p>
       <div class="actions">
-        <a class="btn btn-primary" href="#download">Kostenlos laden</a>
-        <a class="btn btn-ghost" href="#funktionen">Was sie kann</a>
+        <a class="btn btn-primary" href="https://github.com/Hensobo/earth-now/releases/latest/download/EarthNow.dmg">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>
+          Download for Mac
+        </a>
+        <a class="btn btn-ghost" href="#features">See what it does</a>
       </div>
-      <small class="clock" id="clock">Die Erde im Hintergrund wird live in deinem Browser berechnet.</small>
+      <small id="clock">Free &amp; open source · macOS 13 or later · Apple Silicon &amp; Intel</small>
     </div>
   </section>
 
-  <section id="funktionen" aria-labelledby="f-title">
+  <section id="features" aria-labelledby="f-title">
     <div class="wrap">
-      <p class="eyebrow">Funktionen</p>
-      <h2 id="f-title">Ein Fenster zur Erde, jederzeit</h2>
-      <p class="intro">Earth Now läuft unauffällig unter deinen Desktop-Icons und zeigt immer den aktuellen Zustand unseres Planeten.</p>
+      <p class="eyebrow">Features</p>
+      <h2 id="f-title">A window onto Earth, all day long</h2>
+      <p class="intro">Earth Now sits quietly behind your desktop icons and always shows the planet as it is at this very moment. Glance at it and you know where the sun is rising, where it's night and where the big storms are.</p>
       <div class="features">
         <article class="feature">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
-          <h3>Echtzeit-Beleuchtung</h3>
-          <p>Sonnenstand aus Datum und Uhrzeit berechnet (~0,01° genau) – mit Dämmerungszone, Sonnenspiegelung auf den Ozeanen und Atmosphäre.</p>
+          <h3>Real sunlight</h3>
+          <p>The sun's position is calculated from the date and time, accurate to about 0.01°. With twilight, sun glint on the oceans and a soft atmosphere.</p>
         </article>
         <article class="feature">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 18h10a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.1 9.5 4.25 4.25 0 0 0 7 18z"/></svg>
-          <h3>Live-Wolken</h3>
-          <p>Wolkenkarten aus Satellitendaten, alle drei Stunden aktualisiert. Offline greift die App automatisch auf statische Wolken zurück.</p>
+          <h3>Live clouds</h3>
+          <p>Cloud maps from weather satellites, refreshed every three hours. No internet? Built-in clouds take over until you're back online.</p>
         </article>
         <article class="feature">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/><circle cx="15" cy="15" r=".8" fill="currentColor"/><circle cx="11" cy="17" r=".8" fill="currentColor"/></svg>
-          <h3>Stadtlichter bei Nacht</h3>
-          <p>Auf der Nachtseite leuchten die Städte – basierend auf den Black-Marble-Aufnahmen der NASA.</p>
+          <h3>City lights at night</h3>
+          <p>On the night side, cities glow – based on NASA's Black Marble satellite images.</p>
         </article>
         <article class="feature">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="13" rx="2"/><circle cx="12" cy="11.5" r="3.5"/><path d="M8 21h8"/></svg>
-          <h3>Ansichten nach Wahl</h3>
-          <p>Ganze Erde, Nah dran, Horizont, Seitlich oder Weit draußen – plus eigene, gespeicherte Ansichten.</p>
+          <h3>Five views – or your own</h3>
+          <p>Whole Earth, Close-up, Horizon, Side View or Far Out. Fine-tune zoom, tilt and framing and save your favourite.</p>
         </article>
         <article class="feature">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-6-5.3-6-11a6 6 0 0 1 12 0c0 5.7-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/></svg>
-          <h3>Dein Ort, deine Bewegung</h3>
-          <p>Ort über Apple Karten suchen, die Kamera fliegt weich hin. Dann umkreisen, über dem Ort stehen oder der Sonne folgen.</p>
+          <h3>Your place, your motion</h3>
+          <p>Search any city or address and the camera glides there. Then orbit the Earth, stay above your place, or follow the sun.</p>
         </article>
         <article class="feature">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="16" height="10" rx="2"/><path d="M22 11v2"/><path d="M6 10v4M9 10v4"/></svg>
-          <h3>Sparsam im Betrieb</h3>
-          <p>Die Bildrate passt sich der Bewegung an; verdeckte Bildschirme und schlafende Displays pausieren komplett.</p>
+          <h3>Easy on your battery</h3>
+          <p>The frame rate follows the actual motion – often less than one frame per second. Covered or sleeping screens pause completely.</p>
         </article>
         <article class="feature">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><rect x="2" y="4" width="12" height="9" rx="1.5"/><rect x="10" y="11" width="12" height="9" rx="1.5"/></svg>
-          <h3>Alle Bildschirme, alle Spaces</h3>
-          <p>Ein Fenster pro Bildschirm, unter den Desktop-Icons. Klicks gehen einfach durch.</p>
+          <h3>Every display, every Space</h3>
+          <p>One Earth per display, below your desktop icons. Clicks go straight through to your desktop.</p>
         </article>
         <article class="feature">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z"/></svg>
-          <h3>Aus der Menüleiste</h3>
-          <p>Ansicht und Bewegung schnell über das Globus-Symbol wechseln; die Einstellungen zeigen eine Live-Vorschau.</p>
+          <h3>Lives in the menu bar</h3>
+          <p>Switch views and motion from the globe icon. Settings show a live preview, and Earth Now can open at login.</p>
         </article>
       </div>
     </div>
@@ -233,96 +284,203 @@
   <section id="screenshots" aria-labelledby="s-title">
     <div class="wrap">
       <p class="eyebrow">Screenshots</p>
-      <h2 id="s-title">So sieht es aus</h2>
-      <p class="intro">Aufnahmen direkt aus der App.</p>
-      <div class="shots">
-        <figure>
-          <img src="assets/screenshots/preview.png" width="900" height="584" loading="lazy"
-               alt="Die Erde mit Tag- und Nachtseite, Wolken über Europa und Afrika vor schwarzem Hintergrund">
-          <figcaption>Ganze Erde: Tag und Nacht am richtigen Ort, darüber die aktuellen Wolken.</figcaption>
-        </figure>
-        <figure>
-          <img src="assets/screenshots/settings.png" width="1120" height="1720" loading="lazy"
-               alt="Einstellungsfenster mit Live-Vorschau, Ansichten, Ortssuche und Bewegungsoptionen">
-          <figcaption>Einstellungen mit Live-Vorschau – Änderungen gelten sofort auch für den Desktop.</figcaption>
-        </figure>
+      <h2 id="s-title">See it in action</h2>
+      <p class="intro">All Earth images are real renders from Earth Now: the same views you get on your desktop.</p>
+      <figure class="shot-main">
+        <img src="assets/screenshots/desktop-menu.jpg" width="2880" height="1800" loading="lazy"
+             alt="A Mac desktop with the Earth seen from the side, North America in daylight, and the Earth Now menu open in the menu bar">
+        <figcaption><b>Side View</b> with the menu bar menu – switch views and motion in one click.</figcaption>
+      </figure>
+      <figure class="shot-main">
+        <img src="assets/screenshots/desktop-settings.jpg" width="2880" height="1800" loading="lazy"
+             alt="The Earth Now settings window with a live preview, views, place search and motion options, on top of a desktop showing the whole Earth">
+        <figcaption><b>Settings</b> with a live preview – every change shows up on your desktop right away.</figcaption>
+      </figure>
+      <div class="views">
+        <figure><img src="assets/screenshots/views/whole-earth.jpg" width="2880" height="1800" loading="lazy" alt="The whole Earth with Africa and Europe in daylight and the night side to the east"><figcaption><b>Whole Earth</b> – day, night and twilight</figcaption></figure>
+        <figure><img src="assets/screenshots/views/close-up.jpg" width="2880" height="1800" loading="lazy" alt="Close-up of northern Europe, Greenland and Iceland under swirling clouds"><figcaption><b>Close-up</b> – your region under real clouds</figcaption></figure>
+        <figure><img src="assets/screenshots/views/horizon-sunrise.jpg" width="2880" height="1800" loading="lazy" alt="Low view along the horizon at sunrise, with city lights still glowing and a blue atmosphere"><figcaption><b>Horizon</b> – sunrise over the Atlantic</figcaption></figure>
+        <figure><img src="assets/screenshots/views/city-lights.jpg" width="2880" height="1800" loading="lazy" alt="The night side at dawn with glowing city lights and an orange band of twilight"><figcaption><b>City lights</b> – the night side before dawn</figcaption></figure>
+        <figure><img src="assets/screenshots/views/side-view.jpg" width="2880" height="1800" loading="lazy" alt="The Earth on the right side of the screen with North America in daylight"><figcaption><b>Side View</b> – room for your icons</figcaption></figure>
+        <figure><img src="assets/screenshots/views/far-out.jpg" width="2880" height="1800" loading="lazy" alt="A small Earth far away in black space"><figcaption><b>Far Out</b> – a quiet, minimal desktop</figcaption></figure>
       </div>
+    </div>
+  </section>
+
+  <section id="how" aria-labelledby="h-title">
+    <div class="wrap split">
+      <div>
+        <p class="eyebrow">How it works</p>
+        <h2 id="h-title">Real data, calculated on your Mac</h2>
+        <p class="intro" style="margin-bottom:0">Earth Now combines NASA's satellite images of the whole planet with the exact position of the sun, worked out on your Mac. Every three hours it fetches a fresh cloud map from weather satellites. Everything is rendered with WebGL on your graphics chip, and it pauses when nobody's looking.</p>
+      </div>
+      <ul class="checks">
+        <li>Earth surface from NASA's <em>Blue Marble</em>, city lights from NASA's <em>Black Marble</em></li>
+        <li>Sun position from the Astronomical Almanac formulas – no network needed</li>
+        <li>Live clouds from EUMETSAT and other weather satellites via live-cloud-maps</li>
+        <li>No account, no tracking, no ads – free and open source under the MIT License</li>
+      </ul>
     </div>
   </section>
 
   <section id="download" class="download" aria-labelledby="d-title">
     <div class="wrap">
-      <img class="appicon" src="assets/icon/earth-now-512.png" alt="App-Icon von Earth Now" width="128" height="128">
-      <h2 id="d-title">Earth Now für macOS</h2>
-      <p class="intro">Kostenlos. Läuft in der Menüleiste und braucht keine Einrichtung.</p>
-      <div class="actions">
-        <!-- Platzhalter: href auf die DMG (z. B. GitHub-Release) setzen und aria-disabled entfernen, sobald ein Release existiert. -->
-        <a class="btn btn-primary" id="download-btn" href="#download" aria-disabled="true">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>
-          Download für macOS
-        </a>
+      <div class="head">
+        <img class="appicon" src="assets/icon/earth-now-512.png" alt="Earth Now app icon" width="128" height="128">
+        <h2 id="d-title">Get Earth Now</h2>
+        <p class="intro">Free and open source. Lives in your menu bar, no setup needed.</p>
+        <div class="actions">
+          <a class="btn btn-primary" href="https://github.com/Hensobo/earth-now/releases/latest/download/EarthNow.dmg">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>
+            Download for Mac
+          </a>
+          <a class="btn btn-ghost" href="https://github.com/Hensobo/earth-now/releases">All releases &amp; release notes</a>
+        </div>
+        <div class="reqs">
+          <span>macOS 13 Ventura or later</span><span>Apple Silicon &amp; Intel</span><span>about 15 MB</span><span>English &amp; German</span>
+        </div>
       </div>
-      <p class="note">Bald verfügbar – der erste Release ist in Vorbereitung.</p>
+
+      <div class="steps">
+        <div class="step"><h3>Download</h3><p>Click the button above to get <code>EarthNow.dmg</code>.</p></div>
+        <div class="step"><h3>Install</h3><p>Open the DMG and drag <b>Earth Now</b> onto the <b>Applications</b> folder.</p></div>
+        <div class="step"><h3>Open</h3><p>Start Earth Now from Applications. A globe appears in your menu bar – that's it.</p></div>
+      </div>
+
+      <div class="firstlaunch" id="first-launch">
+        <h3>"Apple could not verify Earth Now…"? Here's the fix.</h3>
+        <p style="margin-top:0">Earth Now is free and not (yet) registered with Apple's paid developer program, so macOS asks you to confirm the first start. You only need to do this once:</p>
+        <ol>
+          <li>Open Earth Now. When the warning appears, click <b>Done</b> (or <b>OK</b>).</li>
+          <li>Open <b>System Settings › Privacy &amp; Security</b> and scroll down to <b>Security</b>.</li>
+          <li>Next to "Earth Now was blocked…", click <b>Open Anyway</b> and confirm with your password or Touch ID.</li>
+        </ol>
+        <p>On macOS 13 and 14 you can also right-click the app in Applications, choose <b>Open</b>, and confirm. Prefer the Terminal? Run <code>xattr -dr com.apple.quarantine /Applications/EarthNow.app</code>. The full source code is public, and every release is built by GitHub Actions straight from it.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="faq" class="faq" aria-labelledby="q-title">
+    <div class="wrap">
+      <p class="eyebrow">FAQ</p>
+      <h2 id="q-title">Questions &amp; answers</h2>
+      <details>
+        <summary>Does it drain my battery?</summary>
+        <p>Barely. Earth Now only draws a new frame when something actually moves on screen – in most views that's less than once per second. Screens that are covered by a full-screen app or asleep pause completely. If you want buttery-smooth motion, turn on <em>Maximum quality</em> in the settings (uses more power).</p>
+      </details>
+      <details>
+        <summary>Does it replace my wallpaper?</summary>
+        <p>No. Earth Now places its own layer between your wallpaper and your desktop icons. Quit the app and your normal wallpaper is back instantly.</p>
+      </details>
+      <details>
+        <summary>Does it work with several displays and Spaces?</summary>
+        <p>Yes. Every display gets its own Earth, and it stays put when you switch Spaces. Connect or disconnect a display and Earth Now adapts automatically.</p>
+      </details>
+      <details>
+        <summary>What happens without internet?</summary>
+        <p>Everything keeps working. The sun's position is calculated locally, and when the live cloud map can't be loaded, built-in clouds are shown. Earth Now tries again a little later, without bothering you.</p>
+      </details>
+      <details>
+        <summary>How do I start it automatically?</summary>
+        <p>Click the globe in the menu bar and choose <b>Open at Login</b>.</p>
+      </details>
+      <details>
+        <summary>How do I get back to the settings?</summary>
+        <p>Click the globe in the menu bar and choose <b>Settings…</b> (<kbd>⌘,</kbd>). Opening the app again from your Applications folder also opens the settings.</p>
+      </details>
+      <details>
+        <summary>How do I uninstall it?</summary>
+        <p>Choose <b>Quit Earth Now</b> from the globe menu, then move <b>Earth Now</b> from Applications to the Trash. If you turned on "Open at Login", turn it off first. To also remove the settings, delete <code>~/Library/Preferences/io.github.hensobo.earthnow.plist</code>.</p>
+      </details>
+      <details>
+        <summary>Why isn't it in the Mac App Store?</summary>
+        <p>Not yet. Publishing on the App Store (and having the app notarized so macOS no longer asks on first start) requires a paid Apple developer membership. For now, Earth Now is distributed for free right here, built in public from its open source code.</p>
+      </details>
+      <details>
+        <summary>Is it really free? What's the catch?</summary>
+        <p>No catch. Earth Now is a free, open-source hobby project under the MIT License. No ads, no accounts, no tracking. The code is on <a href="https://github.com/Hensobo/earth-now">GitHub</a>.</p>
+      </details>
+      <details>
+        <summary>I found a bug or have an idea.</summary>
+        <p>Great – please <a href="https://github.com/Hensobo/earth-now/issues/new/choose">open an issue on GitHub</a>. Pull requests are welcome too; see the <a href="https://github.com/Hensobo/earth-now/blob/main/CONTRIBUTING.md">contributing guide</a>.</p>
+      </details>
+    </div>
+  </section>
+
+  <section id="privacy" class="privacy" aria-labelledby="p-title">
+    <div class="wrap">
+      <p class="eyebrow">Privacy</p>
+      <h2 id="p-title">Your data stays yours</h2>
+      <p><b>The app</b> collects no data. There are no analytics, no accounts and no update checks in the background. It connects to the internet for exactly two things: downloading the cloud map from <code>clouds.matteason.co.uk</code> every few hours, and – only when you search for a place – sending your search text to Apple Maps. Like any web request, these servers see your IP address.</p>
+      <p><b>This website</b> uses no cookies, no trackers and no external fonts. It is hosted on GitHub Pages; GitHub may log your IP address for security reasons (see <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">GitHub's privacy statement</a>). The live Earth at the top of this page loads its cloud map from <code>clouds.matteason.co.uk</code>.</p>
     </div>
   </section>
 
   <section id="credits" class="credits" aria-labelledby="c-title">
     <div class="wrap">
-      <p class="eyebrow">Credits &amp; Lizenzen</p>
-      <h2 id="c-title">Mit Daten von NASA und EUMETSAT</h2>
-      <p class="intro">Earth Now nutzt folgende Inhalte und Bibliotheken von Dritten.</p>
-      <div class="table-scroll">
+      <p class="eyebrow">Credits &amp; licenses</p>
+      <h2 id="c-title">Made with data from NASA and EUMETSAT</h2>
+      <p class="intro">Earth Now is built on the work of others. Thank you!</p>
+      <div style="overflow-x:auto">
         <table>
-          <thead><tr><th>Inhalt</th><th>Quelle</th><th>Lizenz / Hinweis</th></tr></thead>
+          <thead><tr><th>Content</th><th>Source</th><th>License / notice</th></tr></thead>
           <tbody>
             <tr>
-              <td>Tagesansicht der Erde</td>
-              <td>NASA Earth Observatory, <em>Blue Marble: Next Generation</em> (Oktober 2004, mit Topografie &amp; Bathymetrie), Reto Stöckli</td>
-              <td>Gemeinfrei (Werk der US-Regierung). Quelle: „NASA Earth Observatory“</td>
+              <td>Daytime Earth</td>
+              <td>NASA Earth Observatory, <em>Blue Marble: Next Generation</em> (October 2004, with topography &amp; bathymetry), Reto Stöckli</td>
+              <td>Public domain (US government work). Credit: "NASA Earth Observatory"</td>
             </tr>
             <tr>
-              <td>Nachtlichter</td>
+              <td>Night lights</td>
               <td>NASA Earth Observatory, <em>Black Marble 2016</em></td>
-              <td>Gemeinfrei (Werk der US-Regierung). Quelle: „NASA Earth Observatory / Suomi NPP VIIRS“</td>
+              <td>Public domain (US government work). Credit: "NASA Earth Observatory / Suomi NPP VIIRS"</td>
             </tr>
             <tr>
-              <td>Statische Wolken, Normal- &amp; Glanzkarte</td>
-              <td>three.js-Beispieltexturen (<code>examples/textures/planets</code>)</td>
-              <td>MIT-Lizenz</td>
+              <td>Static clouds, normal &amp; specular maps</td>
+              <td>three.js example textures (<code>examples/textures/planets</code>)</td>
+              <td>MIT License</td>
             </tr>
             <tr>
-              <td>Live-Wolken</td>
-              <td><a href="https://github.com/matteason/live-cloud-maps">matteason/live-cloud-maps</a>, Bilder: CC0 1.0</td>
-              <td><strong>Contains modified EUMETSAT data</strong> (<a href="https://www.eumetsat.int/eumetsat-data-licensing">EUMETSAT-Datenlizenz</a>)</td>
+              <td>Live clouds</td>
+              <td><a href="https://github.com/matteason/live-cloud-maps">matteason/live-cloud-maps</a>, images CC0 1.0</td>
+              <td><strong>Contains modified EUMETSAT data</strong> (<a href="https://www.eumetsat.int/eumetsat-data-licensing">EUMETSAT data licensing</a>)</td>
             </tr>
             <tr>
-              <td>3D-Darstellung</td>
+              <td>3D rendering</td>
               <td><a href="https://threejs.org">three.js</a> 0.160.0</td>
-              <td>MIT-Lizenz</td>
+              <td>MIT License</td>
             </tr>
           </tbody>
         </table>
       </div>
-      <p class="eumetsat"><strong>Hinweis:</strong> Die Live-Wolken in der App und in der Live-Ansicht oben auf dieser Seite <em lang="en">contain modified EUMETSAT data</em>. Bereitgestellt über <a href="https://github.com/matteason/live-cloud-maps">matteason/live-cloud-maps</a>; es gelten die <a href="https://www.eumetsat.int/eumetsat-data-licensing">Lizenzbedingungen von EUMETSAT</a>.</p>
+      <p class="eumetsat"><strong>Notice:</strong> The live clouds in the app and in the live view at the top of this page <em>contain modified EUMETSAT data</em>, provided via <a href="https://github.com/matteason/live-cloud-maps">matteason/live-cloud-maps</a> under the <a href="https://www.eumetsat.int/eumetsat-data-licensing">EUMETSAT licensing conditions</a>.</p>
     </div>
   </section>
 </main>
 
 <footer>
   <div class="wrap">
-    <span>© Earth Now · Erdbilder: NASA Earth Observatory · Live-Wolken: contains modified EUMETSAT data</span>
-    <a href="#top">Nach oben</a>
+    <p>© 2026 Henning Sobota · Earth Now is open source under the <a href="https://github.com/Hensobo/earth-now/blob/main/LICENSE">MIT License</a>.<br>
+      Earth imagery: NASA Earth Observatory · Live clouds: contains modified EUMETSAT data.<br>
+      Not affiliated with, endorsed or sponsored by NASA, EUMETSAT or Apple. Mac and macOS are trademarks of Apple Inc.</p>
+    <nav aria-label="Footer">
+      <a href="https://github.com/Hensobo/earth-now">GitHub</a>
+      <a href="https://github.com/Hensobo/earth-now/releases">Releases</a>
+      <a href="#privacy">Privacy</a>
+      <a href="#credits">Credits</a>
+      <a href="#top">Back to top</a>
+    </nav>
   </div>
 </footer>
 
 <script>
-  // Live-Erde einbinden. Parameter wie in web/index.html dokumentiert.
+  // Embed the live Earth. Parameters are documented at the top of web/index.html.
   (function () {
     var frame = document.getElementById('earth');
     var wide = window.matchMedia('(min-width: 761px)').matches;
-    // motion=sun: Kamera folgt der Sonne, man sieht immer Tagseite und
-    // Dämmerungszone – egal, wann jemand die Seite öffnet. Bewegt sich nur
-    // so schnell wie die Erde selbst, passt also auch zu prefers-reduced-motion.
+    // motion=sun: the camera follows the sun, so visitors always see the day side and
+    // the twilight zone, whenever they open the page. It moves only as fast as the Earth
+    // itself turns, so it also suits prefers-reduced-motion.
     var p = new URLSearchParams({
       motion: 'sun',
       lat: '22',
@@ -333,26 +491,12 @@
       fps: '30',
       hud: '0'
     });
-    // Einblenden, sobald die Seite geladen ist – spätestens nach 4 s, falls z. B.
-    // der Wolken-Server hängt (das Standbild darunter überbrückt die Zeit).
+    // Fade in once loaded – after 4 s at the latest, in case the cloud server is slow
+    // (the still image underneath bridges the gap).
     function show() { frame.classList.add('ready'); }
     frame.addEventListener('load', show);
     setTimeout(show, 4000);
     frame.src = 'earth/index.html?' + p.toString();
-
-    // Download-Platzhalter: kein Sprung, solange es keinen Release gibt
-    var btn = document.getElementById('download-btn');
-    btn.addEventListener('click', function (e) {
-      if (btn.getAttribute('aria-disabled') === 'true') e.preventDefault();
-    });
-
-    // Aktuelle Uhrzeit (UTC), damit klar ist, dass die Ansicht live ist
-    var clock = document.getElementById('clock');
-    function tick() {
-      var t = new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
-      clock.textContent = 'So sieht die Erde jetzt aus – ' + t + ' Uhr UTC, live in deinem Browser berechnet.';
-    }
-    tick(); setInterval(tick, 30000);
   })();
 </script>
 </body>
