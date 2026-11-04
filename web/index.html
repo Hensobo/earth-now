@@ -244,7 +244,9 @@ function loadLiveClouds() {
   const res = wantedCloudRes();
   liveCloudLoading = true;
   loader.setCrossOrigin('anonymous');
-  loader.load(`${liveCloudsUrl(res)}?t=${Math.floor(Date.now() / 3.6e6)}`, (t) => {
+  // Die Karten werden alle 3 h aktualisiert: gleicher Parameter innerhalb von 3 h,
+  // damit der stündliche Check aus dem Browser-Cache kommt und den Server nicht belastet.
+  loader.load(`${liveCloudsUrl(res)}?t=${Math.floor(Date.now() / 1.08e7)}`, (t) => {
     liveCloudLoading = false;
     liveCloudFailures = 0;
     liveCloudRetryAt = 0;
