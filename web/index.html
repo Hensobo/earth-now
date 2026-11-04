@@ -229,25 +229,41 @@ scene.add(clouds);
 const liveCloudsUrl = (res) => `https://clouds.matteason.co.uk/images/${res}/clouds-alpha.png`;
 const wantedCloudRes = () => (cfg.zoom > 1.5 ? '8192x4096' : '4096x2048');
 let liveCloudTex = null, liveCloudRes = null, liveCloudLoading = false;
+// Nach Fehlschlägen (offline, Server weg) erst nach einer Wartezeit erneut versuchen:
+// exponentieller Backoff 1, 2, 4 … max. 60 min. Bis dahin blockt liveCloudRetryAt jeden Versuch.
+const CLOUD_RETRY_MIN = 60 * 1000, CLOUD_RETRY_MAX = 60 * 60 * 1000;
+let liveCloudRetryDelay = CLOUD_RETRY_MIN, liveCloudRetryAt = 0, liveCloudRetryTimer = null;
 function setCloudTex(t) {
   cloudMat.uniforms.cloudMap.value = t;
   earthMat.uniforms.cloudMap.value = t;
   requestRender();
 }
 function loadLiveClouds() {
-  if (cfg.clouds !== 'live' || liveCloudLoading) return;
+  if (cfg.clouds !== 'live' || liveCloudLoading || Date.now() < liveCloudRetryAt) return;
   const res = wantedCloudRes();
   liveCloudLoading = true;
   loader.setCrossOrigin('anonymous');
   loader.load(`${liveCloudsUrl(res)}?t=${Math.floor(Date.now() / 3.6e6)}`, (t) => {
     liveCloudLoading = false;
+    liveCloudRetryDelay = CLOUD_RETRY_MIN;
+    liveCloudRetryAt = 0;
+    clearTimeout(liveCloudRetryTimer);
+    liveCloudRetryTimer = null;
     t.anisotropy = maxAniso;
     t.wrapS = THREE.RepeatWrapping;
     liveCloudTex?.dispose();
     liveCloudTex = t;
     liveCloudRes = res;
     applyCloudMode();
-  }, undefined, () => { liveCloudLoading = false; applyCloudMode(); /* offline: statische Wolken */ });
+  }, undefined, () => {
+    liveCloudLoading = false;
+    liveCloudRetryAt = Date.now() + liveCloudRetryDelay;
+    clearTimeout(liveCloudRetryTimer);
+    liveCloudRetryTimer = setTimeout(() => { liveCloudRetryTimer = null; liveCloudRetryAt = 0; loadLiveClouds(); }, liveCloudRetryDelay);
+    liveCloudRetryDelay = Math.min(liveCloudRetryDelay * 2, CLOUD_RETRY_MAX);
+    // Offline: statische Wolken zeigen (ein evtl. schon geladenes Live-Bild bleibt stehen)
+    if (cfg.clouds === 'live' && !liveCloudTex) setCloudTex(staticClouds());
+  });
 }
 function applyCloudMode() {
   clouds.visible = cfg.clouds !== 'off';
