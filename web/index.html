@@ -37,13 +37,14 @@ import { bodyState, BODIES, rotationDegPerDay } from './planets.js';
 //   fov      Brennweite (vertikaler Blickwinkel)
 //   x,y      Verschiebung des Bildausschnitts (-1..1)
 //   fps, hud (0/1), clouds (live|static|off), warp (Zeitraffer-Faktor)
+//   fx       Polarlichter & Sturm-Animationen (0/1)
 //   time     Startzeitpunkt statt jetzt, ISO 8601, z. B. time=2026-06-21T18:00:00Z (für Tests/Screenshots)
 // ---------------------------------------------------------------------------
 const P = new URLSearchParams(location.search);
 const cfg = {
   body: 'earth', motion: 'orbit', speed: 0.4, lat: 28, lon: 10, place: '',
   zoom: 0.62, pitch: 0, heading: 0, tilt: 18, fov: 30, x: 0, y: 0,
-  fps: 30, hud: false, clouds: 'live', warp: 1,
+  fps: 30, hud: false, clouds: 'live', warp: 1, fx: true,
   ...(window.__initialConfig || {}),
 };
 for (const [k, v] of P) {
@@ -322,6 +323,7 @@ const planetMat = new THREE.ShaderMaterial({
     ambient: { value: new THREE.Color(0, 0, 0) }, rough: { value: 0.7 },
     haloColor: { value: new THREE.Color(0, 0, 0) }, haloAmt: { value: 0 },
     ringMap: { value: emptyTex }, ringInner: { value: 0 }, ringOuter: { value: 0 },
+    flowAmt: { value: 0 }, flowTime: { value: 0 }, vortex: { value: new THREE.Vector3(0, 0, 0.001) },
   },
   vertexShader: /* glsl */`
     varying vec2 vUv; varying vec3 vNormal; varying vec3 vPos;
@@ -333,7 +335,26 @@ const planetMat = new THREE.ShaderMaterial({
     uniform sampler2D map, ringMap;
     uniform vec3 sunDir, camPos, ambient, haloColor;
     uniform float rough, haloAmt, ringInner, ringOuter;
+    uniform float flowAmt, flowTime;
+    uniform vec3 vortex;  // u, v, radius (uv units) – e.g. Jupiter's Great Red Spot
     varying vec2 vUv; varying vec3 vNormal; varying vec3 vPos;
+
+    // Gasplaneten: Wolkenbänder strömen gegeneinander, ein Wirbel dreht sich.
+    // Zwei zeitversetzte Phasen werden überblendet, damit sich nichts aufschaukelt.
+    vec3 albedoAt(vec2 uv) {
+      if (flowAmt <= 0.0) return texture2D(map, uv).rgb;
+      float lat = (uv.y - 0.5) * 3.14159265;
+      vec2 flow = vec2((sin(lat * 13.0) * 0.65 + sin(lat * 6.0 + 1.3) * 0.35) * 0.0035, 0.0);
+      vec2 d = (uv - vortex.xy) * vec2(2.0, 1.0);
+      float w = exp(-dot(d, d) / (vortex.z * vortex.z));
+      flow += vec2(d.y, -d.x * 0.5) * w * 0.35;
+      flow *= flowAmt;
+      float p0 = fract(flowTime), p1 = fract(flowTime + 0.5);
+      vec3 a = texture2D(map, uv + flow * (p0 - 0.5)).rgb;
+      vec3 b = texture2D(map, uv + flow * (p1 - 0.5)).rgb;
+      return mix(a, b, abs(p0 - 0.5) * 2.0);
+    }
+
     void main() {
       vec3 N = normalize(vNormal);
       vec3 V = normalize(camPos - vPos);
@@ -350,7 +371,7 @@ const planetMat = new THREE.ShaderMaterial({
             light *= 1.0 - 0.8 * texture2D(ringMap, vec2((r - ringInner) / (ringOuter - ringInner), 0.5)).a;
         }
       }
-      vec3 albedo = texture2D(map, vUv).rgb;
+      vec3 albedo = albedoAt(vUv);
       vec3 color = albedo * (light + ambient * 2.5 * (1.0 - smoothstep(0.0, 0.2, mu0)));
       // Dunst am Rand der Tagseite
       float fres = pow(1.0 - mu, 3.0);
@@ -411,6 +432,148 @@ const ringGeo = new THREE.RingGeometry(1.22, 2.32, 256, 1);
 ringGeo.rotateX(-Math.PI / 2);
 const ring = new THREE.Mesh(ringGeo, ringMat);
 
+// --- Polarlichter -------------------------------------------------------------
+// Leuchtende Ovale um die magnetischen Pole: auf der Erde grün mit rotem Saum, nur auf der
+// Nachtseite; auf Jupiter und Saturn (dort im UV) bläulich wie auf Hubble-Bildern.
+const auroraMat = new THREE.ShaderMaterial({
+  uniforms: {
+    sunDir: { value: sunDir }, camPos: { value: camera.position }, time: { value: 0 },
+    poleN: { value: new THREE.Vector3(0, 1, 0) }, poleS: { value: new THREE.Vector3(0, -1, 0) },
+    colat: { value: 0.4 }, width: { value: 0.06 }, strength: { value: 0 },
+    colorLow: { value: new THREE.Color(0.15, 1.0, 0.45) }, colorHigh: { value: new THREE.Color(0.9, 0.2, 0.45) },
+    nightOnly: { value: 1 }, rayAmt: { value: 0.55 }, layer: { value: 0 },
+  },
+  transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+  vertexShader: /* glsl */`
+    varying vec3 vPos;
+    void main() { vPos = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+  fragmentShader: /* glsl */`
+    uniform vec3 sunDir, camPos, poleN, poleS, colorLow, colorHigh;
+    uniform float time, colat, width, strength, nightOnly, rayAmt, layer;
+    varying vec3 vPos;
+    float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+    float noise(vec2 p) {
+      vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+      return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y);
+    }
+    float oval(vec3 P, vec3 pole, float seed) {
+      float c = acos(clamp(dot(P, pole), -1.0, 1.0));
+      vec3 r1 = normalize(cross(pole, abs(pole.y) < 0.99 ? vec3(0, 1, 0) : vec3(1, 0, 0)));
+      vec3 r2 = cross(pole, r1);
+      float phi = atan(dot(P, r2), dot(P, r1));
+      float n1 = noise(vec2(phi * 2.5 + seed, time * 0.035));
+      float n2 = noise(vec2(phi * 9.0 - time * 0.06, seed + time * 0.05));
+      // Oval leicht zur Nachtseite verschoben und wellig
+      float center = colat * (1.0 + 0.12 * dot(normalize(P - pole * dot(P, pole)), -sunDir)) + width * (n1 - 0.5) * 1.6;
+      float d = (c - center) / width;
+      float band = exp(-d * d * 1.8);
+      float rays = 1.0 - rayAmt + rayAmt * pow(noise(vec2(phi * 60.0 + n1 * 8.0, time * 0.25 + seed)), 1.5);
+      // Helle Bögen und dunkle Lücken entlang des Ovals
+      float arcs = smoothstep(0.25, 0.75, noise(vec2(phi * 4.0 + seed * 3.0, time * 0.02)));
+      return band * rays * (0.15 + 0.85 * arcs) * (0.35 + 0.9 * n2);
+    }
+    void main() {
+      vec3 P = normalize(vPos);
+      vec3 V = normalize(camPos - vPos);
+      float a = oval(P, poleN, 0.0) + oval(P, poleS, 17.0);
+      float dark = 1.0 - smoothstep(-0.14, 0.06, dot(P, sunDir));
+      a *= mix(1.0, dark, nightOnly);
+      // Schräg gesehen wirkt der Vorhang dichter
+      a *= 1.0 + 0.8 * pow(1.0 - max(dot(P, V), 0.0), 3.0);
+      vec3 col = mix(colorLow, colorHigh, layer);
+      gl_FragColor = vec4(col * a * strength, 1.0);
+      #include <colorspace_fragment>
+    }`,
+});
+// Drei gestaffelte Schichten: unten grün, oben rot/violett – am Horizont wirkt das wie hohe Vorhänge
+const auroraLayers = [[1.010, 0, 1], [1.018, 0.12, 0.5], [1.028, 1, 0.22]].map(([r, layer, k]) => {
+  const m = auroraMat.clone();
+  m.uniforms = THREE.UniformsUtils.clone(auroraMat.uniforms);
+  m.uniforms.sunDir.value = sunDir; m.uniforms.camPos.value = camera.position;
+  m.uniforms.layer.value = layer;
+  const mesh = new THREE.Mesh(new THREE.SphereGeometry(r, 192, 96), m);
+  mesh.userData.k = k; mesh.visible = false; scene.add(mesh);
+  return mesh;
+});
+const aurora = { get visible() { return auroraLayers[0].visible; },
+                 set visible(v) { auroraLayers.forEach((m) => { m.visible = v; }); } };
+
+// Magnetische Pole und Ovale. Erde: geomagnetische Pole (IGRF 2025), Größe und Helligkeit
+// je nach aktuellem Kp-Index der NOAA. Jupiter: Magnetfeld ~10° gekippt.
+const AURORA = {
+  earth:   { n: [80.8, -72.6], s: [-80.8, 107.4], nightOnly: 1, low: [0.08, 1.0, 0.32], high: [0.75, 0.12, 0.55] },
+  jupiter: { n: [80.4, 160], s: [-80.4, -20], colat: 16, width: 3.2, strength: 0.3, nightOnly: 0, rays: 0.25, low: [0.5, 0.55, 1.0], high: [0.75, 0.5, 1.0] },
+  saturn:  { n: [90, 0], s: [-90, 0], colat: 15, width: 3.0, strength: 0.24, nightOnly: 0, rays: 0.25, low: [0.5, 0.55, 1.0], high: [0.75, 0.5, 1.0] },
+};
+let kp = 2.5, kpLoading = false, kpRetryAt = 0, kpFailures = 0, kpLive = false;
+function loadKp() {
+  if (!cfg.fx || shownBody !== 'earth' || kpLoading || Date.now() < kpRetryAt) return;
+  kpLoading = true;
+  fetch('https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json')
+    .then((r) => r.json())
+    .then((rows) => {
+      const last = rows[rows.length - 1];
+      const v = parseFloat(Array.isArray(last) ? last[1] : last.Kp ?? last.kp_index);
+      if (!Number.isFinite(v)) throw new Error('no Kp');
+      kp = Math.max(0, Math.min(9, v)); kpLive = true; kpFailures = 0;
+      kpRetryAt = Date.now() + 3 * 3600 * 1000;  // neuer Wert alle 3 h
+      applyAurora();
+    })
+    .catch(() => { kpFailures++; kpRetryAt = Date.now() + Math.min(60, 2 ** (kpFailures - 1)) * 60 * 1000; })
+    .finally(() => { kpLoading = false; });
+}
+setInterval(loadKp, 15 * 60 * 1000);
+
+function applyAurora() {
+  const a = AURORA[shownBody];
+  aurora.visible = !!(a && cfg.fx);
+  if (!aurora.visible) return;
+  const isEarth = shownBody === 'earth';
+  for (const m of [auroraMat, ...auroraLayers.map((l) => l.material)]) {
+    const u = m.uniforms;
+    latLonToVec(a.n[0], a.n[1], u.poleN.value);
+    latLonToVec(a.s[0], a.s[1], u.poleS.value);
+    u.colat.value = (isEarth ? 20 + 1.7 * kp : a.colat) * DEG;
+    u.width.value = (isEarth ? 1.8 + 0.22 * kp : a.width) * DEG;
+    u.nightOnly.value = a.nightOnly;
+    u.rayAmt.value = a.rays ?? 0.55;
+    u.colorLow.value.setRGB(...a.low); u.colorHigh.value.setRGB(...a.high);
+  }
+  // Gasplaneten: nur die unterste Schicht (ihre Polarlichter sehen wir von außen als Ring)
+  auroraLayers.forEach((l, i) => {
+    l.visible = isEarth || i === 0;
+    l.material.uniforms.strength.value = (isEarth ? 0.12 + 0.075 * kp : a.strength) * l.userData.k;
+  });
+  if (isEarth) loadKp();
+  requestRender();
+}
+
+// Ist gerade ein Teil der Polarlicht-Ovale zu sehen (Kamera zugewandt und, auf der Erde, im Dunkeln)?
+const _q = new THREE.Vector3(), _r1 = new THREE.Vector3(), _r2 = new THREE.Vector3(), _cn = new THREE.Vector3();
+function auroraInView() {
+  if (!aurora.visible) return false;
+  const u = auroraMat.uniforms;
+  _cn.copy(camera.position).normalize();
+  for (const pole of [u.poleN.value, u.poleS.value]) {
+    _r1.set(0, 1, 0).cross(pole); if (_r1.lengthSq() < 1e-6) _r1.set(1, 0, 0);
+    _r1.normalize(); _r2.crossVectors(pole, _r1);
+    for (let i = 0; i < 24; i++) {
+      const phi = (i / 24) * Math.PI * 2, c = u.colat.value;
+      _q.copy(pole).multiplyScalar(Math.cos(c))
+        .addScaledVector(_r1, Math.sin(c) * Math.cos(phi)).addScaledVector(_r2, Math.sin(c) * Math.sin(phi));
+      if (_q.dot(_cn) > 0.12 && (!u.nightOnly.value || _q.dot(sunDir) < 0.05)) return true;
+    }
+  }
+  return false;
+}
+
+// Sturm-Animation der Gasplaneten (Werte in UV-Einheiten der Textur)
+const STORMS = {
+  jupiter: { amount: 1, vortex: [0.369, 0.389, 0.035] },
+  saturn: { amount: 0.6, vortex: [0, 0, 0.001] },
+};
+const stormsActive = () => cfg.fx && !!STORMS[shownBody];
+
 const earthParts = [earth, clouds, atmo];
 const planetParts = [planet, halo, ring];
 planetParts.forEach((o) => { o.visible = false; scene.add(o); });
@@ -450,9 +613,16 @@ function applyBody() {
       ringMat.uniforms.ringInner.value = b.ring.inner; ringMat.uniforms.ringOuter.value = b.ring.outer;
     }
   }
+  applyEffects();
   requestRender();
 }
 const bodyFit = () => BODIES[shownBody]?.fit || 1;
+function applyEffects() {
+  const st = STORMS[shownBody];
+  planetMat.uniforms.flowAmt.value = cfg.fx && st ? st.amount : 0;
+  if (st) planetMat.uniforms.vortex.value.set(...st.vortex);
+  applyAurora();
+}
 
 // Sonne (und Erde) vom gewählten Körper aus gesehen
 function bodySun(date) {
@@ -545,6 +715,7 @@ window.applyConfig = (c) => {
   applyPixelRatio();
   renderer.setSize(innerWidth, innerHeight);
   applyBody();
+  applyEffects();
   if (shownBody === 'earth' && (cloudsChanged || (liveCloudRes && liveCloudRes !== wantedCloudRes()))) applyCloudMode();
   boostUntil = performance.now() + 1500;
   requestRender();
@@ -572,6 +743,8 @@ const SIDEREAL_DEG_PER_SEC = 360 / 86164;
 
 function desiredFps() {
   if (settling || performance.now() < boostUntil) return cfg.fps;
+  // Polarlicht-Vorhänge und Sturmbänder bewegen sich langsam: wenige Bilder pro Sekunde genügen
+  const fxFloor = auroraInView() ? 10 : stormsActive() ? 4 : 0;
   // Erdradius in Gerätepixeln; geneigte Kamera = Oberfläche näher, Bewegung schneller
   const radiusPx = Math.min(cam.zoom, 12) * innerHeight / 2 * renderer.getPixelRatio() * (1 + 2 * Math.sin(cam.pitch * DEG));
   const degPerSec = cfg.motion === 'orbit' ? Math.abs(cfg.speed)
@@ -579,7 +752,7 @@ function desiredFps() {
                     ? (shownBody === 'earth' ? SIDEREAL_DEG_PER_SEC : Math.abs(rotationDegPerDay(shownBody)) / 86400) * cfg.warp
                   : 0;
   const pxPerSec = degPerSec * DEG * radiusPx;
-  return Math.min(cfg.fps, Math.max(0.2, pxPerSec / 1.0));
+  return Math.min(cfg.fps, Math.max(0.2, fxFloor, pxPerSec / 1.0));
 }
 
 function requestRender() {
@@ -610,6 +783,8 @@ function frame() {
   const sun = st.sun;
   latLonToVec(sun.lat, sun.lon, sunDir);
   updateCamera(Math.min(dt, 2), st);
+  auroraLayers.forEach((l) => { l.material.uniforms.time.value = sec; });
+  planetMat.uniforms.flowTime.value = sec / 24;  // eine Strömungsphase dauert 24 s
   // Statische Wolken driften leicht, Live-Wolken bleiben geografisch korrekt
   cloudMat.uniforms.drift.value = liveCloudsActive() ? 0 : sec * 0.0002;
 
@@ -624,7 +799,8 @@ function frame() {
       date.toLocaleString(de ? 'de-DE' : 'en-GB', { dateStyle: 'medium', timeStyle: 'short' }) +
       (de ? `  ·  Sonne im Zenit über ${fmtCoord(sun.lat, 'N', 'S')}, ${fmtCoord(sun.lon, 'O', 'W')}`
           : `  ·  Sun overhead at ${fmtCoord(sun.lat, 'N', 'S')}, ${fmtCoord(sun.lon, 'E', 'W')}`) +
-      dist + (liveCloudsActive() ? (de ? '  ·  Wolken live' : '  ·  Live clouds') : '');
+      dist + (liveCloudsActive() ? (de ? '  ·  Wolken live' : '  ·  Live clouds') : '') +
+      (shownBody === 'earth' && cfg.fx && kpLive ? `  ·  ${de ? 'Polarlicht-Aktivität' : 'Aurora activity'} Kp ${kp.toFixed(1)}` : '');
   }
   renderer.render(scene, camera);
 
