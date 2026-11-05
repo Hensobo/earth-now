@@ -142,6 +142,34 @@ export class ISS {
     return true;
   }
 
+  /**
+   * Next pass you can see with the naked eye from lat/lon: it's dark where you are
+   * (sun ≥ 6° below the horizon), the station is still in sunlight and ≥ 10° above the horizon.
+   * Scans the next 3 days in 30 s steps. Returns { start: Date, maxElevation } or null.
+   */
+  nextVisiblePass(lat, lon, from, sunDirAt) {
+    if (!this.satrec) return null;
+    const la = lat * Math.PI / 180, lo = lon * Math.PI / 180;
+    const up = new THREE.Vector3(Math.cos(la) * Math.cos(lo), Math.sin(la), -Math.cos(la) * Math.sin(lo));
+    const p = new THREE.Vector3(), rel = new THREE.Vector3(), sun = new THREE.Vector3();
+    let pass = null;
+    for (let i = 0; i < 8640; i++) {
+      const t = new Date(from.getTime() + i * 30000);
+      if (!this.at(t, p)) continue;
+      rel.subVectors(p, up);
+      const elev = Math.asin(rel.dot(up) / rel.length()) * 180 / Math.PI;
+      if (elev < 10) { if (pass) return pass; continue; }
+      sunDirAt(t, sun);
+      const dark = sun.dot(up) < -0.105;                      // sun below −6°
+      const s = p.dot(sun), lit = !(s < 0 && p.lengthSq() - s * s < 1);
+      if (dark && lit) {
+        if (!pass) pass = { start: t, maxElevation: elev };
+        else pass.maxElevation = Math.max(pass.maxElevation, elev);
+      } else if (pass) return pass;
+    }
+    return pass;
+  }
+
   /** Local frame: forward (along track), up (away from Earth), right. */
   frame(f, u, r) {
     u.copy(this.pos).normalize();
