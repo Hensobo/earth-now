@@ -32,7 +32,7 @@ import { ISS } from './iss.js';
 // Änderungen window.applyConfig({...}) auf. Im Browser gehen URL-Parameter,
 // z. B. index.html?motion=fixed&lat=52.5&lon=13.4&zoom=2.4&pitch=30
 //
-//   body     earth | moon | mercury | venus | mars | jupiter | saturn | uranus | neptune
+//   body     sun | earth | moon | mercury | venus | mars | jupiter | saturn | uranus | neptune
 //   motion   orbit | fixed | sun | earth   Umkreisen / steht über dem Ort / folgt der Sonne /
 //            so, wie man den Körper gerade von der Erde aus sieht (echte Phase; nicht für body=earth)
 //   speed    Umlaufgeschwindigkeit im orbit-Modus, Grad pro Sekunde
@@ -769,6 +769,80 @@ const STORMS = {
 };
 const stormsActive = () => cfg.fx && !!STORMS[shownBody];
 
+// --- Sonne -----------------------------------------------------------------------
+// Eine zur Kamera gedrehte Fläche: Sonnenscheibe mit Randverdunkelung und Korona. In der App
+// liegt darauf das aktuelle Bild des NASA Solar Dynamics Observatory (über earth://app/remote/…,
+// die App lädt es, weil der NASA-Server keine Browser-Zugriffe von anderen Seiten erlaubt).
+const SUN_EXTENT = 3.2;   // Fläche reicht bis 3,2 Sonnenradien (Korona)
+const sunMat = new THREE.ShaderMaterial({
+  uniforms: { time: { value: 0 }, sdo: { value: emptyTex }, hasSdo: { value: 0 }, sdoCenter: { value: new THREE.Vector2(0.5, 0.5) }, sdoRadius: { value: 0.45 } },
+  transparent: true, depthWrite: false,
+  vertexShader: /* glsl */`
+    varying vec2 vP;
+    void main() { vP = position.xy; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+  fragmentShader: /* glsl */`
+    uniform float time, hasSdo, sdoRadius; uniform vec2 sdoCenter; uniform sampler2D sdo;
+    varying vec2 vP;
+    float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+    float noise(vec2 p) {
+      vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+      return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y);
+    }
+    void main() {
+      float r = length(vP);
+      vec3 col; float a = 1.0;
+      if (r < 1.0) {
+        float mu = sqrt(1.0 - r * r);
+        float limb = 1.0 - 0.78 * (1.0 - mu) - 0.12 * (1.0 - mu) * (1.0 - mu);  // Randverdunkelung
+        if (hasSdo > 0.5) {
+          col = texture2D(sdo, sdoCenter + vec2(vP.x, -vP.y) * sdoRadius).rgb * 1.08;
+        } else {
+          vec2 q = vP / max(mu, 0.15) * 60.0;
+          float gran = noise(q + time * 0.02) * 0.6 + noise(q * 2.1 - time * 0.015) * 0.4;   // Granulation
+          // Farben im linearen Raum: Mitte gelbweiß, Rand tief orange (wie mit Sonnenfilter fotografiert)
+          col = mix(vec3(0.62, 0.09, 0.004), vec3(1.0, 0.66, 0.24), pow(limb, 0.75)) * (0.93 + 0.12 * gran);
+        }
+      } else {
+        // Korona: weicher Schein mit feinen Strahlen
+        float ang = atan(vP.y, vP.x);
+        float streak = 0.55 + 0.45 * noise(vec2(ang * 7.0, 1.0)) * noise(vec2(ang * 23.0, 3.0));
+        float glow = exp(-(r - 1.0) * 9.0) * 0.45 + exp(-(r - 1.0) * 2.2) * 0.13 * streak;
+        col = vec3(1.0, 0.45, 0.14) * glow;
+        a = clamp(glow * 1.4, 0.0, 1.0) * (1.0 - smoothstep(${(SUN_EXTENT * 0.75).toFixed(2)}, ${SUN_EXTENT.toFixed(2)}, r));
+      }
+      gl_FragColor = vec4(col, a);
+      #include <colorspace_fragment>
+    }`,
+});
+const sunMesh = new THREE.Mesh(new THREE.PlaneGeometry(2 * SUN_EXTENT, 2 * SUN_EXTENT), sunMat);
+sunMesh.visible = false;
+sunMesh.renderOrder = 5;   // nach den Sternen zeichnen, sonst liegen sie als dunkle Punkte auf der Scheibe
+scene.add(sunMesh);
+let sdoState = 'none';   // none | loading | ok | failed
+function loadSdo() {
+  if (sdoState !== 'none' || location.protocol !== 'earth:') return;
+  sdoState = 'loading';
+  const img = new Image();
+  img.onload = () => {
+    // Sonnenscheibe im Bild finden (Rand, wo die Helligkeit einbricht)
+    const c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
+    const g = c.getContext('2d'); g.drawImage(img, 0, 0);
+    const row = g.getImageData(0, img.height >> 1, img.width, 1).data;
+    let l = 0, rr = img.width - 1;
+    while (l < img.width / 2 && row[l * 4] + row[l * 4 + 1] < 60) l++;
+    while (rr > img.width / 2 && row[rr * 4] + row[rr * 4 + 1] < 60) rr--;
+    const t = new THREE.Texture(img); t.colorSpace = THREE.SRGBColorSpace; t.needsUpdate = true;
+    sunMat.uniforms.sdo.value = t;
+    sunMat.uniforms.sdoCenter.value.set((l + rr) / 2 / img.width, 0.5);
+    sunMat.uniforms.sdoRadius.value = (rr - l) / 2 / img.width;
+    sunMat.uniforms.hasSdo.value = rr - l > img.width * 0.4 ? 1 : 0;
+    sdoState = 'ok'; requestRender();
+  };
+  img.onerror = () => { sdoState = 'failed'; setTimeout(() => { sdoState = 'none'; }, 30 * 60 * 1000); };
+  img.src = `remote/sdo/latest_1024_HMIIC.jpg?t=${Math.floor(Date.now() / 3.6e6)}`;
+}
+setInterval(() => { if (shownBody === 'sun' && sdoState === 'ok') { sdoState = 'none'; loadSdo(); } }, 60 * 60 * 1000);
+
 const earthParts = [earth, clouds, atmo];
 const planetParts = [planet, halo, ring];
 planetParts.forEach((o) => { o.visible = false; scene.add(o); });
@@ -783,15 +857,18 @@ function applyBody() {
   const id = BODIES[cfg.body] ? cfg.body : 'earth';
   if (id === shownBody) return;
   shownBody = id;
-  const isEarth = id === 'earth';
+  const isEarth = id === 'earth', isSun = id === 'sun';
   earthParts.forEach((o) => { o.visible = isEarth; });
   if (isEarth) applyCloudMode();
-  planet.visible = !isEarth;
+  planet.visible = !isEarth && !isSun;
+  sunMesh.visible = isSun;
+  if (isSun) loadSdo();
   const b = BODIES[id];
   for (const [file, t] of Object.entries(bodyTextures)) {
     if (file !== b.map && file !== b.ring?.map) { t.dispose(); delete bodyTextures[file]; }
   }
-  if (!isEarth) {
+  if (isSun) { halo.visible = false; ring.visible = false; }
+  if (!isEarth && !isSun) {
     planetMat.uniforms.map.value = bodyTex(b.map);
     planetMat.uniforms.ambient.value.setRGB(...b.ambient);
     planetMat.uniforms.rough.value = b.rough;
@@ -824,6 +901,7 @@ function applyEffects() {
 // Sonne (und Erde) vom gewählten Körper aus gesehen
 function bodySun(date) {
   if (shownBody === 'earth') return { sun: subsolarPoint(date), earth: null };
+  if (shownBody === 'sun') return { sun: { lat: 0, lon: 0 }, earth: null, earthDistance: 1 };
   return bodyState(shownBody, date);
 }
 
@@ -989,13 +1067,15 @@ function frame() {
   applyISS();
   updateCamera(Math.min(dt, 2), st);
   auroraLayers.forEach((l) => { l.material.uniforms.time.value = sec; });
+  if (sunMesh.visible) { sunMesh.quaternion.copy(camera.quaternion); sunMat.uniforms.time.value = sec; }
   planetMat.uniforms.flowTime.value = sec / 24;  // eine Strömungsphase dauert 24 s
   // Statische Wolken driften leicht, Live-Wolken bleiben geografisch korrekt
   cloudMat.uniforms.drift.value = liveCloudsActive() ? 0 : sec * 0.0002;
 
   if (cfg.hud) {
     const de = navigator.language.startsWith('de');
-    const body = shownBody === 'earth' ? '' : BODIES[shownBody].name[de ? 'de' : 'en'] + '  ·  ';
+    const body = shownBody === 'earth' ? '' : BODIES[shownBody].name[de ? 'de' : 'en'] +
+      (shownBody === 'sun' && sdoState === 'ok' ? (de ? ' (Live-Bild: NASA SDO)' : ' (live image: NASA SDO)') : '') + '  ·  ';
     const dist = st.earthDistance
       ? `  ·  ${st.earthDistance < 0.02 ? Math.round(st.earthDistance * 149597871).toLocaleString(de ? 'de-DE' : 'en-GB') + ' km'
                                         : st.earthDistance.toFixed(2).replace('.', de ? ',' : '.') + (de ? ' AE' : ' AU')}${de ? ' von der Erde' : ' from Earth'}`
@@ -1008,7 +1088,7 @@ function frame() {
     } else
     hud.textContent = body + (cfg.place ? cfg.place + '  ·  ' : '') +
       date.toLocaleString(de ? 'de-DE' : 'en-GB', { dateStyle: 'medium', timeStyle: 'short' }) +
-      (de ? `  ·  Sonne im Zenit über ${fmtCoord(sun.lat, 'N', 'S')}, ${fmtCoord(sun.lon, 'O', 'W')}`
+      (shownBody === 'sun' ? '' : de ? `  ·  Sonne im Zenit über ${fmtCoord(sun.lat, 'N', 'S')}, ${fmtCoord(sun.lon, 'O', 'W')}`
           : `  ·  Sun overhead at ${fmtCoord(sun.lat, 'N', 'S')}, ${fmtCoord(sun.lon, 'E', 'W')}`) +
       dist + (liveCloudsActive() ? (de ? '  ·  Wolken live' : '  ·  Live clouds') : '') +
       (shownBody === 'earth' && cfg.fx && kpLive ? `  ·  ${de ? 'Polarlicht-Aktivität' : 'Aurora activity'} Kp ${kp.toFixed(1)}` : '') +

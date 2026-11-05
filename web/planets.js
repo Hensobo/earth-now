@@ -202,6 +202,7 @@ export function heliocentricLongitude(name, date) {
 
 // Display data per body. radius = scale relative to the view (Saturn shrinks so its rings fit).
 export const BODIES = {
+  sun:     { name: { en: 'Sun', de: 'Sonne' }, fit: 1 },
   earth:   { name: { en: 'Earth', de: 'Erde' } },
   moon:    { name: { en: 'Moon', de: 'Mond' }, map: 'moon.jpg', fit: 1, ambient: [0.0045, 0.006, 0.009], rough: 0.55 },
   mercury: { name: { en: 'Mercury', de: 'Merkur' }, map: 'mercury.jpg', fit: 1, ambient: [0.0006, 0.0006, 0.0007], rough: 0.55 },
