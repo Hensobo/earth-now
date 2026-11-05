@@ -1,0 +1,124 @@
+<!doctype html>
+<!--
+  Desktop mockups for the README and website. Rendered by design/marketing/render.mjs.
+  ?scene=menu      wallpaper + menu bar + open Earth Now menu
+  ?scene=settings  wallpaper + menu bar + settings window (CI screenshot)
+  ?scene=social    1280×640 social preview
+  Images are real renders of web/index.html (docs/screenshots/views) and real app
+  screenshots from CI (docs/screenshots/app). Only the desktop frame is drawn here.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Earth Now mockup</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #000;
+    font: 13px/1.2 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased; color: #fff; }
+  .wall { position: absolute; inset: 0; background: #000 center / cover no-repeat; }
+
+  /* generic menu bar (no vendor logos) */
+  .menubar { position: absolute; inset: 0 0 auto; height: 28px; display: flex; align-items: center;
+    padding: 0 14px; gap: 20px; background: rgba(20,22,30,.38); backdrop-filter: blur(30px) saturate(1.6);
+    -webkit-backdrop-filter: blur(30px) saturate(1.6); font-size: 13.5px; font-weight: 500; }
+  .menubar .app { font-weight: 700; }
+  .menubar .right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+  .status { width: 26px; height: 22px; border-radius: 5px; display: grid; place-items: center; }
+  .status.on { background: rgba(255,255,255,.22); }
+  .status svg { width: 16px; height: 16px; }
+
+  /* menu */
+  .menu { position: absolute; top: 32px; width: 250px; padding: 5px; border-radius: 11px;
+    background: rgba(40,42,50,.72); backdrop-filter: blur(40px) saturate(1.8); -webkit-backdrop-filter: blur(40px) saturate(1.8);
+    border: .5px solid rgba(255,255,255,.18); box-shadow: 0 18px 50px rgba(0,0,0,.55); font-size: 13.5px; }
+  .item { display: flex; align-items: center; height: 24px; padding: 0 10px 0 22px; border-radius: 5px; position: relative; }
+  .item.indent { padding-left: 38px; }
+  .item.sel { background: #2f6fde; }
+  .item .check { position: absolute; left: 7px; font-size: 11px; }
+  .item.indent .check { left: 23px; }
+  .item kbd { margin-left: auto; font: inherit; opacity: .55; }
+  .header { height: 22px; padding: 4px 10px 0; font-size: 11.5px; font-weight: 600; opacity: .5; }
+  .sep { height: 1px; margin: 5px 10px; background: rgba(255,255,255,.14); }
+
+  /* desktop icons */
+  .icons { position: absolute; right: 26px; top: 50px; display: grid; gap: 22px; justify-items: center; }
+  .icon { width: 86px; text-align: center; font-size: 12.5px; font-weight: 600; text-shadow: 0 1px 3px rgba(0,0,0,.8); }
+  .icon svg { width: 62px; height: 52px; display: block; margin: 0 auto 6px; filter: drop-shadow(0 2px 4px rgba(0,0,0,.35)); }
+
+  /* settings window */
+  .window { position: absolute; border-radius: 12px; overflow: hidden; background: #1e1e1e;
+    box-shadow: 0 30px 90px rgba(0,0,0,.65), 0 0 0 .5px rgba(255,255,255,.2); }
+  .titlebar { height: 30px; display: flex; align-items: center; justify-content: center; position: relative;
+    background: #2a2a2c; font-weight: 600; font-size: 13px; border-bottom: .5px solid rgba(0,0,0,.6); }
+  .lights { position: absolute; left: 12px; display: flex; gap: 8px; }
+  .lights i { width: 12px; height: 12px; border-radius: 50%; background: #ff5f57; }
+  .lights i:nth-child(2) { background: #febc2e; } .lights i:nth-child(3) { background: #28c840; }
+  .window img { display: block; width: 560px; }
+
+  /* social preview */
+  .social { position: absolute; inset: 0; display: flex; align-items: center; padding: 0 72px;
+    background: radial-gradient(70% 90% at 100% 50%, rgba(40,90,170,.25), transparent 70%), #03060f; }
+  .social .text { position: relative; z-index: 2; max-width: 600px; }
+  .social img.logo { width: 128px; height: 128px; margin-bottom: 26px; }
+  .social h1 { font-size: 76px; line-height: 1; margin: 0 0 16px; letter-spacing: -.02em; }
+  .social p { font-size: 30px; line-height: 1.3; margin: 0; color: #c9d4e6; }
+  .social p b { color: #6cc6ff; font-weight: 600; }
+  .social .earth { position: absolute; right: -120px; top: 50%; width: 760px; height: 760px; transform: translateY(-50%);
+    background: center / 172% no-repeat;
+    -webkit-mask-image: radial-gradient(circle, #000 58%, transparent 71%); mask-image: radial-gradient(circle, #000 58%, transparent 71%); }
+</style>
+</head>
+<body>
+<script>
+const q = new URLSearchParams(location.search);
+const scene = q.get('scene') || 'menu';
+const root = '../../';
+const globe = `<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.6 3.9 5.6 3.9 9s-1.3 6.4-3.9 9c-2.6-2.6-3.9-5.6-3.9-9S9.4 5.6 12 3z"/></svg>`;
+const folder = (c1, c2) => `<svg viewBox="0 0 62 52"><path d="M3 8a4 4 0 0 1 4-4h15l5 5h28a4 4 0 0 1 4 4v3H3z" fill="${c2}"/><rect x="3" y="12" width="56" height="37" rx="4" fill="${c1}"/></svg>`;
+
+function menubar(menuOpen) {
+  return `<div class="menubar"><span class="app">Finder</span><span>File</span><span>Edit</span><span>View</span><span>Go</span><span>Window</span><span>Help</span>
+    <div class="right"><div class="status ${menuOpen ? 'on' : ''}">${globe}</div><span>Wed 4 Nov&nbsp;&nbsp;21:30</span></div></div>`;
+}
+
+function menu(right) {
+  const it = (t, o = {}) => `<div class="item ${o.indent ? 'indent' : ''} ${o.sel ? 'sel' : ''}">${o.on ? '<span class="check">✓</span>' : ''}${t}${o.kbd ? `<kbd>${o.kbd}</kbd>` : ''}</div>`;
+  return `<div class="menu" style="right:${right}px">
+    ${it('Settings…', { kbd: '⌘,' })}<div class="sep"></div>
+    <div class="header">View</div>
+    ${it('Whole Earth')}${it('Close-up')}${it('Horizon')}${it('Side View', { on: 1 })}
+    ${it('Earth on Left', { indent: 1 })}${it('Earth on Right', { indent: 1, on: 1 })}${it('Far Out', { sel: 1 })}
+    <div class="sep"></div><div class="header">Motion</div>
+    ${it('Orbit')}${it('Stay Above Place')}${it('Follow the Sun', { on: 1 })}
+    <div class="sep"></div>${it('Open at Login', { on: 1 })}${it('Reload', { kbd: '⌘R' })}
+    <div class="sep"></div>${it('About Earth Now')}${it('Check for Updates…')}${it('Quit Earth Now', { kbd: '⌘Q' })}
+  </div>`;
+}
+
+let html = '';
+if (scene === 'menu') {
+  html = `<div class="wall" style="background-image:url(${root}docs/screenshots/views/side-view.jpg)"></div>
+    <div class="icons" style="right:auto;left:26px">
+      <div class="icon">${folder('#5aa9f0', '#3f8ad6')}Projects</div>
+      <div class="icon">${folder('#7cc8a0', '#58ad83')}Photos</div>
+      <div class="icon">${folder('#f0b65a', '#d69a3f')}Invoices</div>
+    </div>
+    ${menubar(true)}${menu(140)}`;
+} else if (scene === 'settings') {
+  const win = (shot, left, top) => `<div class="window" style="left:${left}px; top:${top}px">
+      <div class="titlebar"><div class="lights"><i></i><i></i><i></i></div>Earth Now</div>
+      <img src="${root}docs/screenshots/app/${shot}"></div>`;
+  html = `<div class="wall" style="background-image:url(${root}docs/screenshots/views/${q.get('wall') || 'close-up.jpg'})"></div>
+    ${menubar(false)}
+    ${q.get('second') ? win(q.get('second'), 770, 132) : ''}
+    ${win(q.get('shot') || 'settings-en-dark.png', 110, 58)}`;
+} else if (scene === 'social') {
+  html = `<div class="social"><div class="earth" style="background-image:url(${root}docs/screenshots/views/whole-earth.jpg)"></div>
+    <div class="text"><img class="logo" src="${root}design/icon/png/earth-now-256.png" alt="">
+    <h1>Earth Now</h1><p>The real Earth, <b>right now</b>,<br>as your Mac's desktop.</p></div></div>`;
+}
+document.body.insertAdjacentHTML('beforeend', html);
+</script>
+</body>
+</html>

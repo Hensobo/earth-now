@@ -1,0 +1,49 @@
+name: Bug report
+description: Something doesn't work as expected
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for taking the time to report this! The more details, the faster it can be fixed.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Earth Now version
+      description: Menu bar icon › About Earth Now
+      placeholder: "1.0.0"
+    validations:
+      required: true
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version
+      placeholder: "macOS 15.6"
+    validations:
+      required: true
+  - type: dropdown
+    id: mac
+    attributes:
+      label: Mac
+      options:
+        - Apple Silicon (M1 or later)
+        - Intel
+    validations:
+      required: true
+  - type: input
+    id: displays
+    attributes:
+      label: Displays
+      description: How many displays, and their resolution if relevant
+      placeholder: "MacBook display + one external 4K"
+  - type: textarea
+    id: extra
+    attributes:
+      label: Screenshots or anything else
+      description: Drag images in here. If the Earth stays black, please mention which view you use.
