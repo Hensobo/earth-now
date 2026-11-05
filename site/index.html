@@ -161,6 +161,10 @@
   .firstlaunch ol { margin: 10px 0 0; padding-left: 22px; color: #c9d4e6; }
   .firstlaunch li { margin: 6px 0; }
   .firstlaunch p { color: var(--muted); margin: 12px 0 0; font-size: 15.5px; }
+  .windows-note { display: flex; gap: 12px; align-items: flex-start; max-width: 36rem; margin: 22px auto 0; padding: 14px 18px;
+    border-radius: 14px; border: 1px solid var(--line); background: var(--card); color: #c9d4e6; font-size: 15px; text-align: left; }
+  .windows-note svg { width: 20px; height: 20px; flex: none; margin-top: 2px; color: var(--accent); }
+  .windows-note b { color: var(--text); }
   .reqs { display: flex; flex-wrap: wrap; gap: 10px 26px; justify-content: center; margin-top: 18px; color: var(--muted); font-size: 15px; }
 
   .faq details { border-bottom: 1px solid var(--line); padding: 18px 0; }
@@ -249,7 +253,7 @@
         </a>
         <a class="btn btn-ghost" href="#features">See what it does</a>
       </div>
-      <small id="clock">Free &amp; open source · macOS 13 or later · Apple Silicon &amp; Intel</small>
+      <small id="clock">Free &amp; open source · macOS 13 or later · Apple Silicon &amp; Intel · <a href="#windows">Windows version coming soon</a></small>
     </div>
   </section>
 
@@ -362,6 +366,11 @@
         <div class="reqs">
           <span>macOS 13 Ventura or later</span><span>Apple Silicon &amp; Intel</span><span>about 15 MB</span><span>English &amp; German</span>
         </div>
+        <p class="windows-note" id="windows">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 5.5l7.5-1v7H3zM11.5 4.3L21 3v8.5h-9.5zM3 12.5h7.5v7L3 18.5zM11.5 12.5H21V21l-9.5-1.3z"/></svg>
+          <span><b>Windows version in the works.</b> We're bringing Earth Now to Windows next.
+          <a href="https://github.com/Hensobo/earth-now">Watch the project on GitHub</a> (Watch › Custom › Releases) to hear when it's out.</span>
+        </p>
       </div>
 
       <div class="steps">
@@ -414,6 +423,10 @@
       <details>
         <summary>How do I uninstall it?</summary>
         <p>Choose <b>Quit Earth Now</b> from the globe menu, then move <b>Earth Now</b> from Applications to the Trash. If you turned on "Open at Login", turn it off first. To also remove the settings, delete <code>~/Library/Preferences/io.github.hensobo.earthnow.plist</code>.</p>
+      </details>
+      <details>
+        <summary>Is there a Windows version?</summary>
+        <p>Not yet – we're working on it, and it will follow soon. To get notified, <a href="https://github.com/Hensobo/earth-now">watch the project on GitHub</a> and choose <b>Custom › Releases</b>.</p>
       </details>
       <details>
         <summary>Why isn't it in the Mac App Store?</summary>

@@ -71,6 +71,9 @@ from the actual app.
 
 **Requirements:** macOS 13 Ventura or later · Apple Silicon or Intel · about 15 MB.
 
+**Windows?** A Windows version is in the works and will follow soon – *Watch › Custom › Releases* on
+this repository to be notified.
+
 ### First launch
 
 Earth Now is free and isn't registered with Apple's paid developer program (yet), so the first time
