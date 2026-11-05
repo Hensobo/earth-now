@@ -16,8 +16,11 @@ security advisory and you're credited if you like.
 
 To make reviews easier, here is everything the app touches:
 
-- **Network:** downloads cloud images from `clouds.matteason.co.uk` (every few hours) and, only when
-  you search for a place, sends your search text to Apple Maps. Nothing else – no analytics, no
-  accounts, no update pings.
+- **Network:** only downloads public data – cloud images from `clouds.matteason.co.uk` (every three
+  hours), the ISS orbit from `celestrak.org` (twice a day, while the ISS is shown) and the aurora
+  activity from `services.swpc.noaa.gov` (every three hours, while auroras are on) and an image of the Sun
+  from `sdo.gsfc.nasa.gov` (hourly, while the Sun is shown). When you search
+  for a place, the search text goes to Apple Maps. Nothing else – no analytics, no accounts, no
+  update pings.
 - **Files:** reads its own app bundle; stores settings in `~/Library/Preferences/io.github.hensobo.earthnow.plist`.
 - **Permissions:** none (no location, camera, screen recording or accessibility access).

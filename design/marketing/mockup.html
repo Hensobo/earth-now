@@ -56,6 +56,13 @@
   .lights i:nth-child(2) { background: #febc2e; } .lights i:nth-child(3) { background: #28c840; }
   .window img { display: block; width: 560px; }
 
+  /* planet line-up */
+  .lineup { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 0;
+    background: radial-gradient(60% 90% at 50% 50%, rgba(40,90,170,.18), transparent 70%), #000; }
+  .lineup figure { margin: 0; text-align: center; }
+  .lineup img { width: 156px; height: 156px; display: block; -webkit-mask-image: radial-gradient(circle, #000 62%, transparent 72%); }
+  .lineup figcaption { margin-top: 10px; font-size: 15px; font-weight: 600; color: #c9d4e6; letter-spacing: .02em; }
+
   /* social preview */
   .social { position: absolute; inset: 0; display: flex; align-items: center; padding: 0 72px;
     background: radial-gradient(70% 90% at 100% 50%, rgba(40,90,170,.25), transparent 70%), #03060f; }
@@ -86,9 +93,10 @@ function menu(right) {
   const it = (t, o = {}) => `<div class="item ${o.indent ? 'indent' : ''} ${o.sel ? 'sel' : ''}">${o.on ? '<span class="check">✓</span>' : ''}${t}${o.kbd ? `<kbd>${o.kbd}</kbd>` : ''}</div>`;
   return `<div class="menu" style="right:${right}px">
     ${it('Settings…', { kbd: '⌘,' })}<div class="sep"></div>
+    ${it('Planet: Earth', { kbd: '›' })}<div class="sep"></div>
     <div class="header">View</div>
     ${it('Whole Earth')}${it('Close-up')}${it('Horizon')}${it('Side View', { on: 1 })}
-    ${it('Earth on Left', { indent: 1 })}${it('Earth on Right', { indent: 1, on: 1 })}${it('Far Out', { sel: 1 })}
+    ${it('Earth on Left', { indent: 1 })}${it('Earth on Right', { indent: 1, on: 1 })}${it('Far Out')}${it('ISS Chase', { sel: 1 })}${it('Above the ISS')}
     <div class="sep"></div><div class="header">Motion</div>
     ${it('Orbit')}${it('Stay Above Place')}${it('Follow the Sun', { on: 1 })}
     <div class="sep"></div>${it('Open at Login', { on: 1 })}${it('Reload', { kbd: '⌘R' })}
@@ -109,14 +117,18 @@ if (scene === 'menu') {
   const win = (shot, left, top) => `<div class="window" style="left:${left}px; top:${top}px">
       <div class="titlebar"><div class="lights"><i></i><i></i><i></i></div>Earth Now</div>
       <img src="${root}docs/screenshots/app/${shot}"></div>`;
-  html = `<div class="wall" style="background-image:url(${root}docs/screenshots/views/${q.get('wall') || 'close-up.jpg'})"></div>
+  html = `<div class="wall" style="background-image:url(${root}docs/screenshots/${q.get('wall') || 'views/close-up.jpg'})"></div>
     ${menubar(false)}
     ${q.get('second') ? win(q.get('second'), 770, 132) : ''}
     ${win(q.get('shot') || 'settings-en-dark.png', 110, 58)}`;
+} else if (scene === 'lineup') {
+  const order = [['mercury', 'Mercury'], ['venus', 'Venus'], ['earth', 'Earth'], ['moon', 'Moon'], ['mars', 'Mars'],
+                 ['jupiter', 'Jupiter'], ['saturn', 'Saturn'], ['uranus', 'Uranus'], ['neptune', 'Neptune']];
+  html = `<div class="lineup">${order.map(([id, name]) => `<figure><img src="${root}docs/screenshots/planets/portrait-${id}.png"><figcaption>${name}</figcaption></figure>`).join('')}</div>`;
 } else if (scene === 'social') {
   html = `<div class="social"><div class="earth" style="background-image:url(${root}docs/screenshots/views/whole-earth.jpg)"></div>
     <div class="text"><img class="logo" src="${root}design/icon/png/earth-now-256.png" alt="">
-    <h1>Earth Now</h1><p>The real Earth, <b>right now</b>,<br>as your Mac's desktop.</p></div></div>`;
+    <h1>Earth Now</h1><p>The real Earth – and every planet –<br><b>right now</b>, as your Mac's desktop.</p></div></div>`;
 }
 document.body.insertAdjacentHTML('beforeend', html);
 </script>
