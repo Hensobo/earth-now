@@ -35,8 +35,8 @@ export class ISS {
         fragmentShader: `uniform float time;
           void main() {
             float d = length(gl_PointCoord - 0.5) * 2.0;
-            float core = smoothstep(0.32, 0.12, d);
-            float ring = smoothstep(0.06, 0.0, abs(d - fract(time * 0.5) * 0.9 - 0.1)) * (1.0 - fract(time * 0.5));
+            float core = 1.0 - smoothstep(0.12, 0.32, d);
+            float ring = (1.0 - smoothstep(0.0, 0.06, abs(d - fract(time * 0.5) * 0.9 - 0.1))) * (1.0 - fract(time * 0.5));
             gl_FragColor = vec4(vec3(1.0, 0.86, 0.55) * (core + ring * 0.7), 1.0);
           }`,
       }));
