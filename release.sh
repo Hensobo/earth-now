@@ -1,38 +1,42 @@
 #!/bin/zsh
-# Baut EarthNow.app und verpackt sie als EarthNow-<version>.dmg (mit „In Programme ziehen“).
+# Builds EarthNow.app and packages it as dist/EarthNow-<version>.dmg
+# (with a drag-to-Applications shortcut).
 #
-# Ohne weitere Angaben entsteht eine unsignierte DMG zum Testen.
-# Für einen echten Release (Apple Developer Program nötig):
+#   ./release.sh            version from the VERSION file
+#   ./release.sh 1.2.0      explicit version
 #
-#   DEVELOPER_ID="Developer ID Application: Vorname Nachname (TEAMID)" \
+# Without further settings you get an ad-hoc signed DMG: it works, but macOS asks
+# users to confirm under System Settings › Privacy & Security › "Open Anyway".
+#
+# Signed and notarized release (needs the Apple Developer Program):
+#
+#   DEVELOPER_ID="Developer ID Application: Firstname Lastname (TEAMID)" \
 #   NOTARY_PROFILE="earthnow-notary" \
-#   ./release.sh 1.0
+#   ./release.sh
 #
-# NOTARY_PROFILE einmalig anlegen mit:
+# Create NOTARY_PROFILE once with:
 #   xcrun notarytool store-credentials earthnow-notary --apple-id <mail> --team-id <TEAMID>
 set -e
 cd "${0:A:h}"
 
-VERSION=${1:-1.0}
+export VERSION=${1:-$(cat VERSION)}
 APP=EarthNow.app
 DMG=dist/EarthNow-$VERSION.dmg
 
 ./build.sh
-/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" $APP/Contents/Info.plist
 
 if [[ -n "$DEVELOPER_ID" ]]; then
-  echo "Signiere mit: $DEVELOPER_ID"
+  echo "Signing with: $DEVELOPER_ID"
   codesign --force --deep --options runtime --timestamp --sign "$DEVELOPER_ID" $APP
   codesign --verify --strict --verbose=2 $APP
 else
-  codesign --force --sign - $APP   # nach PlistBuddy neu ad-hoc signieren
-  echo "Hinweis: keine DEVELOPER_ID gesetzt – die DMG ist unsigniert und macOS warnt beim Öffnen."
+  echo "Note: DEVELOPER_ID not set – the app is ad-hoc signed and not notarized."
 fi
 
-# DMG zusammenstellen
+# Assemble the DMG
 rm -rf dist/dmg && mkdir -p dist/dmg
 cp -R $APP dist/dmg/
-ln -s /Applications dist/dmg/Programme
+ln -s /Applications dist/dmg/Applications
 rm -f $DMG
 hdiutil create -volname "Earth Now" -srcfolder dist/dmg -ov -format UDZO -quiet $DMG
 rm -rf dist/dmg
@@ -40,11 +44,11 @@ rm -rf dist/dmg
 if [[ -n "$DEVELOPER_ID" ]]; then
   codesign --force --sign "$DEVELOPER_ID" --timestamp $DMG
   if [[ -n "$NOTARY_PROFILE" ]]; then
-    echo "Notarisiere bei Apple (dauert meist 1–5 Minuten) …"
+    echo "Notarizing with Apple (usually 1–5 minutes) …"
     xcrun notarytool submit $DMG --keychain-profile "$NOTARY_PROFILE" --wait
     xcrun stapler staple $DMG
     spctl --assess --type open --context context:primary-signature -v $DMG
   fi
 fi
 
-echo "Fertig: $PWD/$DMG ($(du -h $DMG | cut -f1))"
+echo "Done: $PWD/$DMG ($(du -h $DMG | cut -f1))"

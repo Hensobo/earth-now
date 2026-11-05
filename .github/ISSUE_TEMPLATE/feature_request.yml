@@ -1,0 +1,16 @@
+name: Feature request
+description: Suggest an idea for Earth Now
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: Your idea
+      description: What would you like Earth Now to do?
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why would it be useful?
+      description: Tell us what you want to achieve – that helps find the best solution.

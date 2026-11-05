@@ -4,3 +4,4 @@ dist/
 # Lokale Claude-Einstellungen
 .claude/
 .DS_Store
+build/

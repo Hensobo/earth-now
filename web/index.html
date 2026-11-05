@@ -34,6 +34,7 @@ import * as THREE from './lib/three.module.min.js';
 //   fov      Brennweite (vertikaler Blickwinkel)
 //   x,y      Verschiebung des Bildausschnitts (-1..1)
 //   fps, hud (0/1), clouds (live|static|off), warp (Zeitraffer-Faktor)
+//   time     Startzeitpunkt statt jetzt, ISO 8601, z. B. time=2026-06-21T18:00:00Z (für Tests/Screenshots)
 // ---------------------------------------------------------------------------
 const P = new URLSearchParams(location.search);
 const cfg = {
@@ -49,7 +50,8 @@ for (const [k, v] of P) {
 
 const DEG = Math.PI / 180;
 const startReal = Date.now();
-const now = () => new Date(startReal + (Date.now() - startReal) * cfg.warp);
+const startSim = Date.parse(P.get('time') || window.__startTime || '') || startReal;
+const now = () => new Date(startSim + (Date.now() - startReal) * cfg.warp);
 
 // --- Sonnenstand (Subsolarpunkt) -------------------------------------------
 // Low-precision-Formeln des Astronomical Almanac, Genauigkeit ~0.01°.
@@ -234,20 +236,32 @@ function setCloudTex(t) {
   earthMat.uniforms.cloudMap.value = t;
   requestRender();
 }
+// Nach einem Fehlschlag (offline, Server nicht erreichbar) statische Wolken zeigen und
+// erst nach einer Wartezeit erneut versuchen: 1, 2, 4 … höchstens 60 Minuten.
+let liveCloudRetryAt = 0, liveCloudFailures = 0;
 function loadLiveClouds() {
-  if (cfg.clouds !== 'live' || liveCloudLoading) return;
+  if (cfg.clouds !== 'live' || liveCloudLoading || Date.now() < liveCloudRetryAt) return;
   const res = wantedCloudRes();
   liveCloudLoading = true;
   loader.setCrossOrigin('anonymous');
-  loader.load(`${liveCloudsUrl(res)}?t=${Math.floor(Date.now() / 3.6e6)}`, (t) => {
+  // Die Karten werden alle 3 h aktualisiert: gleicher Parameter innerhalb von 3 h,
+  // damit der stündliche Check aus dem Browser-Cache kommt und den Server nicht belastet.
+  loader.load(`${liveCloudsUrl(res)}?t=${Math.floor(Date.now() / 1.08e7)}`, (t) => {
     liveCloudLoading = false;
+    liveCloudFailures = 0;
+    liveCloudRetryAt = 0;
     t.anisotropy = maxAniso;
     t.wrapS = THREE.RepeatWrapping;
     liveCloudTex?.dispose();
     liveCloudTex = t;
     liveCloudRes = res;
     applyCloudMode();
-  }, undefined, () => { liveCloudLoading = false; applyCloudMode(); /* offline: statische Wolken */ });
+  }, undefined, () => {
+    liveCloudLoading = false;
+    liveCloudFailures++;
+    liveCloudRetryAt = Date.now() + Math.min(60, 2 ** (liveCloudFailures - 1)) * 60 * 1000;
+    applyCloudMode();  // zeigt statische Wolken; neuer Versuch erst nach liveCloudRetryAt
+  });
 }
 function applyCloudMode() {
   clouds.visible = cfg.clouds !== 'off';
@@ -440,10 +454,12 @@ function frame() {
   cloudMat.uniforms.drift.value = liveCloudsActive() ? 0 : sec * 0.0002;
 
   if (cfg.hud) {
+    const de = navigator.language.startsWith('de');
     hud.textContent = (cfg.place ? cfg.place + '  ·  ' : '') +
-      date.toLocaleString('de-DE', { dateStyle: 'medium', timeStyle: 'short' }) +
-      `  ·  Sonne im Zenit über ${fmtCoord(sun.lat, 'N', 'S')}, ${fmtCoord(sun.lon, 'O', 'W')}` +
-      (liveCloudsActive() ? '  ·  Wolken live' : '');
+      date.toLocaleString(de ? 'de-DE' : 'en-GB', { dateStyle: 'medium', timeStyle: 'short' }) +
+      (de ? `  ·  Sonne im Zenit über ${fmtCoord(sun.lat, 'N', 'S')}, ${fmtCoord(sun.lon, 'O', 'W')}`
+          : `  ·  Sun overhead at ${fmtCoord(sun.lat, 'N', 'S')}, ${fmtCoord(sun.lon, 'E', 'W')}`) +
+      (liveCloudsActive() ? (de ? '  ·  Wolken live' : '  ·  Live clouds') : '');
   }
   renderer.render(scene, camera);
 
