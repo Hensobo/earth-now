@@ -39,8 +39,12 @@ where the big storms are. It's calm, it's real, and it barely touches your batte
   (JPL orbital elements, IAU rotation models). Saturn's rings cast real shadows.
 - 🌒 **As Seen from Earth** – the Moon's real phase tonight with a faint earthshine, Venus as a
   crescent when it passes between us and the Sun.
-- 🛰️ **The ISS, live** – the space station's real position and orbit, plus two new views: *ISS Chase*
-  (right behind it, Earth's horizon ahead) and *Above the ISS*.
+- ☀️ **The Sun** – with today's image from NASA's Solar Dynamics Observatory, sunspots included.
+- 🌑 **Eclipses, live** – the Moon's shadow crosses the Earth during solar eclipses (within ~100 km of
+  NASA's path), the Moon turns red during lunar eclipses.
+- 🌍🌕 **Earth & Moon** – both side by side from far away, at real sizes and distance.
+- 🛰️ **The ISS, live** – the space station's real position and orbit, shown with NASA's official 3D
+  model (solar arrays track the Sun), plus two views: *ISS Chase* and *Above the ISS*.
 - 👀 **When to look up** – the info line tells you when the ISS is next visible from your place.
 - 🌌 **Auroras** – northern and southern lights on the night side, sized by NOAA's live geomagnetic
   activity; polar auroras on Jupiter and Saturn.
@@ -52,6 +56,8 @@ where the big storms are. It's calm, it's real, and it barely touches your batte
 | ![ISS Chase](docs/screenshots/planets/iss-chase.jpg) **ISS Chase** – along its real orbit | ![Above the ISS](docs/screenshots/planets/iss-above.jpg) **Above the ISS** – the route ahead |
 | ![Saturn](docs/screenshots/planets/saturn.jpg) **Saturn** – rings and shadows | ![Aurora](docs/screenshots/planets/aurora.jpg) **Aurora** – during a geomagnetic storm |
 | ![Moon](docs/screenshots/planets/moon-crescent.jpg) **Moon** – tonight's real phase | ![Jupiter](docs/screenshots/planets/jupiter-aurora.jpg) **Jupiter** – drifting bands, polar aurora |
+| ![Solar eclipse](docs/screenshots/planets/solar-eclipse.jpg) **Solar eclipse** – 2 August 2027 over Egypt | ![Lunar eclipse](docs/screenshots/planets/lunar-eclipse.jpg) **Lunar eclipse** – 3 March 2026 |
+| ![Earth & Moon](docs/screenshots/planets/earth-moon.jpg) **Earth & Moon** – real sizes and distance | ![Sun](docs/screenshots/planets/sun.jpg) **Sun** – live image in the app |
 
 ## Features
 
@@ -146,8 +152,8 @@ downloads public data (cloud map, ISS orbit, aurora activity) and, when you sear
 the search text to Apple Maps. See [SECURITY.md](SECURITY.md) for details.
 
 **How exact is the ISS?** Within a few kilometres: the orbit comes from CelesTrak twice a day and is
-propagated with SGP4. In *Above the ISS* the station is drawn enlarged – at true size it would be a
-single pixel from 2,500 km up.
+propagated with SGP4. In both ISS views the camera is hundreds of kilometres away – high enough for a
+sharp Earth – so the station is drawn enlarged; at true size it would be a few pixels.
 
 ## Build from source
 
@@ -173,7 +179,8 @@ app/main.swift        macOS app: desktop windows, menu bar, settings (SwiftUI)
 app/Localization/     UI translations
 web/index.html        renderer (three.js / WebGL shaders, sun position, auroras)
 web/planets.js        planet & Moon positions and rotation (tests: web/tests/run.sh)
-web/iss.js            ISS: orbit (SGP4), marker, 3D model, camera views
+web/iss.js            ISS: orbit (SGP4), marker, NASA 3D model, camera views
+web/models/iss.glb    NASA's ISS model, reduced (design/iss)
 web/textures/         NASA Earth textures (8K day, 4K night) and helper maps
 site/                 website (GitHub Pages)
 design/               app icon and marketing images
