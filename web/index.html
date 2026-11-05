@@ -843,7 +843,8 @@ const SIDEREAL_DEG_PER_SEC = 360 / 86164;
 function desiredFps() {
   if (settling || performance.now() < boostUntil || issMode()) return cfg.fps;
   // Polarlicht-Vorhänge und Sturmbänder bewegen sich langsam: wenige Bilder pro Sekunde genügen
-  const fxFloor = auroraInView() ? 10 : stormsActive() ? 4 : 0;
+  // Polarlichter: 20 fps wirken flüssig; mit „Maximale Qualität“ die volle Bildrate
+  const fxFloor = auroraInView() ? (cfg.fps >= 60 ? cfg.fps : 20) : stormsActive() ? 4 : 0;
   // Erdradius in Gerätepixeln; geneigte Kamera = Oberfläche näher, Bewegung schneller
   const radiusPx = Math.min(cam.zoom, 12) * innerHeight / 2 * renderer.getPixelRatio() * (1 + 2 * Math.sin(cam.pitch * DEG));
   const degPerSec = cfg.motion === 'orbit' ? Math.abs(cfg.speed)
