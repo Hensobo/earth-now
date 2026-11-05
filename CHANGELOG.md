@@ -21,10 +21,16 @@ The whole Solar System – and the space station – on your desktop.
 - **Places on other worlds:** Olympus Mons, Valles Marineris, Jezero and Gale crater on Mars; Apollo 11,
   Tycho and the far side of the Moon; Jupiter's Great Red Spot and more. The app remembers your
   place on each world.
+- **The Sun** as its own world – in the app with today's image from NASA's Solar Dynamics
+  Observatory, sunspots included.
+- **Eclipses, live.** During a solar eclipse the Moon's shadow crosses the Earth (within about 100 km
+  of NASA's predicted path); during a lunar eclipse the Moon turns red in Earth's shadow.
+- **Earth & Moon:** a new view with both, from far away – real sizes, real distance, same phase.
 - **The ISS, live.** The International Space Station's real position with its orbit for the next
-  90 minutes, updated from CelesTrak twice a day and calculated every frame (SGP4).
-- **Two ISS views:** *ISS Chase* flies right behind the station with Earth's horizon ahead;
-  *Above the ISS* floats high above it as it crosses continents and oceans.
+  90 minutes, updated from CelesTrak twice a day and calculated every frame (SGP4). Shown with
+  NASA's official 3D model, solar arrays turning to the Sun like the real ones.
+- **Two ISS views:** *ISS Chase* follows the station with Earth's horizon ahead; *Above the ISS*
+  floats high above it as it crosses continents and oceans.
 - **When to look up:** the info line shows when the ISS will next be visible from your place with the
   naked eye, and how high it will climb.
 - **Auroras.** Northern and southern lights on Earth's night side, sized and brightened by NOAA's
@@ -36,8 +42,8 @@ The whole Solar System – and the space station – on your desktop.
 
 ### Notes
 - Planet and Moon textures: Solar System Scope, CC BY 4.0 (based on NASA mission data).
-- New network requests, both only while the feature is on: `celestrak.org` (ISS orbit) and
-  `services.swpc.noaa.gov` (aurora activity). See SECURITY.md.
+- New network requests, each only while the feature is on: `celestrak.org` (ISS orbit),
+  `services.swpc.noaa.gov` (aurora activity) and `sdo.gsfc.nasa.gov` (image of the Sun). See SECURITY.md.
 - Your settings from version 1 are kept.
 
 [2.0.0]: https://github.com/Hensobo/earth-now/releases/tag/v2.0.0
