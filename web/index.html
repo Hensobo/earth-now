@@ -603,11 +603,13 @@ function updateIssCamera() {
   iss.frame(_f, _u, _r);
   if (cfg.motion === 'iss-chase') {
     // hinter und etwas über der Station, Blick entlang der Flugbahn leicht nach unten
-    camera.position.copy(iss.pos).addScaledVector(_f, -235 * M_TO_R).addScaledVector(_u, 48 * M_TO_R).addScaledVector(_r, 30 * M_TO_R);
-    _look.copy(_f).multiplyScalar(Math.cos(0.3)).addScaledVector(_u, -Math.sin(0.3));
+    // Hinter und ~900 km über der Station: aus der Höhe ist die Erde deutlich schärfer als
+    // aus 400 km. Die Station wird dafür vergrößert gezeigt (nicht maßstäblich).
+    camera.position.copy(iss.pos).addScaledVector(_f, -1150e3 * M_TO_R).addScaledVector(_u, 900e3 * M_TO_R).addScaledVector(_r, 160e3 * M_TO_R);
+    _look.subVectors(iss.pos, camera.position).normalize().addScaledVector(_f, 0.32).addScaledVector(_u, 0.1).normalize();
     camera.up.copy(_u);
-    camera.fov = 55;
-    issScale = 1;
+    camera.fov = 50;
+    issScale = 6000;
   } else {
     // Hoch über der Station (~2500 km), Flugrichtung zeigt im Bild nach oben. Aus der Nähe
     // wäre die Erdtextur zu grob – die Station wird dafür vergrößert gezeigt (nicht maßstäblich).
@@ -615,7 +617,7 @@ function updateIssCamera() {
     _look.copy(_u).negate().addScaledVector(_f, 0.12).normalize();
     camera.up.copy(_f);
     camera.fov = 40;
-    issScale = 2600;
+    issScale = 7500;
   }
   camera.near = 0.0004; camera.far = 1000;
   camera.lookAt(camera.position.x + _look.x, camera.position.y + _look.y, camera.position.z + _look.z);
@@ -913,7 +915,7 @@ function frame() {
   }
   renderer.render(scene, camera);
   if (issMode()) {
-    iss.camera.near = issScale > 1 ? 50 : 0.5; iss.camera.far = issScale > 1 ? 1e5 : 2e4; iss.camera.updateProjectionMatrix();
+    iss.camera.near = issScale > 1 ? 5 : 0.5; iss.camera.far = issScale > 1 ? 2e4 : 2e4; iss.camera.updateProjectionMatrix();
     renderer.autoClear = false;
     renderer.clearDepth();
     renderer.render(iss.scene, iss.camera);

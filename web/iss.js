@@ -1,6 +1,6 @@
 // The International Space Station, live: position from its current orbit (TLE from
 // CelesTrak, propagated with SGP4), a marker with its orbit in the normal Earth views,
-// and a small 3D model for the two ISS camera views (chase and above).
+// and NASA's 3D model (web/models/iss.glb, see design/iss) for the two ISS camera views.
 //
 // Units: the main scene uses Earth radii (Earth-fixed frame, see latLonToVec in
 // index.html). The model lives in its own scene in metres with the ISS at the origin,
@@ -8,6 +8,7 @@
 
 import * as THREE from './lib/three.module.min.js';
 import { twoline2satrec, propagate, gstime, eciToGeodetic, eciToEcf } from './lib/satellite.min.js';
+import { GLTFLoader, MeshoptDecoder } from './lib/gltf.min.js';
 
 const R_EARTH_KM = 6378.137;
 const TLE_URL = 'https://celestrak.org/NORAD/elements/gp.php?CATNR=25544&FORMAT=TLE';
@@ -62,11 +63,100 @@ export class ISS {
     // --- 3D model in its own scene (metres) ---
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(50, 1, 0.5, 20000);
-    this.sunLight = new THREE.DirectionalLight(0xffffff, 3.2);
+    this.sunLight = new THREE.DirectionalLight(0xfff6e8, 4.5);
     this.earthLight = new THREE.HemisphereLight(0x6f8fbf, 0x000000, 0.35);  // light reflected by Earth
-    this.scene.add(this.sunLight, this.sunLight.target, this.earthLight);
-    this.model = buildModel();
+    this.fill = new THREE.AmbientLight(0x8090a0, 0.35);         // a little light from everywhere (stars, Moon)
+    this.scene.add(this.sunLight, this.sunLight.target, this.earthLight, this.fill);
+    this.model = buildModel();          // simple stand-in until the NASA model has loaded
     this.scene.add(this.model);
+    this.joints = [];
+    this.loadModel();
+  }
+
+  /** NASA's ISS model (IGOAL): 109 m truss along its z axis, Zvezda at +x, nadir at −y. */
+  loadModel() {
+    const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
+    loader.load('models/iss.glb', (gltf) => {
+      const root = gltf.scene;
+      const box = new THREE.Box3().setFromObject(root), size = box.getSize(new THREE.Vector3());
+      const s = 109 / size.z;                                   // truss length → metres
+      root.scale.setScalar(s);
+      root.traverse((o) => {
+        if (!o.isMesh) return;
+        for (const m of [].concat(o.material)) {
+          // no environment map here: very metallic surfaces would turn black
+          m.metalness = Math.min(m.metalness ?? 0, 0.3);
+          m.roughness = Math.max(m.roughness ?? 1, 0.5);
+          m.side = THREE.DoubleSide;
+        }
+      });
+      // solar array joints: alpha (about the truss) and beta (about each wing's mast)
+      this.joints = [];
+      root.traverse((o) => {
+        const kind = /ALPHA_ROT/.test(o.name) ? 'alpha' : /BETA_ROT/.test(o.name) ? 'beta' : null;
+        if (!kind) return;
+        let panel = null;
+        o.traverse((c) => { if (!panel && c.isMesh && /Array/i.test(c.name + (c.parent?.name || ''))) panel = c; });
+        if (!panel) o.traverse((c) => { if (!panel && c.isMesh) panel = c; });
+        if (!panel) return;
+        panel.geometry.computeBoundingBox();
+        const ext = panel.geometry.boundingBox.getSize(new THREE.Vector3()).toArray();
+        const thin = ext.indexOf(Math.min(...ext)), long = ext.indexOf(Math.max(...ext));
+        const axis = (i) => new THREE.Vector3(i === 0 ? 1 : 0, i === 1 ? 1 : 0, i === 2 ? 1 : 0);
+        this.joints.push({ node: o, kind, base: o.quaternion.clone(), panel, normal: axis(thin), long: axis(long) });
+      });
+      this.joints.sort((a, b) => (a.kind === 'alpha' ? 0 : 1) - (b.kind === 'alpha' ? 0 : 1));
+      this.scene.remove(this.model);
+      this.model = new THREE.Group();
+      this.model.add(root);
+      this.scene.add(this.model);
+      this.trackedSun = null;
+      this.onChange?.();
+    });
+  }
+
+  /** Turns the solar array joints so the panels face the sun (like the real ISS does). */
+  trackSun(sunDir) {
+    if (!this.joints.length) return;
+    if (this.trackedSun && this.trackedSun.dot(sunDir) > 0.9995 && this.trackedQ?.equals(this.model.quaternion)) return;
+    this.trackedSun = sunDir.clone(); this.trackedQ = this.model.quaternion.clone();
+    const q = new THREE.Quaternion(), pq = new THREE.Quaternion(), ax = new THREE.Vector3(), n = new THREE.Vector3();
+    const score = (j) => {
+      j.node.updateMatrixWorld(true);
+      return Math.abs(n.copy(j.normal).transformDirection(j.panel.matrixWorld).dot(sunDir));
+    };
+    for (const j of this.joints) {
+      j.node.quaternion.copy(j.base);
+      j.node.parent.updateMatrixWorld(true);
+      j.node.updateMatrixWorld(true);
+      // rotation axis in world space: alpha = truss (model z), beta = the wing's long axis
+      if (j.kind === 'alpha') ax.set(0, 0, 1).transformDirection(this.model.matrixWorld);
+      else ax.copy(j.long).transformDirection(j.panel.matrixWorld);
+      j.node.parent.getWorldQuaternion(pq);
+      const axLocal = ax.clone().applyQuaternion(pq.invert()).normalize();
+      const apply = (a) => { j.node.quaternion.copy(q.setFromAxisAngle(axLocal, a)).multiply(j.base); };
+      let best = 0, bestScore = -1;
+      const probe = (a) => { apply(a); const sc = j.kind === 'alpha' ? this.alphaScore(j, score) : score(j); if (sc > bestScore) { bestScore = sc; best = a; } };
+      for (let k = 0; k < 36; k++) probe(k * Math.PI / 18);
+      const coarse = best;
+      for (let k = -5; k <= 5; k++) probe(coarse + k * Math.PI / 180 * 2);
+      apply(best);
+      j.node.updateMatrixWorld(true);
+    }
+  }
+
+  // An alpha joint carries several wings: rate it by how well their best beta angle could face the sun,
+  // i.e. by how close the sun is to being perpendicular to the wing masts.
+  alphaScore(j, score) {
+    let total = 0, count = 0;
+    const l = new THREE.Vector3();
+    for (const b of this.joints) {
+      if (b.kind !== 'beta' || !isDescendant(b.node, j.node)) continue;
+      j.node.updateMatrixWorld(true);
+      total += 1 - Math.abs(l.copy(b.long).transformDirection(b.panel.matrixWorld).dot(this.trackedSun));
+      count++;
+    }
+    return count ? total / count : score(j);
   }
 
   /** Orbit data: CelesTrak, else the copy bundled with the app (web/data/iss.tle). */
@@ -179,18 +269,25 @@ export class ISS {
 
   /** Orients the model (LVLH attitude), turns the solar arrays to the sun, lights it. */
   pose(sunDir, f, u, r) {
-    // model axes: x = forward, y = up, z = right (metres)
-    const m = new THREE.Matrix4().makeBasis(f, u, r);
-    this.model.quaternion.setFromRotationMatrix(m);
-    const local = sunDir.clone().applyQuaternion(this.model.quaternion.clone().invert());
-    // arrays rotate about the truss (z axis) to face the sun
-    const angle = Math.atan2(local.x, local.y);
-    for (const w of this.model.userData.wings) w.rotation.z = -angle;
+    if (this.model.userData.wings) {
+      // stand-in model: x = forward, y = up, z = right; wings turn about the truss
+      this.model.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(f, u, r));
+      const local = sunDir.clone().applyQuaternion(this.model.quaternion.clone().invert());
+      const angle = Math.atan2(local.x, local.y);
+      for (const w of this.model.userData.wings) w.rotation.z = -angle;
+    } else {
+      // NASA model: −x = flight direction (PMA-2 forward), +y = away from Earth, z = truss
+      const back = f.clone().negate(), side = r.clone().negate();
+      this.model.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(back, u, side));
+      this.model.updateMatrixWorld(true);
+      this.trackSun(sunDir);
+    }
     this.sunLight.position.copy(sunDir).multiplyScalar(1000);
-    this.sunLight.intensity = this.inShadow ? 0 : 3.2;
+    this.sunLight.intensity = this.inShadow ? 0 : 4.5;
+    this.fill.intensity = this.inShadow ? 0.08 : 0.35;
     this.earthLight.position.copy(u).multiplyScalar(-1);     // sky colour comes from below
     // Die Tagseite der Erde darunter hellt die Station spürbar auf
-    this.earthLight.intensity = this.inShadow ? 0.06 : 0.25 + 0.9 * Math.max(0, this.pos.clone().normalize().dot(sunDir));
+    this.earthLight.intensity = this.inShadow ? 0.06 : 0.4 + 1.4 * Math.max(0, this.pos.clone().normalize().dot(sunDir));
   }
 }
 
@@ -249,4 +346,9 @@ function buildModel() {
   }
   g.userData.wings = wings;
   return g;
+}
+
+function isDescendant(node, ancestor) {
+  for (let p = node.parent; p; p = p.parent) if (p === ancestor) return true;
+  return false;
 }
