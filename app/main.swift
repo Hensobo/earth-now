@@ -22,7 +22,10 @@ enum Motion: String, Codable, CaseIterable, Identifiable {
     case orbit, fixed, sun
     case fromEarth = "earth"
     case issChase = "iss-chase", issAbove = "iss-above"
+    case earthMoon = "earth-moon"
     var isISS: Bool { self == .issChase || self == .issAbove }
+    /// Camera placed by the view itself (ISS views, Earth & Moon), not by zoom & co.
+    var isSpecialView: Bool { isISS || self == .earthMoon }
     var id: String { rawValue }
     var title: String {
         switch self {
@@ -32,11 +35,13 @@ enum Motion: String, Codable, CaseIterable, Identifiable {
         case .fromEarth: return L("As Seen from Earth")
         case .issChase: return L("ISS Chase")
         case .issAbove: return L("Above the ISS")
+        case .earthMoon: return L("Earth & Moon")
         }
     }
     func help(for body: Planet) -> String {
         if self == .issChase { return L("The camera flies right behind the space station along its real orbit, the horizon ahead.") }
         if self == .issAbove { return L("The camera floats high above the space station and follows it around the Earth. The station is shown enlarged.") }
+        if self == .earthMoon { return L("Earth and Moon side by side from far away – real sizes, real distance, real phase.") }
         if body == .earth {
             switch self {
             case .orbit: return L("The camera slowly circles the Earth – day and night stay true to the real time.")
@@ -49,19 +54,26 @@ enum Motion: String, Codable, CaseIterable, Identifiable {
         case .fixed: return L("The camera stays above the chosen place – watch the sun move across its sky.")
         case .sun: return L("The line between day and night stays in view while it turns beneath it in real time.")
         case .fromEarth: return L("Shows it exactly as it looks from Earth right now – with its real phase.")
-        case .issChase, .issAbove: return ""
+        case .issChase, .issAbove, .earthMoon: return ""
         }
     }
     /// "As seen from Earth" makes no sense for the Earth itself.
-    static func options(for body: Planet) -> [Motion] { body == .earth ? [.orbit, .fixed, .sun] : [.orbit, .fixed, .sun, .fromEarth] }
+    static func options(for body: Planet) -> [Motion] {
+        switch body {
+        case .earth: return [.orbit, .fixed, .sun]
+        case .sun: return []
+        default: return [.orbit, .fixed, .sun, .fromEarth]
+        }
+    }
 }
 
 /// The planet (or Moon) on the desktop. Raw values match the web page's `body` parameter.
 enum Planet: String, Codable, CaseIterable, Identifiable {
-    case mercury, venus, earth, moon, mars, jupiter, saturn, uranus, neptune
+    case sun, mercury, venus, earth, moon, mars, jupiter, saturn, uranus, neptune
     var id: String { rawValue }
     var title: String {
         switch self {
+        case .sun: return L("Sun")
         case .mercury: return L("Mercury")
         case .venus: return L("Venus")
         case .earth: return L("Earth")
@@ -81,6 +93,7 @@ enum Planet: String, Codable, CaseIterable, Identifiable {
     var places: [Place] {
         switch self {
         case .earth: return Place.quick
+        case .sun: return [.init(name: L("Sun"), lat: 0, lon: 0)]
         case .moon: return [.init(name: L("Near Side"), lat: 0, lon: 0), .init(name: L("Apollo 11"), lat: 0.67, lon: 23.47),
                             .init(name: L("Tycho"), lat: -43.3, lon: -11.2), .init(name: L("Mare Imbrium"), lat: 32.8, lon: -15.6),
                             .init(name: L("Far Side"), lat: 0, lon: 180), .init(name: L("South Pole"), lat: -85, lon: 0)]
@@ -167,7 +180,7 @@ struct ViewPreset: Codable, Identifiable, Equatable {
     var mirrorable: Bool? = nil
     /// Views that follow the ISS (camera is placed by the ISS, not by zoom & co.)
     var motion: Motion? = nil
-    var earthOnly: Bool { motion?.isISS == true }
+    var earthOnly: Bool { motion?.isSpecialView == true }
 
     static let builtins: [ViewPreset] = [
         .init(name: L("Whole Earth"), symbol: "globe.europe.africa", zoom: 0.62, pitch: 0, heading: 0, tilt: 18, fov: 30, x: 0, y: 0, builtin: true),
@@ -177,6 +190,7 @@ struct ViewPreset: Codable, Identifiable, Equatable {
         .init(name: L("Far Out"), symbol: "smallcircle.filled.circle", zoom: 0.3, pitch: 0, heading: 0, tilt: 18, fov: 30, x: 0, y: 0, builtin: true),
         .init(name: L("ISS Chase"), symbol: "airplane", zoom: 0.62, pitch: 0, heading: 0, tilt: 0, fov: 30, x: 0, y: 0, builtin: true, motion: .issChase),
         .init(name: L("Above the ISS"), symbol: "scope", zoom: 0.62, pitch: 0, heading: 0, tilt: 0, fov: 30, x: 0, y: 0, builtin: true, motion: .issAbove),
+        .init(name: L("Earth & Moon"), symbol: "moon.stars", zoom: 0.62, pitch: 0, heading: 0, tilt: 0, fov: 30, x: 0, y: 0, builtin: true, motion: .earthMoon),
     ]
 
     /// Left variant: x and rotation mirrored.
@@ -190,13 +204,13 @@ struct ViewPreset: Codable, Identifiable, Equatable {
                 abs(c.tilt - v.tilt) < 0.5 && abs(c.fov - v.fov) < 0.5 && abs(c.x - v.x) < 0.01 && abs(c.y - v.y) < 0.01
         }
         if let m = motion { return c.motion == m }
-        if c.motion.isISS { return false }
+        if c.motion.isSpecialView { return false }
         return eq(self) || (mirrorable == true && eq(mirrored))
     }
 
     func apply(to c: inout EarthConfig, left: Bool = false) {
         if let m = motion { c.motion = m; return }
-        if c.motion.isISS { c.motion = .orbit }
+        if c.motion.isSpecialView { c.motion = .orbit }
         let v = mirrorable == true && left ? mirrored : self
         c.zoom = v.zoom; c.pitch = v.pitch; c.heading = v.heading; c.tilt = v.tilt; c.fov = v.fov; c.x = v.x; c.y = v.y
     }
@@ -319,8 +333,34 @@ final class BundleSchemeHandler: NSObject, WKURLSchemeHandler {
     let root: URL
     init(root: URL) { self.root = root }
 
+    /// earth://app/remote/sdo/<file>: today's image of the Sun from NASA's Solar Dynamics Observatory.
+    /// Loaded here because NASA's server doesn't allow browser requests from other sites.
+    private static let sdoFiles: Set<String> = ["latest_1024_HMIIC.jpg"]
+    private var stopped = Set<ObjectIdentifier>()
+
+    private func remote(_ url: URL, name: String, task: WKURLSchemeTask) {
+        guard Self.sdoFiles.contains(name),
+              let source = URL(string: "https://sdo.gsfc.nasa.gov/assets/img/latest/\(name)") else {
+            task.didFailWithError(URLError(.fileDoesNotExist)); return
+        }
+        let id = ObjectIdentifier(task)
+        URLSession.shared.dataTask(with: source) { [weak self] data, response, _ in
+            DispatchQueue.main.async {
+                guard let self, !self.stopped.contains(id) else { return }
+                guard let data, (response as? HTTPURLResponse)?.statusCode == 200 else {
+                    task.didFailWithError(URLError(.badServerResponse)); return
+                }
+                task.didReceive(HTTPURLResponse(url: url, statusCode: 200, httpVersion: "HTTP/1.1",
+                                                headerFields: ["Content-Type": "image/jpeg", "Access-Control-Allow-Origin": "*"])!)
+                task.didReceive(data)
+                task.didFinish()
+            }
+        }.resume()
+    }
+
     func webView(_ webView: WKWebView, start task: WKURLSchemeTask) {
         guard let url = task.request.url else { return }
+        if url.path.hasPrefix("/remote/sdo/") { return remote(url, name: url.lastPathComponent, task: task) }
         var path = url.path
         if path.isEmpty || path == "/" { path = "/index.html" }
         let file = root.appendingPathComponent(String(path.dropFirst())).standardizedFileURL
@@ -337,7 +377,7 @@ final class BundleSchemeHandler: NSObject, WKURLSchemeHandler {
         task.didFinish()
     }
 
-    func webView(_ webView: WKWebView, stop task: WKURLSchemeTask) {}
+    func webView(_ webView: WKWebView, stop task: WKURLSchemeTask) { stopped.insert(ObjectIdentifier(task)) }
 }
 
 final class JSLogger: NSObject, WKScriptMessageHandler {
@@ -486,11 +526,11 @@ struct SettingsView: View {
                                     if let img = b.thumbnail { Image(nsImage: img).resizable().interpolation(.high) }
                                     else { Image(systemName: "circle.fill").resizable().foregroundStyle(.secondary) }
                                 }
-                                .frame(width: 40, height: 40)
+                                .frame(width: 36, height: 36)
                                 .clipShape(RoundedRectangle(cornerRadius: 8))
                                 Text(b.title).font(.caption2).lineLimit(1).minimumScaleFactor(0.8)
                             }
-                            .frame(width: 54, height: 68)
+                            .frame(width: 48, height: 62)
                             .background(RoundedRectangle(cornerRadius: 10)
                                 .fill(active ? Color.accentColor.opacity(0.25) : Color.secondary.opacity(0.1)))
                             .overlay(RoundedRectangle(cornerRadius: 10)
@@ -587,8 +627,10 @@ struct SettingsView: View {
                 }
                 .buttonStyle(.plain)
             }
-            placeChips(store.config.currentBody == .earth ? Place.quick + store.recentPlaces : store.config.currentBody.places)
-            if !store.config.motion.isISS {
+            if store.config.currentBody != .sun {
+                placeChips(store.config.currentBody == .earth ? Place.quick + store.recentPlaces : store.config.currentBody.places)
+            }
+            if !store.config.motion.isSpecialView && !Motion.options(for: store.config.currentBody).isEmpty {
                 Picker(L("Motion"), selection: $store.config.motion) {
                     ForEach(Motion.options(for: store.config.currentBody)) { Text($0.title).tag($0) }
                 }
@@ -647,7 +689,7 @@ struct SettingsView: View {
                 get: { store.config.fps == 60 }, set: { store.config.fps = $0 ? 60 : 30 }))
         } header: { Text(L("Display")) } footer: {
             // Credits (EUMETSAT requires this notice when its cloud data is shown)
-            Text(L("Earth imagery: NASA Blue Marble & Black Marble · Live clouds: matteason/live-cloud-maps, contains modified EUMETSAT data · Planets & Moon: Solar System Scope (CC BY 4.0) · Aurora: NOAA SWPC · ISS orbit: CelesTrak · 3D: three.js"))
+            Text(L("Earth imagery: NASA Blue Marble & Black Marble · Live clouds: matteason/live-cloud-maps, contains modified EUMETSAT data · Planets & Moon: Solar System Scope (CC BY 4.0) · Sun: NASA/SDO · Aurora: NOAA SWPC · ISS: NASA, orbit from CelesTrak · 3D: three.js"))
                 .font(.caption2).foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -881,7 +923,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc func showAbout() {
         NSApp.activate(ignoringOtherApps: true)
         NSApp.orderFrontStandardAboutPanel(options: [
-            .credits: NSAttributedString(string: L("Earth imagery: NASA Earth Observatory. Live clouds: matteason/live-cloud-maps, contains modified EUMETSAT data. Planet and Moon textures: Solar System Scope (CC BY 4.0). 3D: three.js (MIT)."),
+            .credits: NSAttributedString(string: L("Earth imagery: NASA Earth Observatory. Live clouds: matteason/live-cloud-maps, contains modified EUMETSAT data. Planet and Moon textures: Solar System Scope (CC BY 4.0). Sun: NASA/SDO and the AIA, EVE and HMI science teams. ISS model: NASA. 3D: three.js (MIT)."),
                                          attributes: [.font: NSFont.systemFont(ofSize: 11)]),
         ])
     }

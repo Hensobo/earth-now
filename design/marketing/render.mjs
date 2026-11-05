@@ -52,8 +52,12 @@ const planetViews = [
   ['iss-chase', '2026-11-05T01:20:00Z', 'body=earth&motion=iss-chase'],
   ['iss-above', '2026-11-05T01:05:00Z', 'body=earth&motion=iss-above'],
   ['iss-orbit', '2026-11-05T01:05:00Z', 'body=earth&motion=fixed&lat=10&lon=80&zoom=0.62&tilt=18'],
+  ['solar-eclipse', '2027-08-02T10:07:00Z', 'body=earth&motion=fixed&lat=22&lon=30&zoom=0.8&tilt=12&iss=0&fx=0'],
+  ['lunar-eclipse', '2026-03-03T11:33:00Z', 'body=moon&motion=earth&zoom=0.8&tilt=0'],
+  ['earth-moon', '2026-11-20T12:00:00Z', 'body=earth&motion=earth-moon&iss=0&fx=0'],
+  ['sun', '2026-11-05T12:00:00Z', 'body=sun&motion=fixed&zoom=0.62&tilt=0'],
 ];
-const portraits = { mercury: 5, venus: 5, earth: 20, moon: 5, mars: 10, jupiter: 10, saturn: -25, uranus: 40, neptune: -10 };
+const portraits = { sun: 0, mercury: 5, venus: 5, earth: 20, moon: 5, mars: 10, jupiter: 10, saturn: -25, uranus: 40, neptune: -10 };
 
 const only = (process.argv.find((a) => a.startsWith('--only=')) || '').slice(7).split(',').filter(Boolean);
 const want = (name) => !only.length || only.includes(name);
