@@ -44,7 +44,7 @@ import { ISS } from './iss.js';
 //   fov      Brennweite (vertikaler Blickwinkel)
 //   x,y      Verschiebung des Bildausschnitts (-1..1)
 //   fps, hud (0/1), clouds (live|static|off), warp (Zeitraffer-Faktor)
-//   fx       Polarlichter & Sturm-Animationen (0/1)
+//   fx       Polarlichter & Sturm-Animationen (0/1); kp=0..9 legt die Polarlicht-Aktivität fest (Tests)
 //   iss      ISS mit Live-Position einblenden (0/1), issPath: ihre Flugbahn (0/1)
 //            motion=iss-chase: Kamera fliegt hinter der ISS her, Horizont voraus
 //            motion=iss-above: Kamera schwebt über der ISS und folgt ihr
@@ -468,6 +468,7 @@ const auroraMat = new THREE.ShaderMaterial({
     }
     float oval(vec3 P, vec3 pole, float seed) {
       float c = acos(clamp(dot(P, pole), -1.0, 1.0));
+      if (abs(c - colat) > colat * 0.2 + width * 4.0) return 0.0;  // weit weg vom Oval: nichts zu tun
       vec3 r1 = normalize(cross(pole, abs(pole.y) < 0.99 ? vec3(0, 1, 0) : vec3(1, 0, 0)));
       vec3 r2 = cross(pole, r1);
       float phi = atan(dot(P, r2), dot(P, r1));
@@ -485,8 +486,10 @@ const auroraMat = new THREE.ShaderMaterial({
     void main() {
       vec3 P = normalize(vPos);
       vec3 V = normalize(camPos - vPos);
-      float a = oval(P, poleN, 0.0) + oval(P, poleS, 17.0);
       float dark = 1.0 - smoothstep(-0.14, 0.06, dot(P, sunDir));
+      if (nightOnly > 0.5 && dark <= 0.0) discard;
+      float a = oval(P, poleN, 0.0) + oval(P, poleS, 17.0);
+      if (a <= 0.0) discard;
       a *= mix(1.0, dark, nightOnly);
       // Schräg gesehen wirkt der Vorhang dichter
       a *= 1.0 + 0.8 * pow(1.0 - max(dot(P, V), 0.0), 3.0);
@@ -515,9 +518,10 @@ const AURORA = {
   jupiter: { n: [80.4, 160], s: [-80.4, -20], colat: 16, width: 3.2, strength: 0.3, nightOnly: 0, rays: 0.25, low: [0.5, 0.55, 1.0], high: [0.75, 0.5, 1.0] },
   saturn:  { n: [90, 0], s: [-90, 0], colat: 15, width: 3.0, strength: 0.24, nightOnly: 0, rays: 0.25, low: [0.5, 0.55, 1.0], high: [0.75, 0.5, 1.0] },
 };
-let kp = 2.5, kpLoading = false, kpRetryAt = 0, kpFailures = 0, kpLive = false;
+// Test/Screenshots: ?kp=6 legt die Aktivität fest, statt sie bei der NOAA abzufragen
+let kp = P.has('kp') ? +P.get('kp') : 2.5, kpLoading = false, kpRetryAt = 0, kpFailures = 0, kpLive = P.has('kp');
 function loadKp() {
-  if (!cfg.fx || shownBody !== 'earth' || kpLoading || Date.now() < kpRetryAt) return;
+  if (!cfg.fx || shownBody !== 'earth' || kpLoading || Date.now() < kpRetryAt || P.has('kp')) return;
   kpLoading = true;
   fetch('https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json')
     .then((r) => r.json())

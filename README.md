@@ -5,8 +5,8 @@
 <h1 align="center">Earth Now</h1>
 
 <p align="center">
-  <b>The real Earth, right now, as your Mac's desktop.</b><br>
-  Real sunlight and night, glowing cities and live clouds from weather satellites.
+  <b>The real Earth – and every planet and the ISS – right now, as your Mac's desktop.</b><br>
+  Real sunlight and night, glowing cities, live clouds, auroras and the space station passing by.
 </p>
 
 <p align="center">
@@ -30,6 +30,28 @@ Earth Now turns your desktop into a window onto our planet, exactly as it looks 
 sun rises and sets in the right places, cities light up as night falls, and the clouds are only a few
 hours old. Glance at it between two emails and you'll know where it's morning, where it's night, and
 where the big storms are. It's calm, it's real, and it barely touches your battery.
+
+<p align="center"><img src="docs/screenshots/planets-lineup.jpg" alt="Mercury, Venus, Earth, Moon, Mars, Jupiter, Saturn, Uranus and Neptune" width="100%"></p>
+
+## New in 2.0 – beyond Earth
+
+- 🪐 **Every planet and the Moon** – Mercury to Neptune, each lit by the real Sun right now
+  (JPL orbital elements, IAU rotation models). Saturn's rings cast real shadows.
+- 🌒 **As Seen from Earth** – the Moon's real phase tonight with a faint earthshine, Venus as a
+  crescent when it passes between us and the Sun.
+- 🛰️ **The ISS, live** – the space station's real position and orbit, plus two new views: *ISS Chase*
+  (right behind it, Earth's horizon ahead) and *Above the ISS*.
+- 👀 **When to look up** – the info line tells you when the ISS is next visible from your place.
+- 🌌 **Auroras** – northern and southern lights on the night side, sized by NOAA's live geomagnetic
+  activity; polar auroras on Jupiter and Saturn.
+- 🌀 **Moving storms** on Jupiter and Saturn, the Great Red Spot keeps turning.
+- 📍 **Places on other worlds** – Olympus Mons, Jezero crater, Apollo 11, the Great Red Spot …
+
+| | |
+|---|---|
+| ![ISS Chase](docs/screenshots/planets/iss-chase.jpg) **ISS Chase** – along its real orbit | ![Above the ISS](docs/screenshots/planets/iss-above.jpg) **Above the ISS** – the route ahead |
+| ![Saturn](docs/screenshots/planets/saturn.jpg) **Saturn** – rings and shadows | ![Aurora](docs/screenshots/planets/aurora.jpg) **Aurora** – during a geomagnetic storm |
+| ![Moon](docs/screenshots/planets/moon-crescent.jpg) **Moon** – tonight's real phase | ![Jupiter](docs/screenshots/planets/jupiter-aurora.jpg) **Jupiter** – drifting bands, polar aurora |
 
 ## Features
 
@@ -120,8 +142,12 @@ it) and move it to the Trash. Settings live in `~/Library/Preferences/io.github.
 Apple developer membership. For now it's distributed for free here.
 
 **Privacy?** The app collects nothing: no analytics, no accounts, no background update checks. It only
-downloads the cloud map from `clouds.matteason.co.uk` and, when you search for a place, sends the
-search text to Apple Maps. See [SECURITY.md](SECURITY.md) for details.
+downloads public data (cloud map, ISS orbit, aurora activity) and, when you search for a place, sends
+the search text to Apple Maps. See [SECURITY.md](SECURITY.md) for details.
+
+**How exact is the ISS?** Within a few kilometres: the orbit comes from CelesTrak twice a day and is
+propagated with SGP4. In *Above the ISS* the station is drawn enlarged – at true size it would be a
+single pixel from 2,500 km up.
 
 ## Build from source
 
@@ -145,7 +171,9 @@ All parameters are listed at the top of [`web/index.html`](web/index.html).
 ```
 app/main.swift        macOS app: desktop windows, menu bar, settings (SwiftUI)
 app/Localization/     UI translations
-web/index.html        Earth renderer (three.js / WebGL shaders, sun position)
+web/index.html        renderer (three.js / WebGL shaders, sun position, auroras)
+web/planets.js        planet & Moon positions and rotation (tests: web/tests/run.sh)
+web/iss.js            ISS: orbit (SGP4), marker, 3D model, camera views
 web/textures/         NASA Earth textures (8K day, 4K night) and helper maps
 site/                 website (GitHub Pages)
 design/               app icon and marketing images
@@ -160,7 +188,10 @@ the [Code of Conduct](CODE_OF_CONDUCT.md). Security issues: [SECURITY.md](SECURI
 
 Earth imagery: **NASA Earth Observatory** (Blue Marble, Black Marble). Live clouds:
 [matteason/live-cloud-maps](https://github.com/matteason/live-cloud-maps) – *contains modified
-EUMETSAT data*. 3D: [three.js](https://threejs.org) (MIT). Full details in [CREDITS.md](CREDITS.md).
+EUMETSAT data*. Planets & Moon: [Solar System Scope](https://www.solarsystemscope.com/textures/)
+(CC BY 4.0). ISS orbit: [CelesTrak](https://celestrak.org). Aurora activity: NOAA SWPC. 3D:
+[three.js](https://threejs.org), SGP4: [satellite.js](https://github.com/shashwatak/satellite-js)
+(both MIT). Full details in [CREDITS.md](CREDITS.md).
 
 Earth Now is open source under the [MIT License](LICENSE). It is an independent project and not
 affiliated with, endorsed or sponsored by NASA, EUMETSAT or Apple.

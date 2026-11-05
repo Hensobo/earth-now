@@ -93,9 +93,10 @@ function menu(right) {
   const it = (t, o = {}) => `<div class="item ${o.indent ? 'indent' : ''} ${o.sel ? 'sel' : ''}">${o.on ? '<span class="check">✓</span>' : ''}${t}${o.kbd ? `<kbd>${o.kbd}</kbd>` : ''}</div>`;
   return `<div class="menu" style="right:${right}px">
     ${it('Settings…', { kbd: '⌘,' })}<div class="sep"></div>
+    ${it('Planet: Earth', { kbd: '›' })}<div class="sep"></div>
     <div class="header">View</div>
     ${it('Whole Earth')}${it('Close-up')}${it('Horizon')}${it('Side View', { on: 1 })}
-    ${it('Earth on Left', { indent: 1 })}${it('Earth on Right', { indent: 1, on: 1 })}${it('Far Out', { sel: 1 })}
+    ${it('Earth on Left', { indent: 1 })}${it('Earth on Right', { indent: 1, on: 1 })}${it('Far Out')}${it('ISS Chase', { sel: 1 })}${it('Above the ISS')}
     <div class="sep"></div><div class="header">Motion</div>
     ${it('Orbit')}${it('Stay Above Place')}${it('Follow the Sun', { on: 1 })}
     <div class="sep"></div>${it('Open at Login', { on: 1 })}${it('Reload', { kbd: '⌘R' })}
@@ -116,7 +117,7 @@ if (scene === 'menu') {
   const win = (shot, left, top) => `<div class="window" style="left:${left}px; top:${top}px">
       <div class="titlebar"><div class="lights"><i></i><i></i><i></i></div>Earth Now</div>
       <img src="${root}docs/screenshots/app/${shot}"></div>`;
-  html = `<div class="wall" style="background-image:url(${root}docs/screenshots/views/${q.get('wall') || 'close-up.jpg'})"></div>
+  html = `<div class="wall" style="background-image:url(${root}docs/screenshots/${q.get('wall') || 'views/close-up.jpg'})"></div>
     ${menubar(false)}
     ${q.get('second') ? win(q.get('second'), 770, 132) : ''}
     ${win(q.get('shot') || 'settings-en-dark.png', 110, 58)}`;
