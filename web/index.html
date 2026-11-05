@@ -7,6 +7,11 @@
 <style>
   html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
   canvas { display: block; width: 100vw; height: 100vh; }
+  #iss-label {
+    position: fixed; left: 0; top: 0; color: rgba(255,232,190,.9); pointer-events: none; display: none;
+    font: 600 11px/1 -apple-system, BlinkMacSystemFont, sans-serif; letter-spacing: .08em;
+    text-shadow: 0 1px 3px rgba(0,0,0,.9); white-space: nowrap;
+  }
   #hud {
     position: fixed; left: 32px; bottom: 28px; color: rgba(255,255,255,.55);
     font: 500 13px/1.5 -apple-system, BlinkMacSystemFont, sans-serif; letter-spacing: .02em;
@@ -16,9 +21,11 @@
 </head>
 <body>
 <div id="hud"></div>
+<div id="iss-label">ISS</div>
 <script type="module">
 import * as THREE from './lib/three.module.min.js';
 import { bodyState, BODIES, rotationDegPerDay } from './planets.js';
+import { ISS } from './iss.js';
 
 // ---------------------------------------------------------------------------
 // Konfiguration. Die macOS-App setzt window.__initialConfig und ruft bei
@@ -38,13 +45,16 @@ import { bodyState, BODIES, rotationDegPerDay } from './planets.js';
 //   x,y      Verschiebung des Bildausschnitts (-1..1)
 //   fps, hud (0/1), clouds (live|static|off), warp (Zeitraffer-Faktor)
 //   fx       Polarlichter & Sturm-Animationen (0/1)
+//   iss      ISS mit Live-Position einblenden (0/1), issPath: ihre Flugbahn (0/1)
+//            motion=iss-chase: Kamera fliegt hinter der ISS her, Horizont voraus
+//            motion=iss-above: Kamera schwebt über der ISS und folgt ihr
 //   time     Startzeitpunkt statt jetzt, ISO 8601, z. B. time=2026-06-21T18:00:00Z (für Tests/Screenshots)
 // ---------------------------------------------------------------------------
 const P = new URLSearchParams(location.search);
 const cfg = {
   body: 'earth', motion: 'orbit', speed: 0.4, lat: 28, lon: 10, place: '',
   zoom: 0.62, pitch: 0, heading: 0, tilt: 18, fov: 30, x: 0, y: 0,
-  fps: 30, hud: false, clouds: 'live', warp: 1, fx: true,
+  fps: 30, hud: false, clouds: 'live', warp: 1, fx: true, iss: true, issPath: true,
   ...(window.__initialConfig || {}),
 };
 for (const [k, v] of P) {
@@ -233,7 +243,7 @@ scene.add(clouds);
 // Live-Wolkenbild (alle ~3 h aktualisiert, Quelle: github.com/matteason/live-cloud-maps).
 // 8K nur für nahe Ansichten – spart sonst ~200 MB Grafikspeicher.
 const liveCloudsUrl = (res) => `https://clouds.matteason.co.uk/images/${res}/clouds-alpha.png`;
-const wantedCloudRes = () => (cfg.zoom > 1.5 ? '8192x4096' : '4096x2048');
+const wantedCloudRes = () => (cfg.zoom > 1.5 || String(cfg.motion).startsWith('iss') ? '8192x4096' : '4096x2048');
 let liveCloudTex = null, liveCloudRes = null, liveCloudLoading = false;
 function setCloudTex(t) {
   cloudMat.uniforms.cloudMap.value = t;
@@ -567,6 +577,65 @@ function auroraInView() {
   return false;
 }
 
+// --- ISS ---------------------------------------------------------------------
+const iss = new ISS(() => requestRender());
+scene.add(iss.marker, iss.path);
+const issLabel = document.getElementById('iss-label');
+const issMode = () => shownBody === 'earth' && (cfg.motion === 'iss-chase' || cfg.motion === 'iss-above') && iss.ready;
+const issWanted = () => shownBody === 'earth' && (cfg.iss || cfg.motion === 'iss-chase' || cfg.motion === 'iss-above');
+function applyISS() {
+  const on = issWanted();
+  if (on) iss.load();
+  iss.marker.visible = on && !issMode();
+  iss.path.visible = on && cfg.issPath;
+  if (!on) issLabel.style.display = 'none';
+}
+setInterval(() => { if (issWanted()) iss.load(); }, 30 * 60 * 1000);
+
+const M_TO_R = 1 / 6378137;
+const _f = new THREE.Vector3(), _u = new THREE.Vector3(), _r = new THREE.Vector3(), _look = new THREE.Vector3();
+function updateIssCamera() {
+  iss.frame(_f, _u, _r);
+  if (cfg.motion === 'iss-chase') {
+    // hinter und etwas über der Station, Blick entlang der Flugbahn leicht nach unten
+    camera.position.copy(iss.pos).addScaledVector(_f, -125 * M_TO_R).addScaledVector(_u, 32 * M_TO_R).addScaledVector(_r, 18 * M_TO_R);
+    _look.copy(_f).multiplyScalar(Math.cos(0.36)).addScaledVector(_u, -Math.sin(0.36));
+    camera.up.copy(_u);
+    camera.fov = 55;
+  } else {
+    // senkrecht über der Station, Flugrichtung zeigt nach oben im Bild
+    camera.position.copy(iss.pos).addScaledVector(_u, 520 * M_TO_R).addScaledVector(_f, -40 * M_TO_R);
+    _look.copy(_u).negate().addScaledVector(_f, 0.08).normalize();
+    camera.up.copy(_f);
+    camera.fov = 42;
+  }
+  camera.near = 0.0004; camera.far = 1000;
+  camera.lookAt(camera.position.x + _look.x, camera.position.y + _look.y, camera.position.z + _look.z);
+  camera.clearViewOffset();
+  camera.updateProjectionMatrix();
+  // Modell-Kamera: gleiche Blickrichtung, Station im Ursprung, Meter
+  iss.camera.position.subVectors(camera.position, iss.pos).divideScalar(M_TO_R);
+  iss.camera.quaternion.copy(camera.quaternion);
+  iss.camera.fov = camera.fov; iss.camera.aspect = camera.aspect; iss.camera.updateProjectionMatrix();
+  iss.pose(sunDir, _f, _u, _r);
+  // Kamerawerte merken, damit der Rückweg in eine normale Ansicht ein weicher Flug wird
+  cam.lat = iss.lat; cam.lon = iss.lon; cam.fov = camera.fov;
+}
+
+const _toIss = new THREE.Vector3();
+function placeIssLabel() {
+  if (!iss.marker.visible) { issLabel.style.display = 'none'; return; }
+  // verdeckt, wenn die Sichtlinie die Erde schneidet
+  _toIss.subVectors(iss.pos, camera.position);
+  const len = _toIss.length(); _toIss.divideScalar(len);
+  const b = camera.position.dot(_toIss), c = camera.position.lengthSq() - 1, disc = b * b - c;
+  const hidden = disc > 0 && -b - Math.sqrt(disc) > 0 && -b - Math.sqrt(disc) < len;
+  const v = iss.pos.clone().project(camera);
+  if (hidden || v.z > 1) { issLabel.style.display = 'none'; return; }
+  issLabel.style.display = 'block';
+  issLabel.style.transform = `translate(${(v.x + 1) / 2 * innerWidth + 11}px, ${(1 - v.y) / 2 * innerHeight - 5}px)`;
+}
+
 // Sturm-Animation der Gasplaneten (Werte in UV-Einheiten der Textur)
 const STORMS = {
   jupiter: { amount: 1, vortex: [0.369, 0.389, 0.035] },
@@ -620,6 +689,7 @@ const bodyFit = () => BODIES[shownBody]?.fit || 1;
 function applyEffects() {
   const st = STORMS[shownBody];
   planetMat.uniforms.flowAmt.value = cfg.fx && st ? st.amount : 0;
+  applyISS();
   if (st) planetMat.uniforms.vortex.value.set(...st.vortex);
   applyAurora();
 }
@@ -670,6 +740,8 @@ function targetLat(st) {
 const _n = new THREE.Vector3(), _north = new THREE.Vector3(), _east = new THREE.Vector3();
 const _fwd = new THREE.Vector3(), _dir = new THREE.Vector3(), _up = new THREE.Vector3();
 function updateCamera(dt, st) {
+  if (issMode()) { settling = false; return updateIssCamera(); }
+  if (camera.near !== 0.1) { camera.near = 0.1; camera.updateProjectionMatrix(); }
   const k = 1 - Math.exp(-dt * 1.6);
   const target = { ...cfg, lat: targetLat(st), zoom: cfg.zoom * bodyFit() };
   for (const key of ['lat', 'zoom', 'pitch', 'heading', 'tilt', 'fov', 'x', 'y']) {
@@ -742,7 +814,7 @@ let lastRender = 0, lastSec = performance.now() / 1000, boostUntil = 0, settling
 const SIDEREAL_DEG_PER_SEC = 360 / 86164;
 
 function desiredFps() {
-  if (settling || performance.now() < boostUntil) return cfg.fps;
+  if (settling || performance.now() < boostUntil || issMode()) return cfg.fps;
   // Polarlicht-Vorhänge und Sturmbänder bewegen sich langsam: wenige Bilder pro Sekunde genügen
   const fxFloor = auroraInView() ? 10 : stormsActive() ? 4 : 0;
   // Erdradius in Gerätepixeln; geneigte Kamera = Oberfläche näher, Bewegung schneller
@@ -782,6 +854,8 @@ function frame() {
   const st = bodySun(date);
   const sun = st.sun;
   latLonToVec(sun.lat, sun.lon, sunDir);
+  if (issWanted()) iss.update(date, sunDir, sec);
+  applyISS();
   updateCamera(Math.min(dt, 2), st);
   auroraLayers.forEach((l) => { l.material.uniforms.time.value = sec; });
   planetMat.uniforms.flowTime.value = sec / 24;  // eine Strömungsphase dauert 24 s
@@ -795,6 +869,12 @@ function frame() {
       ? `  ·  ${st.earthDistance < 0.02 ? Math.round(st.earthDistance * 149597871).toLocaleString(de ? 'de-DE' : 'en-GB') + ' km'
                                         : st.earthDistance.toFixed(2).replace('.', de ? ',' : '.') + (de ? ' AE' : ' AU')}${de ? ' von der Erde' : ' from Earth'}`
       : '';
+    if (issMode()) {
+      hud.textContent = `ISS  ·  ${Math.round(iss.alt)} km  ·  ${Math.round(iss.speed).toLocaleString(de ? 'de-DE' : 'en-GB')} km/h  ·  ` +
+        (de ? 'über ' : 'over ') + `${fmtCoord(iss.lat, 'N', 'S')}, ${fmtCoord(iss.lon, de ? 'O' : 'E', 'W')}` +
+        (iss.inShadow ? (de ? '  ·  im Erdschatten' : '  ·  in Earth\'s shadow') : '') +
+        (iss.live ? '' : (de ? '  ·  Bahndaten offline' : '  ·  offline orbit data'));
+    } else
     hud.textContent = body + (cfg.place ? cfg.place + '  ·  ' : '') +
       date.toLocaleString(de ? 'de-DE' : 'en-GB', { dateStyle: 'medium', timeStyle: 'short' }) +
       (de ? `  ·  Sonne im Zenit über ${fmtCoord(sun.lat, 'N', 'S')}, ${fmtCoord(sun.lon, 'O', 'W')}`
@@ -803,6 +883,13 @@ function frame() {
       (shownBody === 'earth' && cfg.fx && kpLive ? `  ·  ${de ? 'Polarlicht-Aktivität' : 'Aurora activity'} Kp ${kp.toFixed(1)}` : '');
   }
   renderer.render(scene, camera);
+  if (issMode()) {
+    renderer.autoClear = false;
+    renderer.clearDepth();
+    renderer.render(iss.scene, iss.camera);
+    renderer.autoClear = true;
+  }
+  placeIssLabel();
 
   const fps = desiredFps();
   const next = Math.max(0, 1000 / fps - (performance.now() - sec * 1000) - 4);
