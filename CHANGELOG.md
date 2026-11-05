@@ -4,6 +4,31 @@ All notable changes to Earth Now are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [2.0.0] - 2026-11-05
+
+The whole Solar System on your desktop.
+
+### New
+- **Every planet – and the Moon.** Pick Mercury, Venus, Earth, the Moon, Mars, Jupiter, Saturn,
+  Uranus or Neptune in the settings or from the menu bar.
+- **Real sunlight everywhere.** Each world is lit exactly as it is right now, calculated from its
+  orbit and rotation (JPL orbital elements, IAU rotation models). Day on Mars is where it really is.
+- **As Seen from Earth:** a new motion that shows a planet or the Moon exactly as it looks from Earth
+  at this moment – the real phase of the Moon with a faint earthshine, Venus as a crescent when it
+  passes between us and the Sun.
+- **Saturn's rings** with real shadows: the planet shadows its rings, the rings shadow the planet.
+- Soft atmospheres for Venus, Mars and the giant planets, and the Moon's and Mercury's bright limbs.
+- **Places on other worlds:** Olympus Mons, Valles Marineris, Jezero and Gale crater on Mars; Apollo 11,
+  Tycho and the far side of the Moon; Jupiter's Great Red Spot and more. The app remembers your
+  place on each world.
+- The time & sun position overlay now also shows the distance from Earth.
+
+### Notes
+- Planet and Moon textures: Solar System Scope, CC BY 4.0 (based on NASA mission data).
+- Your settings from version 1 are kept.
+
+[2.0.0]: https://github.com/Hensobo/earth-now/releases/tag/v2.0.0
+
 ## [1.0.0] - 2026-11-04
 
 First public release.

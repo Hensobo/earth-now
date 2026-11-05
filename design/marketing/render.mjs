@@ -36,6 +36,20 @@ const views = [
   ['far-out', '2026-09-22T12:00:00Z', 'motion=fixed&lat=15&lon=40&zoom=0.3&tilt=18'],
 ];
 
+// Planets: desktop-sized renders and square portraits (for the line-up banner)
+const planetViews = [
+  ['mars', '2026-11-04T21:00:00Z', 'body=mars&motion=sun&lat=-5&zoom=1.25&tilt=20&x=0.55'],
+  ['saturn', '2026-11-04T21:00:00Z', 'body=saturn&motion=sun&lat=-25&zoom=0.8&tilt=-14'],
+  ['jupiter', '2026-11-04T21:00:00Z', 'body=jupiter&motion=sun&lat=-15&zoom=1.25&tilt=20&x=0.55'],
+  ['moon-crescent', '2026-11-13T17:00:00Z', 'body=moon&motion=earth&zoom=0.8&tilt=0'],
+  ['venus-crescent', '2026-11-04T21:00:00Z', 'body=venus&motion=earth&zoom=0.8&tilt=-20'],
+  ['moon-horizon', '2026-11-04T21:00:00Z', 'body=moon&motion=sun&lat=-30&zoom=4.2&pitch=66&heading=90&fov=50&tilt=0'],
+  ['neptune', '2026-11-04T21:00:00Z', 'body=neptune&motion=sun&lat=-10&zoom=0.62&tilt=18'],
+  ['uranus', '2026-11-04T21:00:00Z', 'body=uranus&motion=sun&lat=20&zoom=0.62&tilt=0'],
+  ['mercury', '2026-11-04T21:00:00Z', 'body=mercury&motion=sun&lat=5&zoom=0.62&tilt=18'],
+];
+const portraits = { mercury: 5, venus: 5, earth: 20, moon: 5, mars: 10, jupiter: 10, saturn: -25, uranus: 40, neptune: -10 };
+
 const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
 await mkdir('docs/screenshots/views', { recursive: true });
 
@@ -54,10 +68,36 @@ if (!process.argv.includes('--mockups-only')) {
   }
 }
 
+if (!process.argv.includes('--mockups-only')) {
+  await mkdir('docs/screenshots/planets', { recursive: true });
+  for (const [name, time, query] of planetViews) {
+    const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 });
+    await page.goto(`${base}/web/index.html?clouds=static&time=${time}&${query}`);
+    await page.waitForTimeout(12000);
+    const png = `docs/screenshots/planets/${name}.png`;
+    await page.screenshot({ path: png });
+    execFileSync('convert', [png, '-strip', '-quality', '88', png.replace('.png', '.jpg')]);
+    execFileSync('rm', [png]);
+    await page.close();
+    console.log('planet', name);
+  }
+  for (const [id, lat] of Object.entries(portraits)) {
+    const page = await browser.newPage({ viewport: { width: 600, height: 600 }, deviceScaleFactor: 1 });
+    await page.goto(`${base}/web/index.html?body=${id}&motion=sun&lat=${lat}&zoom=${id === 'saturn' ? 0.82 : 0.86}&tilt=0&clouds=static&time=2026-11-04T21:00:00Z`);
+    await page.waitForTimeout(9000);
+    const png = `docs/screenshots/planets/portrait-${id}.png`;
+    await page.screenshot({ path: png });
+    execFileSync('convert', [png, '-resize', '128x128', '-strip', '-quality', '90', `web/thumbs/${id}.jpg`]);
+    await page.close();
+    console.log('portrait', id);
+  }
+}
+
 const mockups = [
   ['desktop-menu', 'scene=menu', 1440, 900],
   ['desktop-settings', 'scene=settings&shot=settings-en-dark.png&wall=close-up.jpg', 1440, 900],
   ['desktop-settings-display', 'scene=settings&shot=settings-en-bottom.png&wall=side-view.jpg', 1440, 900],
+  ['planets-lineup', 'scene=lineup', 1440, 520],
   ['social-preview', 'scene=social', 1280, 640],
 ];
 for (const [name, query, w, h] of mockups) {
