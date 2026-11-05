@@ -21,6 +21,8 @@ func L(_ key: String) -> String { NSLocalizedString(key, comment: "") }
 enum Motion: String, Codable, CaseIterable, Identifiable {
     case orbit, fixed, sun
     case fromEarth = "earth"
+    case issChase = "iss-chase", issAbove = "iss-above"
+    var isISS: Bool { self == .issChase || self == .issAbove }
     var id: String { rawValue }
     var title: String {
         switch self {
@@ -28,14 +30,18 @@ enum Motion: String, Codable, CaseIterable, Identifiable {
         case .fixed: return L("Stay Above Place")
         case .sun: return L("Follow the Sun")
         case .fromEarth: return L("As Seen from Earth")
+        case .issChase: return L("ISS Chase")
+        case .issAbove: return L("Above the ISS")
         }
     }
     func help(for body: Planet) -> String {
+        if self == .issChase { return L("The camera flies right behind the space station along its real orbit, the horizon ahead.") }
+        if self == .issAbove { return L("The camera floats high above the space station and follows it around the Earth. The station is shown enlarged.") }
         if body == .earth {
             switch self {
             case .orbit: return L("The camera slowly circles the Earth – day and night stay true to the real time.")
             case .fixed: return L("The camera stays above your place – watch day turn into night there, live.")
-            case .sun, .fromEarth: return L("The line between day and night stays in view while the Earth turns beneath it in real time.")
+            default: return L("The line between day and night stays in view while the Earth turns beneath it in real time.")
             }
         }
         switch self {
@@ -43,10 +49,11 @@ enum Motion: String, Codable, CaseIterable, Identifiable {
         case .fixed: return L("The camera stays above the chosen place – watch the sun move across its sky.")
         case .sun: return L("The line between day and night stays in view while it turns beneath it in real time.")
         case .fromEarth: return L("Shows it exactly as it looks from Earth right now – with its real phase.")
+        case .issChase, .issAbove: return ""
         }
     }
     /// "As seen from Earth" makes no sense for the Earth itself.
-    static func options(for body: Planet) -> [Motion] { body == .earth ? [.orbit, .fixed, .sun] : allCases }
+    static func options(for body: Planet) -> [Motion] { body == .earth ? [.orbit, .fixed, .sun] : [.orbit, .fixed, .sun, .fromEarth] }
 }
 
 /// The planet (or Moon) on the desktop. Raw values match the web page's `body` parameter.
@@ -124,6 +131,11 @@ struct EarthConfig: Codable, Equatable {
     var fps: Int = 30
     var hud: Bool = false
     var clouds: CloudMode = .live
+    /// Aurora and storm animations
+    var fx: Bool = true
+    /// International Space Station: marker and its orbit
+    var iss: Bool = true
+    var issPath: Bool = true
 
     var currentBody: Planet { body ?? .earth }
 
@@ -136,6 +148,7 @@ struct EarthConfig: Codable, Equatable {
         lat = v(.lat, d.lat); lon = v(.lon, d.lon); place = v(.place, d.place); zoom = v(.zoom, d.zoom)
         pitch = v(.pitch, d.pitch); heading = v(.heading, d.heading); tilt = v(.tilt, d.tilt); fov = v(.fov, d.fov)
         x = v(.x, d.x); y = v(.y, d.y); fps = v(.fps, d.fps); hud = v(.hud, d.hud); clouds = v(.clouds, d.clouds)
+        fx = v(.fx, d.fx); iss = v(.iss, d.iss); issPath = v(.issPath, d.issPath)
     }
 
     var json: String {
@@ -152,6 +165,9 @@ struct ViewPreset: Codable, Identifiable, Equatable {
     var builtin = false
     /// Mirrorable: the Earth can sit on the left or right (optional so older saved views still decode)
     var mirrorable: Bool? = nil
+    /// Views that follow the ISS (camera is placed by the ISS, not by zoom & co.)
+    var motion: Motion? = nil
+    var earthOnly: Bool { motion?.isISS == true }
 
     static let builtins: [ViewPreset] = [
         .init(name: L("Whole Earth"), symbol: "globe.europe.africa", zoom: 0.62, pitch: 0, heading: 0, tilt: 18, fov: 30, x: 0, y: 0, builtin: true),
@@ -159,6 +175,8 @@ struct ViewPreset: Codable, Identifiable, Equatable {
         .init(name: L("Horizon"), symbol: "sunrise", zoom: 4.2, pitch: 66, heading: 0, tilt: 0, fov: 50, x: 0, y: 0, builtin: true),
         .init(name: L("Side View"), symbol: "circle.righthalf.filled", zoom: 1.25, pitch: 0, heading: 0, tilt: 20, fov: 30, x: 0.55, y: 0, builtin: true, mirrorable: true),
         .init(name: L("Far Out"), symbol: "smallcircle.filled.circle", zoom: 0.3, pitch: 0, heading: 0, tilt: 18, fov: 30, x: 0, y: 0, builtin: true),
+        .init(name: L("ISS Chase"), symbol: "airplane", zoom: 0.62, pitch: 0, heading: 0, tilt: 0, fov: 30, x: 0, y: 0, builtin: true, motion: .issChase),
+        .init(name: L("Above the ISS"), symbol: "scope", zoom: 0.62, pitch: 0, heading: 0, tilt: 0, fov: 30, x: 0, y: 0, builtin: true, motion: .issAbove),
     ]
 
     /// Left variant: x and rotation mirrored.
@@ -171,10 +189,14 @@ struct ViewPreset: Codable, Identifiable, Equatable {
             abs(c.zoom - v.zoom) < 0.01 && abs(c.pitch - v.pitch) < 0.5 && abs(c.heading - v.heading) < 0.5 &&
                 abs(c.tilt - v.tilt) < 0.5 && abs(c.fov - v.fov) < 0.5 && abs(c.x - v.x) < 0.01 && abs(c.y - v.y) < 0.01
         }
+        if let m = motion { return c.motion == m }
+        if c.motion.isISS { return false }
         return eq(self) || (mirrorable == true && eq(mirrored))
     }
 
     func apply(to c: inout EarthConfig, left: Bool = false) {
+        if let m = motion { c.motion = m; return }
+        if c.motion.isISS { c.motion = .orbit }
         let v = mirrorable == true && left ? mirrored : self
         c.zoom = v.zoom; c.pitch = v.pitch; c.heading = v.heading; c.tilt = v.tilt; c.fov = v.fov; c.x = v.x; c.y = v.y
     }
@@ -210,7 +232,14 @@ final class Store: ObservableObject {
     /// Last place per planet, so switching back returns to where you were
     @Published var bodyPlaces: [String: Place] { didSet { save("bodyPlaces", bodyPlaces) } }
 
-    var allViews: [ViewPreset] { ViewPreset.builtins + customViews }
+    /// Views available for the current planet (the ISS views only exist on Earth)
+    var allViews: [ViewPreset] {
+        (ViewPreset.builtins + customViews).filter { !$0.earthOnly || config.currentBody == .earth }
+    }
+    /// "Whole Earth" reads oddly on Saturn
+    func title(of v: ViewPreset) -> String {
+        v.builtin && v.name == L("Whole Earth") && config.currentBody != .earth ? L("Whole Globe") : v.name
+    }
     var currentView: ViewPreset? { allViews.first { $0.matches(config) } }
 
     private init() {
@@ -448,7 +477,7 @@ struct SettingsView: View {
     private var bodySection: some View {
         Section {
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
+                HStack(spacing: 4) {
                     ForEach(Planet.allCases) { b in
                         let active = store.config.currentBody == b
                         Button { store.setBody(b) } label: {
@@ -457,11 +486,11 @@ struct SettingsView: View {
                                     if let img = b.thumbnail { Image(nsImage: img).resizable().interpolation(.high) }
                                     else { Image(systemName: "circle.fill").resizable().foregroundStyle(.secondary) }
                                 }
-                                .frame(width: 46, height: 46)
+                                .frame(width: 40, height: 40)
                                 .clipShape(RoundedRectangle(cornerRadius: 8))
-                                Text(b.title).font(.caption).lineLimit(1)
+                                Text(b.title).font(.caption2).lineLimit(1).minimumScaleFactor(0.8)
                             }
-                            .frame(width: 70, height: 76)
+                            .frame(width: 54, height: 68)
                             .background(RoundedRectangle(cornerRadius: 10)
                                 .fill(active ? Color.accentColor.opacity(0.25) : Color.secondary.opacity(0.1)))
                             .overlay(RoundedRectangle(cornerRadius: 10)
@@ -486,7 +515,7 @@ struct SettingsView: View {
                         Button { store.applyView(v) } label: {
                             VStack(spacing: 6) {
                                 Image(systemName: v.symbol).font(.system(size: 22))
-                                Text(v.name).font(.caption).lineLimit(1)
+                                Text(store.title(of: v)).font(.caption).lineLimit(1)
                             }
                             .frame(width: 92, height: 64)
                             .background(RoundedRectangle(cornerRadius: 10)
@@ -559,10 +588,12 @@ struct SettingsView: View {
                 .buttonStyle(.plain)
             }
             placeChips(store.config.currentBody == .earth ? Place.quick + store.recentPlaces : store.config.currentBody.places)
-            Picker(L("Motion"), selection: $store.config.motion) {
-                ForEach(Motion.options(for: store.config.currentBody)) { Text($0.title).tag($0) }
+            if !store.config.motion.isISS {
+                Picker(L("Motion"), selection: $store.config.motion) {
+                    ForEach(Motion.options(for: store.config.currentBody)) { Text($0.title).tag($0) }
+                }
+                .pickerStyle(.segmented)
             }
-            .pickerStyle(.segmented)
             Text(store.config.motion.help(for: store.config.currentBody)).font(.caption).foregroundStyle(.secondary)
             if store.config.motion == .orbit {
                 slider(L("Speed"), $store.config.speed, 0.02...3, log: true,
@@ -604,12 +635,19 @@ struct SettingsView: View {
                 }
                 .pickerStyle(.segmented)
             }
+            if store.config.currentBody == .earth {
+                Toggle(L("Show the ISS (live position)"), isOn: $store.config.iss)
+                if store.config.iss { Toggle(L("Show its orbit"), isOn: $store.config.issPath) }
+            }
+            if [.earth, .jupiter, .saturn].contains(store.config.currentBody) {
+                Toggle(L("Aurora & storm animations"), isOn: $store.config.fx)
+            }
             Toggle(L("Show time & sun position"), isOn: $store.config.hud)
             Toggle(L("Maximum quality (60 fps, full resolution – uses more battery)"), isOn: Binding(
                 get: { store.config.fps == 60 }, set: { store.config.fps = $0 ? 60 : 30 }))
         } header: { Text(L("Display")) } footer: {
             // Credits (EUMETSAT requires this notice when its cloud data is shown)
-            Text(L("Earth imagery: NASA Blue Marble & Black Marble · Live clouds: matteason/live-cloud-maps, contains modified EUMETSAT data · Planets & Moon: Solar System Scope (CC BY 4.0) · 3D: three.js"))
+            Text(L("Earth imagery: NASA Blue Marble & Black Marble · Live clouds: matteason/live-cloud-maps, contains modified EUMETSAT data · Planets & Moon: Solar System Scope (CC BY 4.0) · Aurora: NOAA SWPC · ISS orbit: CelesTrak · 3D: three.js"))
                 .font(.caption2).foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -777,7 +815,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         m.addItem(header(L("View")))
         for (i, v) in store.allViews.enumerated() {
-            let item = NSMenuItem(title: v.name, action: #selector(pickView(_:)), keyEquivalent: "")
+            let item = NSMenuItem(title: store.title(of: v), action: #selector(pickView(_:)), keyEquivalent: "")
             item.tag = i
             item.target = self
             item.state = store.currentView?.id == v.id ? .on : .off
@@ -796,6 +834,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         m.addItem(.separator())
         m.addItem(header(L("Motion")))
         for (i, mo) in Motion.allCases.enumerated() where Motion.options(for: store.config.currentBody).contains(mo) {
+            // ISS views are listed under "View"
             let item = NSMenuItem(title: mo.title, action: #selector(pickMotion(_:)), keyEquivalent: "")
             item.tag = i
             item.target = self

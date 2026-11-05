@@ -98,5 +98,13 @@
 "Gale Crater" = "Gale-Krater";
 "Great Red Spot" = "Großer Roter Fleck";
 "Ring View" = "Ringansicht";
-"Earth imagery: NASA Blue Marble & Black Marble · Live clouds: matteason/live-cloud-maps, contains modified EUMETSAT data · Planets & Moon: Solar System Scope (CC BY 4.0) · 3D: three.js" = "Erdbilder: NASA Blue Marble & Black Marble · Live-Wolken: matteason/live-cloud-maps, contains modified EUMETSAT data · Planeten & Mond: Solar System Scope (CC BY 4.0) · 3D: three.js";
 "Earth imagery: NASA Earth Observatory. Live clouds: matteason/live-cloud-maps, contains modified EUMETSAT data. Planet and Moon textures: Solar System Scope (CC BY 4.0). 3D: three.js (MIT)." = "Erdbilder: NASA Earth Observatory. Live-Wolken: matteason/live-cloud-maps, contains modified EUMETSAT data. Planeten- und Mondtexturen: Solar System Scope (CC BY 4.0). 3D: three.js (MIT).";
+"ISS Chase" = "ISS-Verfolger";
+"Above the ISS" = "Über der ISS";
+"The camera flies right behind the space station along its real orbit, the horizon ahead." = "Die Kamera fliegt direkt hinter der Raumstation auf ihrer echten Bahn, der Horizont liegt voraus.";
+"The camera floats high above the space station and follows it around the Earth. The station is shown enlarged." = "Die Kamera schwebt hoch über der Raumstation und folgt ihr um die Erde. Die Station ist vergrößert dargestellt.";
+"Whole Globe" = "Ganze Kugel";
+"Show the ISS (live position)" = "ISS anzeigen (Live-Position)";
+"Show its orbit" = "Ihre Flugbahn anzeigen";
+"Aurora & storm animations" = "Polarlichter & Sturm-Animationen";
+"Earth imagery: NASA Blue Marble & Black Marble · Live clouds: matteason/live-cloud-maps, contains modified EUMETSAT data · Planets & Moon: Solar System Scope (CC BY 4.0) · Aurora: NOAA SWPC · ISS orbit: CelesTrak · 3D: three.js" = "Erdbilder: NASA Blue Marble & Black Marble · Live-Wolken: matteason/live-cloud-maps, contains modified EUMETSAT data · Planeten & Mond: Solar System Scope (CC BY 4.0) · Polarlichter: NOAA SWPC · ISS-Bahn: CelesTrak · 3D: three.js";

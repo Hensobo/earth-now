@@ -161,7 +161,8 @@ export class ISS {
     this.sunLight.position.copy(sunDir).multiplyScalar(1000);
     this.sunLight.intensity = this.inShadow ? 0 : 3.2;
     this.earthLight.position.copy(u).multiplyScalar(-1);     // sky colour comes from below
-    this.earthLight.intensity = this.inShadow ? 0.08 : 0.45;
+    // Die Tagseite der Erde darunter hellt die Station spürbar auf
+    this.earthLight.intensity = this.inShadow ? 0.06 : 0.25 + 0.9 * Math.max(0, this.pos.clone().normalize().dot(sunDir));
   }
 }
 

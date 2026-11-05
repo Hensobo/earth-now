@@ -51,6 +51,8 @@ jobs:
           test -f $APP/Contents/Resources/web/planets.js
           test -f $APP/Contents/Resources/web/textures/planets/saturn-ring.png
           test -f $APP/Contents/Resources/web/thumbs/mars.jpg
+          test -f $APP/Contents/Resources/web/iss.js
+          grep -q '^1 25544' $APP/Contents/Resources/web/data/iss.tle
           plutil -lint $APP/Contents/Resources/de.lproj/Localizable.strings
 
       - name: Screenshots of the app windows
@@ -79,8 +81,10 @@ jobs:
           de-light de light top -
           mars-dark en dark top mars
           saturn-dark en dark top saturn
+          iss-dark en dark top iss-chase
+          earth-bottom en dark bottom -
           EOF
-          rm -f shots/desktop-en-dark.png shots/desktop-en-bottom.png shots/desktop-de-light.png
+          rm -f shots/desktop-en-dark.png shots/desktop-en-bottom.png shots/desktop-de-light.png shots/desktop-earth-bottom.png
           ls -la shots
 
       - name: Commit screenshots to the branch
