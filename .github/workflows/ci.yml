@@ -56,6 +56,63 @@ jobs:
           grep -q '^1 25544' $APP/Contents/Resources/web/data/iss.tle
           plutil -lint $APP/Contents/Resources/de.lproj/Localizable.strings
 
+      - name: Test the DMG like a user would
+        run: |
+          DMG=$(ls dist/EarthNow-*.dmg | head -1)
+          echo "::group::Image"
+          hdiutil verify "$DMG"
+          MNT=$(hdiutil attach -nobrowse -readonly "$DMG" | awk -F'\t' '/\/Volumes\//{print $NF}')
+          ls -la "$MNT"
+          test -d "$MNT/EarthNow.app"                      # the app
+          test -L "$MNT/Applications"                      # drag-to-Applications shortcut
+          echo "::endgroup::"
+          echo "::group::Install into /Applications"
+          rm -rf /Applications/EarthNow.app
+          cp -R "$MNT/EarthNow.app" /Applications/
+          hdiutil detach "$MNT"
+          codesign --verify --deep --strict --verbose=2 /Applications/EarthNow.app
+          lipo -archs /Applications/EarthNow.app/Contents/MacOS/EarthNow
+          echo "::endgroup::"
+          echo "::group::Gatekeeper, as after a download"
+          xattr -w com.apple.quarantine "0081;$(printf %x $(date +%s));Safari;" /Applications/EarthNow.app
+          spctl --assess --type execute --verbose /Applications/EarthNow.app \
+            && echo "Gatekeeper accepts the app" \
+            || echo "Gatekeeper: not notarized (expected) – users confirm once under Privacy & Security"
+          xattr -dr com.apple.quarantine /Applications/EarthNow.app   # the documented Terminal fix
+          echo "::endgroup::"
+          echo "::group::Launch through LaunchServices, like a double-click"
+          defaults delete io.github.hensobo.earthnow 2>/dev/null || true
+          open /Applications/EarthNow.app
+          sleep 12
+          pgrep -x EarthNow                                 # still running = no crash at launch
+          open /Applications/EarthNow.app                   # second launch opens the settings, no new instance
+          sleep 4
+          test "$(pgrep -x EarthNow | wc -l | tr -d ' ')" = 1
+          pkill -x EarthNow; sleep 2
+          echo "::endgroup::"
+          echo "::group::Settings from version 1 are kept"
+          # a v1 config has no body/fx/iss keys – v2 must read it and keep the user's place
+          defaults write io.github.hensobo.earthnow config -data "$(printf '%s' '{"motion":"fixed","speed":0.4,"lat":35.5,"lon":139.7,"place":"CI Test Place","zoom":2.2,"pitch":20,"heading":0,"tilt":0,"fov":30,"x":0,"y":-0.35,"fps":30,"hud":false,"clouds":"live"}' | xxd -p | tr -d '\n')"
+          EARTHNOW_PRINT_CONFIG=1 /Applications/EarthNow.app/Contents/MacOS/EarthNow > config.log 2>&1 &
+          PID=$!; sleep 6; kill $PID; wait $PID 2>/dev/null || true
+          cat config.log
+          grep -q '"place":"CI Test Place"' config.log
+          grep -q '"body":"earth"' config.log
+          grep -q '"motion":"fixed"' config.log
+          defaults delete io.github.hensobo.earthnow 2>/dev/null || true
+          echo "::endgroup::"
+          echo "::group::Render check and JavaScript errors"
+          mkdir -p shots
+          EARTHNOW_SNAPSHOT=$PWD/shots/dmg-desktop.png /Applications/EarthNow.app/Contents/MacOS/EarthNow > app.log 2>&1 &
+          PID=$!; sleep 14
+          kill -0 $PID                                      # alive after 14 s
+          kill $PID; wait $PID 2>/dev/null || true
+          test -s shots/dmg-desktop.png
+          cat app.log
+          if grep -q '\[web\]' app.log; then echo "::error::JavaScript errors in the renderer"; exit 1; fi
+          if ls ~/Library/Logs/DiagnosticReports 2>/dev/null | grep -i earthnow; then echo "::error::crash report"; exit 1; fi
+          echo "::endgroup::"
+
       - name: Screenshots of the app windows
         run: |
           mkdir -p shots
@@ -87,7 +144,7 @@ jobs:
           earthmoon-dark en dark top earth-moon
           earth-bottom en dark bottom -
           EOF
-          rm -f shots/desktop-en-dark.png shots/desktop-en-bottom.png shots/desktop-de-light.png shots/desktop-earth-bottom.png
+          rm -f shots/dmg-desktop.png shots/desktop-en-dark.png shots/desktop-en-bottom.png shots/desktop-de-light.png shots/desktop-earth-bottom.png
           ls -la shots
 
       - name: Commit screenshots to the branch

@@ -744,6 +744,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let env = ProcessInfo.processInfo.environment
         // Debug/screenshots: EARTHNOW_APPEARANCE=dark|light forces the appearance
         if let a = env["EARTHNOW_APPEARANCE"] { NSApp.appearance = NSAppearance(named: a == "dark" ? .darkAqua : .aqua) }
+        // Debug/CI: print the loaded settings (checks that older settings are read correctly)
+        if env["EARTHNOW_PRINT_CONFIG"] != nil { print("config: \(Store.shared.config.json)"); fflush(stdout) }
         if env["EARTHNOW_SETTINGS"] != nil { openSettings() }
         // Debug: EARTHNOW_SETTINGS_SCROLL=bottom scrolls the settings form to its end before the snapshot
         if env["EARTHNOW_SETTINGS_SCROLL"] == "bottom" {
