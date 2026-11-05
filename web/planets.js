@@ -2,7 +2,7 @@
 //
 // Positions: JPL "Keplerian Elements for Approximate Positions of the Major Planets"
 // (E. M. Standish, valid 1800–2050, error well below 1° for the inner planets).
-// Moon: low-precision formulas of the Astronomical Almanac (~0.3°).
+// Moon: main terms of Meeus' lunar theory (~0.01°).
 // Orientation: IAU WGCCRE 2015 rotation elements (pole and prime meridian),
 // without the small periodic terms.
 //
@@ -65,17 +65,52 @@ function heliocentric(name, T) {
   ];
 }
 
-/** Geocentric ecliptic position of the Moon in AU. */
-function moonGeocentric(T) {
-  const lam = 218.32 + 481267.881 * T
-    + 6.29 * sinD(135.0 + 477198.87 * T) - 1.27 * sinD(259.3 - 413335.36 * T)
-    + 0.66 * sinD(235.7 + 890534.22 * T) + 0.21 * sinD(269.9 + 954397.74 * T)
-    - 0.19 * sinD(357.5 + 35999.05 * T) - 0.11 * sinD(186.5 + 966404.03 * T);
-  const bet = 5.13 * sinD(93.3 + 483202.02 * T) + 0.28 * sinD(228.2 + 960400.89 * T)
-    - 0.28 * sinD(318.3 + 6003.15 * T) - 0.17 * sinD(217.6 - 407332.21 * T);
-  const par = 0.9508 + 0.0518 * cosD(135.0 + 477198.87 * T) + 0.0095 * cosD(259.3 - 413335.36 * T)
-    + 0.0078 * cosD(235.7 + 890534.22 * T) + 0.0028 * cosD(269.9 + 954397.74 * T);
-  const r = 6378.14 / sinD(par) / AU_KM;
+/**
+ * Geocentric ecliptic position of the Moon (J2000) in AU.
+ * Main periodic terms of Meeus, "Astronomical Algorithms", ch. 47 (~0.01°), then
+ * precessed from the equinox of date back to J2000 so it matches the rest of this file.
+ */
+const MOON_LR = [ // D, M, M', F, Σl (1e-6 °), Σr (m)
+  [0, 0, 1, 0, 6288774, -20905355], [2, 0, -1, 0, 1274027, -3699111], [2, 0, 0, 0, 658314, -2955968],
+  [0, 0, 2, 0, 213618, -569925], [0, 1, 0, 0, -185116, 48888], [0, 0, 0, 2, -114332, -3149],
+  [2, 0, -2, 0, 58793, 246158], [2, -1, -1, 0, 57066, -152138], [2, 0, 1, 0, 53322, -170733],
+  [2, -1, 0, 0, 45758, -204586], [0, 1, -1, 0, -40923, -129620], [1, 0, 0, 0, -34720, 108743],
+  [0, 1, 1, 0, -30383, 104755], [2, 0, 0, -2, 15327, 10321], [0, 0, 1, 2, -12528, 0],
+  [0, 0, 1, -2, 10980, 79661], [4, 0, -1, 0, 10675, -34782], [0, 0, 3, 0, 10034, -23210],
+  [4, 0, -2, 0, 8548, -21636], [2, 1, -1, 0, -7888, 24208], [2, 1, 0, 0, -6766, 30824],
+  [1, 0, -1, 0, -5163, -8379], [1, 1, 0, 0, 4987, -16675], [2, -1, 1, 0, 4036, -12831],
+  [2, 0, 2, 0, 3994, -10445], [4, 0, 0, 0, 3861, -11650], [2, 0, -3, 0, 3665, 14403],
+  [0, 1, -2, 0, -2689, -7003], [2, 0, -1, 2, -2602, 0], [2, -1, -2, 0, 2390, 10056],
+  [1, 0, 1, 0, -2348, 6322], [2, -2, 0, 0, 2236, -9884],
+];
+const MOON_B = [ // D, M, M', F, Σb (1e-6 °)
+  [0, 0, 0, 1, 5128122], [0, 0, 1, 1, 280602], [0, 0, 1, -1, 277693], [2, 0, 0, -1, 173237],
+  [2, 0, -1, 1, 55413], [2, 0, -1, -1, 46271], [2, 0, 0, 1, 32573], [0, 0, 2, 1, 17198],
+  [2, 0, 1, -1, 9266], [0, 0, 2, -1, 8822], [2, -1, 0, -1, 8216], [2, 0, -2, -1, 4324],
+  [2, 0, 1, 1, 4200], [2, 1, 0, -1, -3359], [2, -1, -1, 1, 2463], [2, -1, 0, 1, 2211],
+  [2, -1, -1, -1, 2065], [0, 1, -1, -1, -1870], [4, 0, -1, -1, 1828], [0, 1, 0, 1, -1794],
+];
+function moonGeocentric(T, ofDate = false) {
+  const Lp = 218.3164477 + 481267.88123421 * T;
+  const D = 297.8501921 + 445267.1114034 * T, M = 357.5291092 + 35999.0502909 * T;
+  const Mp = 134.9633964 + 477198.8675055 * T, F = 93.2720950 + 483202.0175233 * T;
+  const E = 1 - 0.002516 * T;
+  let sl = 0, sr = 0, sb = 0;
+  for (const [d, m, mp, f, l, r] of MOON_LR) {
+    const arg = d * D + m * M + mp * Mp + f * F, e = Math.abs(m) === 1 ? E : m ? E * E : 1;
+    sl += l * e * sinD(arg); sr += r * e * cosD(arg);
+  }
+  for (const [d, m, mp, f, b] of MOON_B) {
+    const e = Math.abs(m) === 1 ? E : m ? E * E : 1;
+    sb += b * e * sinD(d * D + m * M + mp * Mp + f * F);
+  }
+  // additive terms (Venus, Jupiter, flattening)
+  const A1 = 119.75 + 131.849 * T, A2 = 53.09 + 479264.29 * T, A3 = 313.45 + 481266.484 * T;
+  sl += 3958 * sinD(A1) + 1962 * sinD(Lp - F) + 318 * sinD(A2);
+  sb += -2235 * sinD(Lp) + 382 * sinD(A3) + 175 * sinD(A1 - F) + 175 * sinD(A1 + F) + 127 * sinD(Lp - Mp) - 115 * sinD(Lp + Mp);
+  const lam = Lp + sl / 1e6 - (ofDate ? 0 : 1.3969713 * T);   // equinox of date → J2000 (general precession)
+  const bet = sb / 1e6;
+  const r = (385000.56 + sr / 1000) / AU_KM;
   return [r * cosD(bet) * cosD(lam), r * cosD(bet) * sinD(lam), r * sinD(bet)];
 }
 
@@ -127,8 +162,36 @@ export function bodyState(name, date) {
   return { sun, earth: bodyLatLon(name, toEarth, d, T), sunDistance, earthDistance: Math.hypot(...toEarth) };
 }
 
+/**
+ * Sub-solar point on Earth (equinox of date, Astronomical Almanac low-precision formulas, ~0.01°).
+ * The Earth view uses this; moonFromEarth() is in the same frame, so eclipses line up.
+ */
+export function subsolarOfDate(date) {
+  const d = date.getTime() / 86400000 + 2440587.5 - 2451545.0;
+  const g = 357.529 + 0.98560028 * d, q = 280.459 + 0.98564736 * d;
+  const L = q + 1.915 * sinD(g) + 0.020 * sinD(2 * g), e = 23.439 - 0.00000036 * d;
+  const ra = Math.atan2(cosD(e) * sinD(L), cosD(L)) / DEG, dec = Math.asin(sinD(e) * sinD(L)) / DEG;
+  return { lat: dec, lon: wrap180(ra - gmstDeg(d)) };
+}
+const gmstDeg = (d) => ((18.697374558 + 24.06570982441908 * d) % 24) * 15;
+const wrap180 = (a) => ((a % 360) + 540) % 360 - 180;
+
+/**
+ * The Moon as seen from the Earth's centre, Earth-fixed (equinox of date, like subsolarOfDate):
+ * lat/lon of the sub-lunar point and the distance in Earth radii.
+ */
+export function moonFromEarth(date) {
+  const d = date.getTime() / 86400000 + 2440587.5 - 2451545.0;
+  const T = d / 36525;
+  const [x, y, z] = moonGeocentric(T, true);
+  const e = (23.439 - 0.00000036 * d) * DEG;
+  const X = x, Y = y * Math.cos(e) - z * Math.sin(e), Z = y * Math.sin(e) + z * Math.cos(e);
+  const r = Math.hypot(X, Y, Z);
+  return { lat: Math.asin(Z / r) / DEG, lon: wrap180(Math.atan2(Y, X) / DEG - gmstDeg(d)), distance: r * AU_KM / 6378.137 };
+}
+
 /** How fast the body turns (degrees per day, sign = direction). */
-export const rotationDegPerDay = (name) => ROTATION[name][5];
+export const rotationDegPerDay = (name) => ROTATION[name]?.[5] ?? 0;
 
 /** Heliocentric ecliptic longitude, for tests. */
 export function heliocentricLongitude(name, date) {

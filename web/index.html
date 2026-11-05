@@ -24,7 +24,7 @@
 <div id="iss-label">ISS</div>
 <script type="module">
 import * as THREE from './lib/three.module.min.js';
-import { bodyState, BODIES, rotationDegPerDay } from './planets.js';
+import { bodyState, BODIES, rotationDegPerDay, moonFromEarth, subsolarOfDate } from './planets.js';
 import { ISS } from './iss.js';
 
 // ---------------------------------------------------------------------------
@@ -48,6 +48,7 @@ import { ISS } from './iss.js';
 //   iss      ISS mit Live-Position einblenden (0/1), issPath: ihre Flugbahn (0/1)
 //            motion=iss-chase: Kamera fliegt hinter der ISS her, Horizont voraus
 //            motion=iss-above: Kamera schwebt über der ISS und folgt ihr
+//            motion=earth-moon: Erde und Mond zusammen, aus großer Entfernung (echte Größen und Abstände)
 //   time     Startzeitpunkt statt jetzt, ISO 8601, z. B. time=2026-06-21T18:00:00Z (für Tests/Screenshots)
 // ---------------------------------------------------------------------------
 const P = new URLSearchParams(location.search);
@@ -67,21 +68,8 @@ const startReal = Date.now();
 const startSim = Date.parse(P.get('time') || window.__startTime || '') || startReal;
 const now = () => new Date(startSim + (Date.now() - startReal) * cfg.warp);
 
-// --- Sonnenstand (Subsolarpunkt) -------------------------------------------
-// Low-precision-Formeln des Astronomical Almanac, Genauigkeit ~0.01°.
-function subsolarPoint(date) {
-  const d = date.getTime() / 86400000 + 2440587.5 - 2451545.0;
-  const g = (357.529 + 0.98560028 * d) * DEG;
-  const q = 280.459 + 0.98564736 * d;
-  const L = (q + 1.915 * Math.sin(g) + 0.020 * Math.sin(2 * g)) * DEG;
-  const e = (23.439 - 0.00000036 * d) * DEG;
-  const ra = Math.atan2(Math.cos(e) * Math.sin(L), Math.cos(L)) / DEG;
-  const dec = Math.asin(Math.sin(e) * Math.sin(L)) / DEG;
-  const gmst = (18.697374558 + 24.06570982441908 * d) % 24;
-  let lon = ra - gmst * 15;
-  lon = ((lon + 540) % 360) - 180;
-  return { lat: dec, lon };
-}
+// --- Sonnenstand (Subsolarpunkt): planets.js, Genauigkeit ~0.01° ---
+const subsolarPoint = subsolarOfDate;
 
 // Geografische Koordinaten -> Richtungsvektor im Erd-Koordinatensystem
 // (passend zur UV-Abwicklung von THREE.SphereGeometry).
@@ -137,6 +125,7 @@ const earthMat = new THREE.ShaderMaterial({
     normalMap: { value: normalTex },
     cloudMap: { value: emptyTex },
     cloudAmt: { value: 1 },
+    moonPos: { value: new THREE.Vector3(60, 0, 0) },
     sunDir: { value: sunDir },
     camPos: { value: camera.position },
   },
@@ -154,9 +143,24 @@ const earthMat = new THREE.ShaderMaterial({
     uniform sampler2D dayMap, nightMap, specMap, normalMap, cloudMap;
     uniform vec3 sunDir, camPos;
     uniform float cloudAmt;
+    uniform vec3 moonPos;   // Erdradien, erdfest
     varying vec2 vUv;
     varying vec3 vNormal;
     varying vec3 vPos;
+
+    // Anteil der Sonnenscheibe, den eine Kugel verdeckt (Winkelradien und Abstand in Radiant)
+    float occult(float ab, float as, float sep) {
+      if (sep >= ab + as) return 0.0;
+      float total = min(1.0, (ab * ab) / (as * as));
+      float t = clamp((ab + as - sep) / max(ab + as - abs(ab - as), 1e-6), 0.0, 1.0);
+      return total * t * t * (3.0 - 2.0 * t);
+    }
+
+    float moonShadow(vec3 P) {
+      vec3 toM = moonPos - P; float dm = length(toM);
+      float sep = acos(clamp(dot(toM / dm, sunDir), -1.0, 1.0));
+      return 1.0 - 0.985 * pow(occult(asin(clamp(0.2727 / dm, 0.0, 1.0)), 0.004653, sep), 0.6);
+    }
 
     void main() {
       vec3 N = normalize(vNormal);
@@ -182,12 +186,13 @@ const earthMat = new THREE.ShaderMaterial({
       float cloud = texture2D(cloudMap, vUv).a * cloudAmt;
       float shadow = texture2D(cloudMap, vUv + vec2(sunDir.x, sunDir.y) * 0.0015).a * cloudAmt;
 
-      vec3 color = day * (0.04 + 0.95 * max(lit, 0.0)) * (1.0 - 0.35 * shadow);
+      float ecl = moonShadow(vPos);   // Sonnenfinsternis: Kern- und Halbschatten des Mondes
+      vec3 color = day * (0.04 + 0.95 * max(lit, 0.0)) * (1.0 - 0.35 * shadow) * ecl;
 
       // Spiegelung der Sonne auf den Ozeanen
       vec3 H = normalize(sunDir + V);
       float spec = pow(max(dot(N, H), 0.0), 60.0) * ocean * (1.0 - cloud);
-      color += vec3(1.0, 0.92, 0.78) * spec * 0.55 * dayAmt;
+      color += vec3(1.0, 0.92, 0.78) * spec * 0.55 * dayAmt * ecl;
 
       // Dämmerungsfärbung
       color = mix(color, color * vec3(1.25, 0.75, 0.5) + vec3(0.06, 0.02, 0.0), twilight * 0.6);
@@ -213,7 +218,7 @@ scene.add(earth);
 
 // --- Wolken ------------------------------------------------------------------
 const cloudMat = new THREE.ShaderMaterial({
-  uniforms: { cloudMap: { value: emptyTex }, sunDir: { value: sunDir }, drift: { value: 0 } },
+  uniforms: { cloudMap: { value: emptyTex }, sunDir: { value: sunDir }, drift: { value: 0 }, moonPos: { value: new THREE.Vector3(60, 0, 0) } },
   transparent: true,
   depthWrite: false,
   vertexShader: /* glsl */`
@@ -223,12 +228,22 @@ const cloudMat = new THREE.ShaderMaterial({
       gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
     }`,
   fragmentShader: /* glsl */`
-    uniform sampler2D cloudMap; uniform vec3 sunDir; uniform float drift;
+    uniform sampler2D cloudMap; uniform vec3 sunDir, moonPos; uniform float drift;
     varying vec2 vUv; varying vec3 vNormal;
+    // Anteil der Sonnenscheibe, den eine Kugel verdeckt (Winkelradien und Abstand in Radiant)
+    float occult(float ab, float as, float sep) {
+      if (sep >= ab + as) return 0.0;
+      float total = min(1.0, (ab * ab) / (as * as));
+      float t = clamp((ab + as - sep) / max(ab + as - abs(ab - as), 1e-6), 0.0, 1.0);
+      return total * t * t * (3.0 - 2.0 * t);
+    }
+
     void main() {
       float a = texture2D(cloudMap, vUv + vec2(drift, 0.0)).a;
       float sunN = dot(normalize(vNormal), sunDir);
-      float light = smoothstep(-0.12, 0.25, sunN);
+      vec3 toM = moonPos - normalize(vNormal); float dm = length(toM);
+      float light = smoothstep(-0.12, 0.25, sunN) *
+        (1.0 - 0.985 * occult(asin(clamp(0.2727 / dm, 0.0, 1.0)), 0.004653, acos(clamp(dot(toM / dm, sunDir), -1.0, 1.0))));
       vec3 col = mix(vec3(0.02, 0.025, 0.04), vec3(1.0), light);
       // Wolken an der Terminatorlinie warm anleuchten
       float tw = smoothstep(-0.12, 0.02, sunN) * (1.0 - smoothstep(0.02, 0.2, sunN));
@@ -334,6 +349,7 @@ const planetMat = new THREE.ShaderMaterial({
     haloColor: { value: new THREE.Color(0, 0, 0) }, haloAmt: { value: 0 },
     ringMap: { value: emptyTex }, ringInner: { value: 0 }, ringOuter: { value: 0 },
     flowAmt: { value: 0 }, flowTime: { value: 0 }, vortex: { value: new THREE.Vector3(0, 0, 0.001) },
+    shadowPos: { value: new THREE.Vector3() }, shadowR: { value: 0 },
   },
   vertexShader: /* glsl */`
     varying vec2 vUv; varying vec3 vNormal; varying vec3 vPos;
@@ -347,7 +363,16 @@ const planetMat = new THREE.ShaderMaterial({
     uniform float rough, haloAmt, ringInner, ringOuter;
     uniform float flowAmt, flowTime;
     uniform vec3 vortex;  // u, v, radius (uv units) – e.g. Jupiter's Great Red Spot
+    uniform vec3 shadowPos; uniform float shadowR;   // Mond: Erde (in Mondradien) – Mondfinsternis
     varying vec2 vUv; varying vec3 vNormal; varying vec3 vPos;
+
+    // Anteil der Sonnenscheibe, den eine Kugel verdeckt (Winkelradien und Abstand in Radiant)
+    float occult(float ab, float as, float sep) {
+      if (sep >= ab + as) return 0.0;
+      float total = min(1.0, (ab * ab) / (as * as));
+      float t = clamp((ab + as - sep) / max(ab + as - abs(ab - as), 1e-6), 0.0, 1.0);
+      return total * t * t * (3.0 - 2.0 * t);
+    }
 
     // Gasplaneten: Wolkenbänder strömen gegeneinander, ein Wirbel dreht sich.
     // Zwei zeitversetzte Phasen werden überblendet, damit sich nichts aufschaukelt.
@@ -382,7 +407,16 @@ const planetMat = new THREE.ShaderMaterial({
         }
       }
       vec3 albedo = albedoAt(vUv);
-      vec3 color = albedo * (light + ambient * 2.5 * (1.0 - smoothstep(0.0, 0.2, mu0)));
+      vec3 eclipseGlow = vec3(0.0);
+      if (shadowR > 0.0) {
+        vec3 toE = shadowPos - vPos; float de = length(toE);
+        float sep = acos(clamp(dot(toE / de, sunDir), -1.0, 1.0));
+        float hidden = occult(asin(clamp(shadowR / de, 0.0, 1.0)), 0.004653, sep);
+        // In der Totalität leuchtet der Mond rötlich: Sonnenlicht, das die Erdatmosphäre bricht
+        eclipseGlow = vec3(0.55, 0.16, 0.06) * smoothstep(0.85, 1.0, hidden) * max(mu0 + 0.15, 0.0) * 0.22;
+        light *= 1.0 - hidden;
+      }
+      vec3 color = albedo * (light + ambient * 2.5 * (1.0 - smoothstep(0.0, 0.2, mu0)) + eclipseGlow);
       // Dunst am Rand der Tagseite
       float fres = pow(1.0 - mu, 3.0);
       color += haloColor * fres * haloAmt * 0.6 * smoothstep(-0.1, 0.35, mu0);
@@ -581,6 +615,69 @@ function auroraInView() {
   return false;
 }
 
+// --- Mond neben der Erde (Ansicht „Erde & Mond“) und Finsternisse ----------------
+const moonMat = planetMat.clone();
+moonMat.uniforms.camPos.value = new THREE.Vector3();
+moonMat.uniforms.rough.value = 0.55;
+moonMat.uniforms.ambient.value.setRGB(0.0045, 0.006, 0.009);
+moonMat.uniforms.shadowR.value = 6378.137 / 1737.4;
+const moonMesh = new THREE.Mesh(new THREE.SphereGeometry(1, 128, 64), moonMat);
+moonMesh.scale.setScalar(1737.4 / 6378.137);
+moonMesh.visible = false;
+scene.add(moonMesh);
+let moonTexLoaded = false;
+const moonNow = new THREE.Vector3(60, 0, 0);   // erdfest, Erdradien
+let eclipse = '';                              // 'solar' | 'lunar' | ''
+const _qInv = new THREE.Quaternion(), _m = new THREE.Vector3();
+
+function updateMoon(date, st) {
+  const m = moonFromEarth(date);
+  latLonToVec(m.lat, m.lon, moonNow).multiplyScalar(m.distance);
+  earthMat.uniforms.moonPos.value.copy(moonNow);
+  cloudMat.uniforms.moonPos.value.copy(moonNow);
+  // Finsternis gerade im Gange?
+  _m.copy(moonNow).normalize();
+  const s = moonNow.dot(sunDir), off = Math.sqrt(Math.max(0, moonNow.lengthSq() - s * s));
+  eclipse = s > 0 && off < 1.0 + 0.56 ? 'solar' : s < 0 && off < 1.0 ? 'lunar' : '';
+  if (shownBody === 'moon' && st.earth) {
+    latLonToVec(st.earth.lat, st.earth.lon, planetMat.uniforms.shadowPos.value)
+      .multiplyScalar(st.earthDistance * 149597870.7 / 1737.4);
+  }
+  // Mond in der Szene: Vorderseite zur Erde, Beleuchtung in seinem eigenen Koordinatensystem
+  if (moonMesh.visible) {
+    if (!moonTexLoaded) { moonMat.uniforms.map.value = tex('textures/planets/moon.jpg'); moonTexLoaded = true; }
+    moonMesh.position.copy(moonNow);
+    const ms = bodyState('moon', date);
+    const a = latLonToVec(ms.earth.lat, ms.earth.lon, new THREE.Vector3());
+    moonMesh.quaternion.setFromUnitVectors(a, _m.clone().negate());
+    _qInv.copy(moonMesh.quaternion).invert();
+    moonMat.uniforms.sunDir.value.copy(sunDir).applyQuaternion(_qInv);
+    moonMat.uniforms.camPos.value.copy(camera.position).sub(moonNow).applyQuaternion(_qInv).divideScalar(moonMesh.scale.x);
+    moonMat.uniforms.shadowPos.value.copy(moonNow).negate().applyQuaternion(_qInv).divideScalar(moonMesh.scale.x);
+  }
+}
+
+// Erde und Mond aus der Ferne: Kamera hinter der Erde, zur Sonnenseite versetzt
+function updateEarthMoonCamera() {
+  const M = moonNow, mh = M.clone().normalize();
+  const side = sunDir.clone().addScaledVector(mh, -sunDir.dot(mh));
+  if (side.lengthSq() < 1e-6) side.set(0, 1, 0);
+  side.normalize();
+  const phi = 8 * DEG, dist = 160;
+  camera.position.copy(mh).multiplyScalar(-Math.cos(phi) * dist).addScaledVector(side, Math.sin(phi) * dist);
+  const target = M.clone().multiplyScalar(0.5);
+  camera.up.set(0, 1, 0);
+  camera.lookAt(target);
+  // Bildwinkel so, dass Erde und Mond mit etwas Rand nebeneinander passen
+  const dir = target.clone().sub(camera.position).normalize();
+  const angTo = (p, r) => p.clone().sub(camera.position).normalize().angleTo(dir) + Math.asin(Math.min(1, r / p.distanceTo(camera.position)));
+  const halfH = Math.max(angTo(new THREE.Vector3(), 1), angTo(M, 0.2727)) * 1.35;
+  camera.fov = Math.min(40, 2 * Math.atan(Math.tan(halfH) / camera.aspect) / DEG);
+  camera.near = 1; camera.far = 2000;
+  camera.clearViewOffset();
+  camera.updateProjectionMatrix();
+}
+
 // --- ISS ---------------------------------------------------------------------
 const iss = new ISS(() => requestRender());
 scene.add(iss.marker, iss.path);
@@ -698,6 +795,7 @@ function applyBody() {
     planetMat.uniforms.map.value = bodyTex(b.map);
     planetMat.uniforms.ambient.value.setRGB(...b.ambient);
     planetMat.uniforms.rough.value = b.rough;
+    planetMat.uniforms.shadowR.value = id === 'moon' ? 6378.137 / 1737.4 : 0;   // Erdschatten → Mondfinsternis
     halo.visible = !!b.halo;
     if (b.halo) { haloMat.uniforms.color.value.setRGB(...b.halo); haloMat.uniforms.amount.value = b.haloAmt; }
     planetMat.uniforms.haloColor.value.setRGB(...(b.halo || [0, 0, 0]));
@@ -770,7 +868,8 @@ const _n = new THREE.Vector3(), _north = new THREE.Vector3(), _east = new THREE.
 const _fwd = new THREE.Vector3(), _dir = new THREE.Vector3(), _up = new THREE.Vector3();
 function updateCamera(dt, st) {
   if (issMode()) { settling = false; return updateIssCamera(); }
-  if (camera.near !== 0.1) { camera.near = 0.1; camera.updateProjectionMatrix(); }
+  if (shownBody === 'earth' && cfg.motion === 'earth-moon') { settling = false; return updateEarthMoonCamera(); }
+  if (camera.near !== 0.1 || camera.far !== 1000) { camera.near = 0.1; camera.far = 1000; camera.updateProjectionMatrix(); }
   const k = 1 - Math.exp(-dt * 1.6);
   const target = { ...cfg, lat: targetLat(st), zoom: cfg.zoom * bodyFit() };
   for (const key of ['lat', 'zoom', 'pitch', 'heading', 'tilt', 'fov', 'x', 'y']) {
@@ -884,6 +983,8 @@ function frame() {
   const st = bodySun(date);
   const sun = st.sun;
   latLonToVec(sun.lat, sun.lon, sunDir);
+  moonMesh.visible = shownBody === 'earth' && cfg.motion === 'earth-moon';
+  updateMoon(date, st);
   if (issWanted()) iss.update(date, sunDir, sec);
   applyISS();
   updateCamera(Math.min(dt, 2), st);
@@ -911,7 +1012,12 @@ function frame() {
           : `  ·  Sun overhead at ${fmtCoord(sun.lat, 'N', 'S')}, ${fmtCoord(sun.lon, 'E', 'W')}`) +
       dist + (liveCloudsActive() ? (de ? '  ·  Wolken live' : '  ·  Live clouds') : '') +
       (shownBody === 'earth' && cfg.fx && kpLive ? `  ·  ${de ? 'Polarlicht-Aktivität' : 'Aurora activity'} Kp ${kp.toFixed(1)}` : '') +
-      (shownBody === 'earth' && cfg.iss ? (updateNextPass(date), passText(date, de)) : '');
+      (shownBody === 'earth' && cfg.iss ? (updateNextPass(date), passText(date, de)) : '') +
+      (eclipse === 'solar' && (shownBody === 'earth' || shownBody === 'moon') ? (de ? '  ·  Sonnenfinsternis im Gange' : '  ·  Solar eclipse in progress') : '') +
+      (eclipse === 'lunar' && (shownBody === 'earth' || shownBody === 'moon') ? (de ? '  ·  Mondfinsternis im Gange' : '  ·  Lunar eclipse in progress') : '') +
+      (shownBody === 'earth' && cfg.motion === 'earth-moon'
+        ? `  ·  ${de ? 'Mond' : 'Moon'} ${Math.round(moonNow.length() * 6378.137).toLocaleString(de ? 'de-DE' : 'en-GB')} km`
+        : '');
   }
   renderer.render(scene, camera);
   if (issMode()) {
