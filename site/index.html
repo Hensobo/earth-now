@@ -669,9 +669,9 @@
   (function () {
     var frame = document.getElementById('earth');
     var wide = window.matchMedia('(min-width: 761px)').matches;
-    // The camera slowly circles the Earth (one orbit in about 8 minutes) and starts at the
-    // day/night line, so visitors see daylight, twilight and city lights. The lighting stays
-    // real. With prefers-reduced-motion it follows the sun instead, which barely moves.
+    // The camera slowly circles the Earth (one orbit in about 8 minutes). It starts 90° from the
+    // sun, so the day/night line runs right through the middle: half day, half night with city
+    // lights. The lighting stays real. With prefers-reduced-motion it follows the sun instead.
     var still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     var now = new Date();
     var sunLon = -((now.getUTCHours() + now.getUTCMinutes() / 60) - 12) * 15;
@@ -679,7 +679,7 @@
       motion: still ? 'sun' : 'orbit',
       speed: '0.75',
       lat: '22',
-      lon: String(Math.round(sunLon - 45)),
+      lon: String(Math.round(sunLon - 90)),
       zoom: wide ? '0.78' : '0.4',
       x: wide ? '0.34' : '0',
       y: wide ? '0' : '0.5',
