@@ -1098,7 +1098,7 @@ function frame() {
         (iss.inShadow ? (de ? '  ·  im Erdschatten' : '  ·  in Earth\'s shadow') : '') +
         (iss.live ? '' : (de ? '  ·  Bahndaten offline' : '  ·  offline orbit data'));
     } else
-    hud.textContent = body + (cfg.place ? cfg.place + '  ·  ' : '') +
+    hud.textContent = body + (cfg.place && shownBody !== 'sun' ? cfg.place + '  ·  ' : '') +
       date.toLocaleString(de ? 'de-DE' : 'en-GB', { dateStyle: 'medium', timeStyle: 'short' }) +
       (shownBody === 'sun' ? '' : de ? `  ·  Sonne im Zenit über ${fmtCoord(sun.lat, 'N', 'S')}, ${fmtCoord(sun.lon, 'O', 'W')}`
           : `  ·  Sun overhead at ${fmtCoord(sun.lat, 'N', 'S')}, ${fmtCoord(sun.lon, 'E', 'W')}`) +
