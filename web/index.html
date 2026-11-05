@@ -626,6 +626,25 @@ function updateIssCamera() {
   cam.lat = iss.lat; cam.lon = iss.lon; cam.fov = camera.fov;
 }
 
+// Nächster mit bloßem Auge sichtbarer Überflug über dem gewählten Ort (alle 5 min neu)
+let nextPass = null, nextPassAt = 0, nextPassKey = '';
+function updateNextPass(date) {
+  const key = `${cfg.lat.toFixed(2)},${cfg.lon.toFixed(2)}`;
+  if (!iss.ready || (key === nextPassKey && Math.abs(date - nextPassAt) < 300000)) return;
+  nextPassKey = key; nextPassAt = date.getTime();
+  nextPass = iss.nextVisiblePass(cfg.lat, cfg.lon, date, (t, out) => { const s = subsolarPoint(t); return latLonToVec(s.lat, s.lon, out); });
+}
+function passText(date, de) {
+  if (!nextPass) return '';
+  const mins = Math.round((nextPass.start - date) / 60000);
+  const when = mins <= 0 ? (de ? 'jetzt' : 'now')
+    : mins < 60 ? (de ? `in ${mins} min` : `in ${mins} min`)
+    : nextPass.start.toLocaleString(de ? 'de-DE' : 'en-GB', nextPass.start.toDateString() === date.toDateString()
+        ? { hour: '2-digit', minute: '2-digit' } : { weekday: 'short', hour: '2-digit', minute: '2-digit' });
+  return de ? `  ·  ISS sichtbar über ${cfg.place || 'deinem Ort'}: ${when}, bis ${Math.round(nextPass.maxElevation)}° hoch`
+            : `  ·  ISS visible from ${cfg.place || 'your place'}: ${when}, up to ${Math.round(nextPass.maxElevation)}° high`;
+}
+
 const _toIss = new THREE.Vector3();
 function placeIssLabel() {
   if (!iss.marker.visible) { issLabel.style.display = 'none'; return; }
@@ -884,7 +903,8 @@ function frame() {
       (de ? `  ·  Sonne im Zenit über ${fmtCoord(sun.lat, 'N', 'S')}, ${fmtCoord(sun.lon, 'O', 'W')}`
           : `  ·  Sun overhead at ${fmtCoord(sun.lat, 'N', 'S')}, ${fmtCoord(sun.lon, 'E', 'W')}`) +
       dist + (liveCloudsActive() ? (de ? '  ·  Wolken live' : '  ·  Live clouds') : '') +
-      (shownBody === 'earth' && cfg.fx && kpLive ? `  ·  ${de ? 'Polarlicht-Aktivität' : 'Aurora activity'} Kp ${kp.toFixed(1)}` : '');
+      (shownBody === 'earth' && cfg.fx && kpLive ? `  ·  ${de ? 'Polarlicht-Aktivität' : 'Aurora activity'} Kp ${kp.toFixed(1)}` : '') +
+      (shownBody === 'earth' && cfg.iss ? (updateNextPass(date), passText(date, de)) : '');
   }
   renderer.render(scene, camera);
   if (issMode()) {
