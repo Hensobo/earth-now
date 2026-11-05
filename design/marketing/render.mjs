@@ -47,20 +47,29 @@ const planetViews = [
   ['neptune', '2026-11-04T21:00:00Z', 'body=neptune&motion=sun&lat=-10&zoom=0.62&tilt=18'],
   ['uranus', '2026-11-04T21:00:00Z', 'body=uranus&motion=sun&lat=20&zoom=0.62&tilt=0'],
   ['mercury', '2026-11-04T21:00:00Z', 'body=mercury&motion=sun&lat=5&zoom=0.62&tilt=18'],
+  ['aurora', '2026-12-21T06:00:00Z', 'body=earth&motion=fixed&lat=62&lon=-95&zoom=1.3&tilt=0&kp=6&iss=0'],
+  ['jupiter-aurora', '2026-11-04T21:00:00Z', 'body=jupiter&motion=sun&lat=55&zoom=0.9&tilt=0'],
+  ['iss-chase', '2026-11-05T01:20:00Z', 'body=earth&motion=iss-chase'],
+  ['iss-above', '2026-11-05T01:05:00Z', 'body=earth&motion=iss-above'],
+  ['iss-orbit', '2026-11-05T01:05:00Z', 'body=earth&motion=fixed&lat=10&lon=80&zoom=0.62&tilt=18'],
 ];
 const portraits = { mercury: 5, venus: 5, earth: 20, moon: 5, mars: 10, jupiter: 10, saturn: -25, uranus: 40, neptune: -10 };
+
+const only = (process.argv.find((a) => a.startsWith('--only=')) || '').slice(7).split(',').filter(Boolean);
+const want = (name) => !only.length || only.includes(name);
 
 const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
 await mkdir('docs/screenshots/views', { recursive: true });
 
 if (!process.argv.includes('--mockups-only')) {
   for (const [name, time, query] of views) {
+    if (!want(name)) continue;
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 });
     await page.clock.setFixedTime(new Date(time));
-    await page.goto(`${base}/web/index.html?clouds=static&${query}`);
+    await page.goto(`${base}/web/index.html?clouds=static&iss=0&fx=0&${query}`);
     await page.waitForTimeout(14000);  // camera settles, textures load
     const png = `docs/screenshots/views/${name}.png`;
-    await page.screenshot({ path: png });
+    await page.screenshot({ path: png, timeout: 180000 });
     execFileSync('convert', [png, '-strip', '-quality', '88', png.replace('.png', '.jpg')]);
     execFileSync('rm', [png]);
     await page.close();
@@ -71,22 +80,24 @@ if (!process.argv.includes('--mockups-only')) {
 if (!process.argv.includes('--mockups-only')) {
   await mkdir('docs/screenshots/planets', { recursive: true });
   for (const [name, time, query] of planetViews) {
+    if (!want(name)) continue;
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 });
     await page.goto(`${base}/web/index.html?clouds=static&time=${time}&${query}`);
     await page.waitForTimeout(12000);
     const png = `docs/screenshots/planets/${name}.png`;
-    await page.screenshot({ path: png });
+    await page.screenshot({ path: png, timeout: 180000 });
     execFileSync('convert', [png, '-strip', '-quality', '88', png.replace('.png', '.jpg')]);
     execFileSync('rm', [png]);
     await page.close();
     console.log('planet', name);
   }
   for (const [id, lat] of Object.entries(portraits)) {
+    if (!want('portrait-' + id)) continue;
     const page = await browser.newPage({ viewport: { width: 600, height: 600 }, deviceScaleFactor: 1 });
     await page.goto(`${base}/web/index.html?body=${id}&motion=sun&lat=${lat}&zoom=${id === 'saturn' ? 0.82 : 0.86}&tilt=0&clouds=static&time=2026-11-04T21:00:00Z`);
     await page.waitForTimeout(9000);
     const png = `docs/screenshots/planets/portrait-${id}.png`;
-    await page.screenshot({ path: png });
+    await page.screenshot({ path: png, timeout: 180000 });
     execFileSync('convert', [png, '-resize', '128x128', '-strip', '-quality', '90', `web/thumbs/${id}.jpg`]);
     await page.close();
     console.log('portrait', id);
@@ -95,17 +106,19 @@ if (!process.argv.includes('--mockups-only')) {
 
 const mockups = [
   ['desktop-menu', 'scene=menu', 1440, 900],
-  ['desktop-settings', 'scene=settings&shot=settings-en-dark.png&wall=close-up.jpg', 1440, 900],
-  ['desktop-settings-display', 'scene=settings&shot=settings-en-bottom.png&wall=side-view.jpg', 1440, 900],
+  ['desktop-settings', 'scene=settings&shot=settings-en-dark.png&wall=views/close-up.jpg', 1440, 900],
+  ['desktop-settings-display', 'scene=settings&shot=settings-en-bottom.png&wall=views/side-view.jpg', 1440, 900],
+  ['desktop-planets', 'scene=settings&shot=settings-saturn-dark.png&wall=planets/saturn.jpg', 1440, 900],
   ['planets-lineup', 'scene=lineup', 1440, 520],
   ['social-preview', 'scene=social', 1280, 640],
 ];
 for (const [name, query, w, h] of mockups) {
+  if (!want(name)) continue;
   const page = await browser.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: name === 'social-preview' ? 1 : 2 });
   await page.goto(`${base}/design/marketing/mockup.html?${query}`);
   await page.waitForLoadState('networkidle');
   const png = `docs/screenshots/${name}.png`;
-  await page.screenshot({ path: png });
+  await page.screenshot({ path: png, timeout: 180000 });
   if (name !== 'social-preview') {
     execFileSync('convert', [png, '-strip', '-quality', '88', png.replace('.png', '.jpg')]);
     execFileSync('rm', [png]);

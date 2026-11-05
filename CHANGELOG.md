@@ -6,7 +6,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [2.0.0] - 2026-11-05
 
-The whole Solar System on your desktop.
+The whole Solar System – and the space station – on your desktop.
 
 ### New
 - **Every planet – and the Moon.** Pick Mercury, Venus, Earth, the Moon, Mars, Jupiter, Saturn,
@@ -21,10 +21,23 @@ The whole Solar System on your desktop.
 - **Places on other worlds:** Olympus Mons, Valles Marineris, Jezero and Gale crater on Mars; Apollo 11,
   Tycho and the far side of the Moon; Jupiter's Great Red Spot and more. The app remembers your
   place on each world.
-- The time & sun position overlay now also shows the distance from Earth.
+- **The ISS, live.** The International Space Station's real position with its orbit for the next
+  90 minutes, updated from CelesTrak twice a day and calculated every frame (SGP4).
+- **Two ISS views:** *ISS Chase* flies right behind the station with Earth's horizon ahead;
+  *Above the ISS* floats high above it as it crosses continents and oceans.
+- **When to look up:** the info line shows when the ISS will next be visible from your place with the
+  naked eye, and how high it will climb.
+- **Auroras.** Northern and southern lights on Earth's night side, sized and brightened by NOAA's
+  live geomagnetic activity (Kp index). Jupiter and Saturn show their polar auroras too.
+- **Moving storms:** Jupiter's and Saturn's cloud bands drift, the Great Red Spot turns.
+- New switches: *Show the ISS*, *Show its orbit*, *Aurora & storm animations*. Animations only run
+  while they're on screen.
+- The time & sun position overlay now also shows the distance from Earth and the aurora activity.
 
 ### Notes
 - Planet and Moon textures: Solar System Scope, CC BY 4.0 (based on NASA mission data).
+- New network requests, both only while the feature is on: `celestrak.org` (ISS orbit) and
+  `services.swpc.noaa.gov` (aurora activity). See SECURITY.md.
 - Your settings from version 1 are kept.
 
 [2.0.0]: https://github.com/Hensobo/earth-now/releases/tag/v2.0.0

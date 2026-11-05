@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Earth Now – Live Earth Wallpaper for Mac</title>
-<meta name="description" content="Earth Now turns your Mac's desktop into a live view of our planet: real sunlight and night, glowing cities and live clouds from weather satellites. Free and open source.">
+<title>Earth Now – The Live Earth, Planets &amp; ISS Wallpaper for Mac</title>
+<meta name="description" content="Earth Now turns your Mac's desktop into a live view of our planet – and, new in 2.0, of every planet, the Moon and the ISS: real sunlight, glowing cities, live clouds, auroras and the space station's real position. Free and open source.">
 <meta name="theme-color" content="#03060f">
 <link rel="canonical" href="https://hensobo.github.io/earth-now/">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Earth Now – Live Earth Wallpaper for Mac">
-<meta property="og:description" content="The real Earth, right now, as your Mac's desktop. Free and open source.">
+<meta property="og:title" content="Earth Now 2 – Live Earth, Planets &amp; ISS Wallpaper for Mac">
+<meta property="og:description" content="The real Earth – and every planet and the ISS – right now, as your Mac's desktop. Free and open source.">
 <meta property="og:url" content="https://hensobo.github.io/earth-now/">
 <meta property="og:image" content="https://hensobo.github.io/earth-now/assets/screenshots/social-preview.png">
 <meta property="og:image:width" content="1280">
@@ -185,6 +185,18 @@
   .eumetsat strong { color: var(--warm); }
   .privacy p { color: #c9d4e6; max-width: 46rem; }
 
+  .new-pill { display: flex; width: fit-content; gap: 10px; align-items: center; margin-bottom: 18px; padding: 7px 14px 7px 8px;
+    border-radius: 999px; background: rgba(255,255,255,.07); border: 1px solid var(--line); color: #c9d4e6;
+    font-size: 14px; text-decoration: none; backdrop-filter: blur(8px); }
+  .new-pill b { background: var(--accent); color: #04122b; border-radius: 999px; padding: 2px 9px; font-size: 12px; letter-spacing: .02em; }
+  .new-pill:hover { border-color: rgba(255,255,255,.25); color: var(--text); }
+  .beyond { background: radial-gradient(70% 60% at 50% 0%, rgba(120,90,200,.14), transparent 70%); border-top: 1px solid var(--line); }
+  .lineup { margin: 0 0 40px; }
+  .lineup img { border: 0; box-shadow: none; border-radius: 0; background: transparent; width: 100%; }
+  .pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 28px 0; }
+  .tag { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+    color: #04122b; background: var(--warm); border-radius: 6px; padding: 2px 7px; margin-left: 8px; vertical-align: 2px; }
+
   /* Phones: tighter rhythm, compact cards, two-column gallery */
   @media (max-width: 760px) {
     section { padding: 56px 0; }
@@ -223,6 +235,7 @@
     <a class="brand" href="#top"><img src="assets/icon/favicon.svg" alt="" width="32" height="32">Earth Now</a>
     <nav aria-label="Main">
       <a href="#features">Features</a>
+      <a href="#beyond">New in 2.0</a>
       <a href="#screenshots">Screenshots</a>
       <a href="#download">Download</a>
       <a href="#faq">FAQ</a>
@@ -239,9 +252,10 @@
     <!-- The same renderer the app uses (web/index.html). The script below sets src. -->
     <iframe id="earth" title="The Earth as it looks right now – live rendering" tabindex="-1" aria-hidden="true"></iframe>
     <div class="wrap">
+      <a class="new-pill" href="#beyond"><b>New in 2.0</b> Every planet, the Moon, the ISS &amp; auroras →</a>
       <div class="live">Live · real sunlight</div>
       <h1 id="hero-title">Earth Now <span>Live Earth Wallpaper for Mac</span></h1>
-      <p class="lead">Your desktop becomes a window onto our planet – exactly as it looks right now. Day and night in the right places, glowing cities, and live clouds from weather satellites.</p>
+      <p class="lead">Your desktop becomes a window onto our planet – exactly as it looks right now. Day and night in the right places, glowing cities, live clouds, and the space station passing by.</p>
       <div class="actions">
         <a class="btn btn-primary" href="https://github.com/Hensobo/earth-now/releases/latest/download/EarthNow.dmg">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>
@@ -303,6 +317,77 @@
     </div>
   </section>
 
+  <section id="beyond" class="beyond" aria-labelledby="b-title">
+    <div class="wrap">
+      <p class="eyebrow">New in 2.0 · Beyond Earth</p>
+      <h2 id="b-title">The whole Solar System – and the space station</h2>
+      <p class="intro">Earth Now 2.0 takes the same idea further: every world is shown exactly as it is right now, lit by the real Sun, calculated from its orbit and rotation.</p>
+      <figure class="lineup">
+        <img src="assets/screenshots/planets-lineup.jpg" width="2880" height="1040" loading="lazy"
+             alt="All planets of the Solar System and the Moon in a row: Mercury, Venus, Earth, Moon, Mars, Jupiter, Saturn, Uranus and Neptune">
+      </figure>
+      <div class="features">
+        <article class="feature">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="5"/><ellipse cx="12" cy="12" rx="10" ry="3.5" transform="rotate(-18 12 12)"/></svg>
+          <h3>Every planet &amp; the Moon</h3>
+          <p>Mercury to Neptune, plus the Moon – with real day and night, Saturn's rings and their shadows, and soft atmospheres.</p>
+        </article>
+        <article class="feature">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M15 3a9 9 0 1 0 6 15.5A7.5 7.5 0 0 1 15 3z"/></svg>
+          <h3>As seen from Earth</h3>
+          <p>See the Moon's real phase tonight with a faint earthshine, or Venus as a thin crescent when it passes between us and the Sun.</p>
+        </article>
+        <article class="feature">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M4 16c2-6 6-9 8-9s6 3 8 9"/><path d="M7 16c1.5-3.5 3.5-5 5-5s3.5 1.5 5 5"/><path d="M3 20h18"/></svg>
+          <h3>Auroras, live</h3>
+          <p>The northern and southern lights glow on Earth's night side – bigger and brighter when NOAA reports a geomagnetic storm. Jupiter and Saturn have theirs too.</p>
+        </article>
+        <article class="feature">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M3 8c3-2 6 2 9 0s6-2 9 0M3 12c3-2 6 2 9 0s6-2 9 0M3 16c3-2 6 2 9 0s6-2 9 0"/></svg>
+          <h3>Moving storms</h3>
+          <p>Jupiter's and Saturn's cloud bands drift against each other, and the Great Red Spot keeps turning.</p>
+        </article>
+        <article class="feature">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><rect x="9" y="10" width="6" height="4" rx="1"/><path d="M2 12h7M15 12h7M4 8v8M20 8v8"/></svg>
+          <h3>The ISS, live</h3>
+          <p>See where the International Space Station is right now, with its orbit for the next hour and a half.</p>
+        </article>
+        <article class="feature">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M2 18c4-5 16-5 20 0"/><path d="M12 6v6M9 9l3 3 3-3"/></svg>
+          <h3>Fly with the station</h3>
+          <p>Two new views: ride right behind the ISS with Earth's horizon ahead, or float high above it as it crosses continents and oceans.</p>
+        </article>
+        <article class="feature">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          <h3>When to look up</h3>
+          <p>Earth Now tells you when the ISS will next be visible from your place with the naked eye – and how high it will climb.</p>
+        </article>
+        <article class="feature">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-6-5.3-6-11a6 6 0 0 1 12 0c0 5.7-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/></svg>
+          <h3>Places on other worlds</h3>
+          <p>Fly to Olympus Mons, the Jezero crater where Perseverance drives, the Apollo 11 site or Jupiter's Great Red Spot.</p>
+        </article>
+      </div>
+      <div class="pair">
+        <figure><img src="assets/screenshots/planets/iss-chase.jpg" width="2880" height="1800" loading="lazy" alt="The International Space Station seen from behind, flying over the Earth with the blue horizon ahead"><figcaption><b>ISS Chase</b> – along its real orbit, right now</figcaption></figure>
+        <figure><img src="assets/screenshots/planets/iss-above.jpg" width="2880" height="1800" loading="lazy" alt="Looking down on the space station high above India at the line between day and night, with its orbit ahead"><figcaption><b>Above the ISS</b> – the station shown enlarged, its route ahead</figcaption></figure>
+      </div>
+      <div class="views">
+        <figure><img src="assets/screenshots/planets/saturn.jpg" width="2880" height="1800" loading="lazy" alt="Saturn with its rings, the planet's shadow falling across them"><figcaption><b>Saturn</b> – rings and real shadows</figcaption></figure>
+        <figure><img src="assets/screenshots/planets/mars.jpg" width="2880" height="1800" loading="lazy" alt="Mars seen from the side with Valles Marineris in daylight"><figcaption><b>Mars</b> – day and night as they are now</figcaption></figure>
+        <figure><img src="assets/screenshots/planets/aurora.jpg" width="2880" height="1800" loading="lazy" alt="The northern lights as a glowing green ring over Canada and Greenland at night"><figcaption><b>Aurora</b> – during a geomagnetic storm</figcaption></figure>
+        <figure><img src="assets/screenshots/planets/moon-crescent.jpg" width="2880" height="1800" loading="lazy" alt="A thin crescent Moon with the dark part faintly lit by earthshine"><figcaption><b>Moon</b> – tonight's real phase</figcaption></figure>
+        <figure><img src="assets/screenshots/planets/jupiter-aurora.jpg" width="2880" height="1800" loading="lazy" alt="Jupiter with its bands and a bluish aurora ring around the north pole"><figcaption><b>Jupiter</b> – drifting bands and polar aurora</figcaption></figure>
+        <figure><img src="assets/screenshots/planets/moon-horizon.jpg" width="2880" height="1800" loading="lazy" alt="A low view across the cratered surface of the Moon towards its horizon"><figcaption><b>Moon horizon</b> – craters in low sunlight</figcaption></figure>
+      </div>
+      <figure class="shot-main" style="margin-top:28px">
+        <img src="assets/screenshots/desktop-planets.jpg" width="2880" height="1800" loading="lazy"
+             alt="The settings window with the new planet picker showing Saturn, on a desktop with Saturn as the wallpaper">
+        <figcaption><b>Pick a world</b> in the settings or from the menu bar – your place on each one is remembered.</figcaption>
+      </figure>
+    </div>
+  </section>
+
   <section id="screenshots" aria-labelledby="s-title">
     <div class="wrap">
       <p class="eyebrow">Screenshots</p>
@@ -341,6 +426,8 @@
         <li>Earth surface from NASA's <em>Blue Marble</em>, city lights from NASA's <em>Black Marble</em></li>
         <li>Sun position from the Astronomical Almanac formulas – no network needed</li>
         <li>Live clouds from EUMETSAT and other weather satellites via live-cloud-maps</li>
+        <li>Planet positions from JPL's orbital elements, rotation from the IAU models, textures from Solar System Scope</li>
+        <li>ISS orbit from CelesTrak, propagated with SGP4 – aurora activity from NOAA's space weather service</li>
         <li>No account, no tracking, no ads – free and open source under the MIT License</li>
       </ul>
     </div>
@@ -420,6 +507,22 @@
         <p>Not yet. Publishing on the App Store (and having the app notarized so macOS no longer asks on first start) requires a paid Apple developer membership. For now, Earth Now is distributed for free right here, built in public from its open source code.</p>
       </details>
       <details>
+        <summary>Is version 2.0 free too?</summary>
+        <p>Yes. The planets, the Moon, the ISS and the auroras are a free update for everyone. Your settings from version 1 are kept.</p>
+      </details>
+      <details>
+        <summary>How exact is the ISS position?</summary>
+        <p>Within a few kilometres. Earth Now loads the station's latest orbit from CelesTrak twice a day and calculates its position every frame with the same method (SGP4) that tracking stations use. Without internet it uses the orbit that came with the app, which slowly gets less exact over the weeks.</p>
+      </details>
+      <details>
+        <summary>Is the ISS really that big?</summary>
+        <p>In the <em>ISS Chase</em> view it's true to scale – you're about 250 metres behind it. In <em>Above the ISS</em> the camera is 2,500 km up, so the station is shown much larger than it is; otherwise it would be a single pixel.</p>
+      </details>
+      <details>
+        <summary>Can I turn the animations off?</summary>
+        <p>Yes: switch off <b>Aurora &amp; storm animations</b> and the ISS in the settings. Animations only run while you can actually see them, at a few frames per second.</p>
+      </details>
+      <details>
         <summary>Is it really free? What's the catch?</summary>
         <p>No catch. Earth Now is a free, open-source hobby project under the MIT License. No ads, no accounts, no tracking. The code is on <a href="https://github.com/Hensobo/earth-now">GitHub</a>.</p>
       </details>
@@ -434,15 +537,15 @@
     <div class="wrap">
       <p class="eyebrow">Privacy</p>
       <h2 id="p-title">Your data stays yours</h2>
-      <p><b>The app</b> collects no data. There are no analytics, no accounts and no update checks in the background. It connects to the internet for exactly two things: downloading the cloud map from <code>clouds.matteason.co.uk</code> every few hours, and – only when you search for a place – sending your search text to Apple Maps. Like any web request, these servers see your IP address.</p>
-      <p><b>This website</b> uses no cookies, no trackers and no external fonts. It is hosted on GitHub Pages; GitHub may log your IP address for security reasons (see <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">GitHub's privacy statement</a>). The live Earth at the top of this page loads its cloud map from <code>clouds.matteason.co.uk</code>.</p>
+      <p><b>The app</b> collects no data. There are no analytics, no accounts and no update checks in the background. It only downloads public data: the cloud map from <code>clouds.matteason.co.uk</code> (every three hours), the ISS orbit from <code>celestrak.org</code> (twice a day, while the ISS is shown) and the aurora activity from <code>services.swpc.noaa.gov</code> (every three hours, while auroras are on). When you search for a place, your search text goes to Apple Maps. Like any web request, these servers see your IP address – nothing else is sent.</p>
+      <p><b>This website</b> uses no cookies, no trackers and no external fonts. It is hosted on GitHub Pages; GitHub may log your IP address for security reasons (see <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">GitHub's privacy statement</a>). The live Earth at the top of this page loads its cloud map from <code>clouds.matteason.co.uk</code>, the ISS orbit from <code>celestrak.org</code> and the aurora activity from <code>services.swpc.noaa.gov</code>.</p>
     </div>
   </section>
 
   <section id="credits" class="credits" aria-labelledby="c-title">
     <div class="wrap">
       <p class="eyebrow">Credits &amp; licenses</p>
-      <h2 id="c-title">Made with data from NASA and EUMETSAT</h2>
+      <h2 id="c-title">Made with data from NASA, EUMETSAT, NOAA and others</h2>
       <p class="intro">Earth Now is built on the work of others. Thank you!</p>
       <div style="overflow-x:auto">
         <table>
@@ -469,6 +572,26 @@
               <td><strong>Contains modified EUMETSAT data</strong> (<a href="https://www.eumetsat.int/eumetsat-data-licensing">EUMETSAT data licensing</a>)</td>
             </tr>
             <tr>
+              <td>Planets &amp; Moon</td>
+              <td><a href="https://www.solarsystemscope.com/textures/">Solar System Scope</a>, based on NASA mission data</td>
+              <td><a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a> – resized</td>
+            </tr>
+            <tr>
+              <td>Planet positions</td>
+              <td>JPL Keplerian elements (E. M. Standish), IAU WGCCRE rotation models, Astronomical Almanac</td>
+              <td>Published formulas</td>
+            </tr>
+            <tr>
+              <td>ISS orbit</td>
+              <td><a href="https://celestrak.org">CelesTrak</a> (T. S. Kelso), propagated with <a href="https://github.com/shashwatak/satellite-js">satellite.js</a></td>
+              <td>Public data · satellite.js: MIT License</td>
+            </tr>
+            <tr>
+              <td>Aurora activity</td>
+              <td>NOAA Space Weather Prediction Center, planetary K-index</td>
+              <td>Public domain (US government work)</td>
+            </tr>
+            <tr>
               <td>3D rendering</td>
               <td><a href="https://threejs.org">three.js</a> 0.160.0</td>
               <td>MIT License</td>
@@ -485,7 +608,7 @@
   <div class="wrap">
     <p>© 2026 Henning Sobota · Earth Now is open source under the <a href="https://github.com/Hensobo/earth-now/blob/main/LICENSE">MIT License</a>.<br>
       Earth imagery: NASA Earth Observatory · Live clouds: contains modified EUMETSAT data.<br>
-      Not affiliated with, endorsed or sponsored by NASA, EUMETSAT or Apple. Mac and macOS are trademarks of Apple Inc.</p>
+      Not affiliated with, endorsed or sponsored by NASA, EUMETSAT, NOAA or Apple. Mac and macOS are trademarks of Apple Inc.</p>
     <nav aria-label="Footer">
       <a href="https://github.com/Hensobo/earth-now">GitHub</a>
       <a href="https://github.com/Hensobo/earth-now/releases">Releases</a>
@@ -517,7 +640,9 @@
       y: wide ? '0' : '0.5',
       tilt: '18',
       fps: '30',
-      hud: '0'
+      hud: '0',
+      iss: '1',
+      issPath: '1'
     });
     // Fade in once loaded – after 4 s at the latest, in case the cloud server is slow
     // (the still image underneath bridges the gap).
