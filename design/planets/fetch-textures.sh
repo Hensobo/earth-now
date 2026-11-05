@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Downloads the planet and Moon textures from Solar System Scope (CC BY 4.0,
+# Downloads the planet and Moon textures, and the current ISS orbit (CelesTrak), from Solar System Scope (CC BY 4.0,
 # https://www.solarsystemscope.com/textures/) and stores web-sized copies in
 # web/textures/planets/. Run by .github/workflows/textures.yml; works locally too.
 #
@@ -39,3 +39,12 @@ EOF
 
 rm -rf build/textures
 ls -la "$OUT"
+
+# Fallback orbit of the ISS (used when CelesTrak can't be reached). Refreshed by CI.
+mkdir -p web/data
+if curl -fsSL --retry 3 "https://celestrak.org/NORAD/elements/gp.php?CATNR=25544&FORMAT=TLE" -o web/data/iss.tle.tmp \
+   && grep -q '^1 25544' web/data/iss.tle.tmp; then
+  mv web/data/iss.tle.tmp web/data/iss.tle; cat web/data/iss.tle
+else
+  rm -f web/data/iss.tle.tmp; echo "Could not refresh the ISS orbit"
+fi
