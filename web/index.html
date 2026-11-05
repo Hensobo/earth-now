@@ -853,6 +853,7 @@ function bodyTex(file, srgb = true) {
 
 // Zeigt den gewählten Körper. Texturen anderer Planeten werden freigegeben (Grafikspeicher).
 let shownBody = null;
+let litFromEarth = 1;   // beleuchteter Anteil, von der Erde aus gesehen (für „Von der Erde aus“)
 function applyBody() {
   const id = BODIES[cfg.body] ? cfg.body : 'earth';
   if (id === shownBody) return;
@@ -1066,6 +1067,17 @@ function frame() {
   if (issWanted()) iss.update(date, sunDir, sec);
   applyISS();
   updateCamera(Math.min(dt, 2), st);
+  // „Von der Erde aus“ kurz vor/nach der unteren Konjunktion: fast nur die Nachtseite ist zu sehen.
+  // Dann die Silhouette schwach aufhellen, damit der Bildschirm nicht einfach schwarz wirkt.
+  litFromEarth = 1;
+  if (cfg.motion === 'earth' && st.earth && shownBody !== 'earth' && shownBody !== 'sun') {
+    const e = latLonToVec(st.earth.lat, st.earth.lon, new THREE.Vector3());
+    litFromEarth = (1 + e.dot(sunDir)) / 2;
+  }
+  if (planet.visible && BODIES[shownBody]?.ambient) {
+    const boost = litFromEarth < 0.06 && shownBody !== 'moon' ? 0.012 : 0;
+    planetMat.uniforms.ambient.value.setRGB(...BODIES[shownBody].ambient.map((a) => a + boost));
+  }
   auroraLayers.forEach((l) => { l.material.uniforms.time.value = sec; });
   if (sunMesh.visible) { sunMesh.quaternion.copy(camera.quaternion); sunMat.uniforms.time.value = sec; }
   planetMat.uniforms.flowTime.value = sec / 24;  // eine Strömungsphase dauert 24 s
@@ -1090,7 +1102,9 @@ function frame() {
       date.toLocaleString(de ? 'de-DE' : 'en-GB', { dateStyle: 'medium', timeStyle: 'short' }) +
       (shownBody === 'sun' ? '' : de ? `  ·  Sonne im Zenit über ${fmtCoord(sun.lat, 'N', 'S')}, ${fmtCoord(sun.lon, 'O', 'W')}`
           : `  ·  Sun overhead at ${fmtCoord(sun.lat, 'N', 'S')}, ${fmtCoord(sun.lon, 'E', 'W')}`) +
-      dist + (liveCloudsActive() ? (de ? '  ·  Wolken live' : '  ·  Live clouds') : '') +
+      dist + (litFromEarth < 0.06 ? (de ? `  ·  steht fast genau zwischen Erde und Sonne – wir sehen die Nachtseite (${(litFromEarth * 100).toFixed(1).replace('.', ',')} % beleuchtet)`
+                                          : `  ·  almost exactly between Earth and Sun – we see its night side (${(litFromEarth * 100).toFixed(1)} % lit)`) : '') +
+      (liveCloudsActive() ? (de ? '  ·  Wolken live' : '  ·  Live clouds') : '') +
       (shownBody === 'earth' && cfg.fx && kpLive ? `  ·  ${de ? 'Polarlicht-Aktivität' : 'Aurora activity'} Kp ${kp.toFixed(1)}` : '') +
       (shownBody === 'earth' && cfg.iss ? (updateNextPass(date), passText(date, de)) : '') +
       (eclipse === 'solar' && (shownBody === 'earth' || shownBody === 'moon') ? (de ? '  ·  Sonnenfinsternis im Gange' : '  ·  Solar eclipse in progress') : '') +
