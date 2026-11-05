@@ -198,6 +198,7 @@
   .lineup { margin: 0 0 40px; }
   .lineup img { border: 0; box-shadow: none; border-radius: 0; background: transparent; width: 100%; }
   .pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 28px 0; }
+  .pair-3 { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
   .tag { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
     color: #04122b; background: var(--warm); border-radius: 6px; padding: 2px 7px; margin-left: 8px; vertical-align: 2px; }
 
@@ -387,7 +388,8 @@
           <p>Fly to Olympus Mons, the Jezero crater where Perseverance drives, the Apollo 11 site or Jupiter's Great Red Spot.</p>
         </article>
       </div>
-      <div class="pair">
+      <div class="pair pair-3">
+        <figure><img src="assets/screenshots/planets/iss-orbit.jpg" width="2880" height="1800" loading="lazy" alt="The Earth with the space station's live position marked and its orbit for the next 90 minutes drawn around the globe"><figcaption><b>ISS, live</b> – where it is now and where it's going</figcaption></figure>
         <figure><img src="assets/screenshots/planets/iss-chase.jpg" width="2880" height="1800" loading="lazy" alt="The International Space Station seen from behind, flying over the Earth with the blue horizon ahead"><figcaption><b>ISS Chase</b> – along its real orbit, right now</figcaption></figure>
         <figure><img src="assets/screenshots/planets/iss-above.jpg" width="2880" height="1800" loading="lazy" alt="Looking down on the space station high above India at the line between day and night, with its orbit ahead"><figcaption><b>Above the ISS</b> – the station shown enlarged, its route ahead</figcaption></figure>
       </div>
@@ -469,7 +471,7 @@
           <a class="btn btn-ghost" href="https://github.com/Hensobo/earth-now/releases">All releases &amp; release notes</a>
         </div>
         <div class="reqs">
-          <span>macOS 13 Ventura or later</span><span>Apple Silicon &amp; Intel</span><span>about 15 MB</span><span>English &amp; German</span>
+          <span>macOS 13 Ventura or later</span><span>Apple Silicon &amp; Intel</span><span>about 30 MB</span><span>English &amp; German</span>
         </div>
         <p class="windows-note" id="windows">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 5.5l7.5-1v7H3zM11.5 4.3L21 3v8.5h-9.5zM3 12.5h7.5v7L3 18.5zM11.5 12.5H21V21l-9.5-1.3z"/></svg>
@@ -686,8 +688,9 @@
       tilt: '18',
       fps: '30',
       hud: '0',
-      iss: '1',
-      issPath: '1'
+      iss: '0',        // the hero shows just the Earth – the ISS has its own screenshots below
+      issPath: '0',
+      fx: '0'
     });
     // Fade in once loaded – after 4 s at the latest, in case the cloud server is slow
     // (the still image underneath bridges the gap).
