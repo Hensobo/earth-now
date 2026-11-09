@@ -66,7 +66,17 @@ for (const [k, v] of P) {
 const DEG = Math.PI / 180;
 const startReal = Date.now();
 const startSim = Date.parse(P.get('time') || window.__startTime || '') || startReal;
-const now = () => new Date(startSim + (Date.now() - startReal) * cfg.warp);
+const now = () => capture ? new Date(capture.time) : new Date(startSim + (Date.now() - startReal) * cfg.warp);
+// Capture-only hook for the launch videos (design/launch/capture.mjs). Only active with ?capture=1;
+// the app never sets it. Then nothing renders on its own: each frame is drawn by __captureFrame
+// with an exact simulation time and an exact camera (no smoothing).
+let capture = null;
+window.__captureFrame = P.has('capture') ? (time, sec, view) => {
+  capture = { time, sec };
+  Object.assign(cfg, view);
+  Object.assign(cam, view);
+  frame();
+} : undefined;
 
 // --- Sonnenstand (Subsolarpunkt): planets.js, Genauigkeit ~0.01° ---
 const subsolarPoint = subsolarOfDate;
@@ -949,7 +959,7 @@ function updateCamera(dt, st) {
   if (issMode()) { settling = false; return updateIssCamera(); }
   if (shownBody === 'earth' && cfg.motion === 'earth-moon') { settling = false; return updateEarthMoonCamera(); }
   if (camera.near !== 0.1 || camera.far !== 1000) { camera.near = 0.1; camera.far = 1000; camera.updateProjectionMatrix(); }
-  const k = 1 - Math.exp(-dt * 1.6);
+  const k = capture ? 1 : 1 - Math.exp(-dt * 1.6);
   const target = { ...cfg, lat: targetLat(st), zoom: cfg.zoom * bodyFit() };
   for (const key of ['lat', 'zoom', 'pitch', 'heading', 'tilt', 'fov', 'x', 'y']) {
     cam[key] += (target[key] - cam[key]) * k;
@@ -1053,7 +1063,7 @@ function schedule(delayMs) {
 function frame() {
   rafPending = false;
   if (paused) return;
-  const sec = performance.now() / 1000;
+  const sec = capture ? capture.sec : performance.now() / 1000;
   const dt = sec - lastSec;
   lastSec = sec;
   orbitLon += cfg.speed * dt;
@@ -1126,11 +1136,11 @@ function frame() {
   const fps = desiredFps();
   const next = Math.max(0, 1000 / fps - (performance.now() - sec * 1000) - 4);
   lastRender = sec;
-  schedule(fps >= cfg.fps ? 0 : next);
+  if (!capture) schedule(fps >= cfg.fps ? 0 : next);
 }
 
 applyBody();
-requestRender();
+if (!P.has('capture')) requestRender();
 
 addEventListener('resize', () => {
   camera.aspect = innerWidth / innerHeight;

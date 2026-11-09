@@ -5,3 +5,4 @@ dist/
 .claude/
 .DS_Store
 build/
+design/launch/out/
