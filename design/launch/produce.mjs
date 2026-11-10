@@ -9,7 +9,7 @@
 import { mkdir, readdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
-import { openRenderer, getBrowser, baseUrl, done, sample } from './capture.mjs';
+import { openRenderer, getBrowser, baseUrl, done, smoothSample } from './capture.mjs';
 
 const args = process.argv.slice(2);
 const want = (k) => args.includes(k) || !args.some((a) => !a.startsWith('--'));
@@ -27,39 +27,35 @@ const V = (v) => ({ pitch: 0, heading: 0, tilt: 0, fov: 30, x: 0, y: 0, ...v });
 // --- Camera paths --------------------------------------------------------------
 const storyKeys = [
   { t: 0.0, view: V({ lat: 49, lon: -3, zoom: 1.05, heading: 90, tilt: -8, y: -0.62 }) },
-  { t: 3.0, view: V({ lat: 46, lon: 9, zoom: 1.35, pitch: 12, heading: 92, tilt: -4, y: -0.44 }), ease: 'linear' },
-  // THE REVEAL: tip toward the eastern horizon (dawn glow over the city lights), then fly across
-  // the sunrise line into daylight
-  { t: 4.6, view: V({ lat: 38, lon: 12, zoom: 4.0, pitch: 66, heading: 92, fov: 50, y: 0.1 }), ease: 'inOut' },
-  { t: 5.2, view: V({ lat: 37.5, lon: 15, zoom: 4.0, pitch: 66, heading: 93, fov: 50, y: 0.1 }), ease: 'linear' },
-  { t: 7.0, view: V({ lat: 33, lon: 63, zoom: 3.8, pitch: 64, heading: 100, fov: 48, y: 0.02 }), ease: 'inOut' },
-  { t: 7.75, view: V({ lat: 32, lon: 67, zoom: 3.8, pitch: 64, heading: 100, fov: 48, y: 0.02 }), ease: 'linear' },
-  { t: 8.55, view: V({ lat: 28, lon: 78, zoom: 2.3, pitch: 18, heading: 10, fov: 32, y: -0.12 }), ease: 'inOut' },
-  { t: 9.1, view: V({ lat: 27, lon: 80, zoom: 2.25, pitch: 18, heading: 10, fov: 32, y: -0.12 }), ease: 'linear' },
-  { t: 9.65, view: V({ lat: 18, lon: 72, zoom: 0.5, tilt: 14, y: 0.04 }), ease: 'inOut' },
-  { t: 10.3, view: V({ lat: 18, lon: 69, zoom: 0.5, tilt: 14, y: 0.04 }), ease: 'linear' },
-  { t: 11.0, view: V({ lat: 22, lon: 60, zoom: 0.95, tilt: 18, x: 0.55, y: 0.05 }), ease: 'inOut' },
-  { t: 12.4, view: V({ lat: 22, lon: 56, zoom: 0.95, tilt: 18, x: 0.55, y: 0.05 }), ease: 'linear' },
-  // CTA: half day, half night (sunrise line through the middle), drifting slowly
-  { t: 13.4, view: V({ lat: 18, lon: 47, zoom: 0.42, tilt: 16, y: 0.12 }), ease: 'inOut' },
-  { t: 15.0, view: V({ lat: 18, lon: 44, zoom: 0.42, tilt: 16, y: 0.12 }), ease: 'linear' },
+  { t: 2.8, view: V({ lat: 46, lon: 8, zoom: 1.3, pitch: 10, heading: 92, tilt: -4, y: -0.44 }), ease: 'linear' },
+  // THE REVEAL: tip toward the eastern horizon (dawn glow over the city lights) ...
+  { t: 5.2, view: V({ lat: 38, lon: 14, zoom: 4.0, pitch: 66, heading: 92, fov: 50, y: 0.1 }), ease: 'sine' },
+  // ... then glide slowly across the sunrise line (≈ 43° E) into the morning light
+  { t: 8.4, view: V({ lat: 34, lon: 46, zoom: 4.0, pitch: 66, heading: 96, fov: 50, y: 0.1 }), ease: 'sine' },
+  { t: 9.0, view: V({ lat: 33.7, lon: 48, zoom: 4.0, pitch: 66, heading: 96, fov: 50, y: 0.1 }), ease: 'linear' },
+  // YOUR PERSPECTIVE: same place, the camera rises from the horizon to a close-up, then pulls back
+  { t: 10.2, view: V({ lat: 31, lon: 51, zoom: 2.4, pitch: 20, heading: 40, fov: 34, y: -0.1 }), ease: 'sine' },
+  { t: 10.7, view: V({ lat: 30.6, lon: 52, zoom: 2.35, pitch: 18, heading: 38, fov: 34, y: -0.1 }), ease: 'linear' },
+  { t: 11.9, view: V({ lat: 22, lon: 50, zoom: 0.5, tilt: 14, y: 0.04 }), ease: 'sine' },
+  // behind the settings card: settle into the closing frame (half day, half night)
+  { t: 12.4, view: V({ lat: 21.5, lon: 49.5, zoom: 0.49, tilt: 14, y: 0.05 }), ease: 'linear' },
+  { t: 14.4, view: V({ lat: 18, lon: 47, zoom: 0.42, tilt: 16, y: 0.12 }), ease: 'sine' },
+  { t: 16.0, view: V({ lat: 18, lon: 45, zoom: 0.42, tilt: 16, y: 0.12 }), ease: 'linear' },
 ];
 
 const landKeys = [
   { t: 0.0, view: V({ lat: 49, lon: -4, zoom: 1.0, heading: 90, tilt: -6, y: 0.1 }) },
-  { t: 3.0, view: V({ lat: 46, lon: 8, zoom: 1.25, pitch: 12, heading: 92, tilt: -3, y: 0.08 }), ease: 'linear' },
-  { t: 4.6, view: V({ lat: 38, lon: 12, zoom: 4.0, pitch: 66, heading: 92, fov: 50, y: 0.15 }), ease: 'inOut' },
-  { t: 5.2, view: V({ lat: 37.5, lon: 15, zoom: 4.0, pitch: 66, heading: 93, fov: 50, y: 0.15 }), ease: 'linear' },
-  { t: 7.0, view: V({ lat: 33, lon: 63, zoom: 3.6, pitch: 66, heading: 100, fov: 46, y: 0.12 }), ease: 'inOut' },
+  { t: 2.8, view: V({ lat: 46, lon: 7, zoom: 1.22, pitch: 10, heading: 92, tilt: -3, y: 0.08 }), ease: 'linear' },
+  { t: 5.2, view: V({ lat: 38, lon: 14, zoom: 4.0, pitch: 66, heading: 92, fov: 50, y: 0.15 }), ease: 'sine' },
+  { t: 8.4, view: V({ lat: 34, lon: 46, zoom: 4.0, pitch: 66, heading: 96, fov: 50, y: 0.15 }), ease: 'sine' },
+  { t: 8.9, view: V({ lat: 33.7, lon: 48, zoom: 4.0, pitch: 66, heading: 96, fov: 50, y: 0.15 }), ease: 'linear' },
   // desktop segment: the app's “Side View” preset (Earth on the right) as the wallpaper
-  { t: 8.4, view: V({ lat: 25, lon: 70, zoom: 1.25, tilt: 20, x: 0.55 }), ease: 'inOut' },
-  { t: 12.0, view: V({ lat: 25, lon: 61, zoom: 1.25, tilt: 20, x: 0.55 }), ease: 'linear' },
-  { t: 12.9, view: V({ lat: 18, lon: 60, zoom: 0.62, tilt: 18 }), ease: 'inOut' },
-  { t: 13.9, view: V({ lat: 18, lon: 57, zoom: 0.62, tilt: 18 }), ease: 'linear' },
-  { t: 14.6, view: V({ lat: 24, lon: 52, zoom: 1.25, tilt: 20, x: 0.55 }), ease: 'inOut' },
-  { t: 15.2, view: V({ lat: 24, lon: 50, zoom: 1.25, tilt: 20, x: 0.55 }), ease: 'linear' },
-  { t: 16.2, view: V({ lat: 18, lon: 46, zoom: 0.78, tilt: 16, x: 0.4 }), ease: 'inOut' },
-  { t: 18.0, view: V({ lat: 18, lon: 42, zoom: 0.78, tilt: 16, x: 0.4 }), ease: 'linear' },
+  { t: 10.6, view: V({ lat: 25, lon: 62, zoom: 1.25, tilt: 20, x: 0.55 }), ease: 'sine' },
+  { t: 14.0, view: V({ lat: 25, lon: 56, zoom: 1.25, tilt: 20, x: 0.55 }), ease: 'linear' },
+  { t: 15.4, view: V({ lat: 18, lon: 52, zoom: 0.62, tilt: 18 }), ease: 'sine' },
+  { t: 16.0, view: V({ lat: 18, lon: 51, zoom: 0.62, tilt: 18 }), ease: 'linear' },
+  { t: 17.3, view: V({ lat: 18, lon: 47, zoom: 0.78, tilt: 16, x: 0.4 }), ease: 'sine' },
+  { t: 20.0, view: V({ lat: 18, lon: 43, zoom: 0.78, tilt: 16, x: 0.4 }), ease: 'linear' },
 ];
 
 // --- Helpers ---------------------------------------------------------------------
@@ -73,7 +69,7 @@ async function renderEarth(name, keys, seconds, w, h, scale) {
     const path = `${dir}/${String(i).padStart(4, '0')}.png`;
     if (existsSync(path)) continue;
     const t = i / FPS;
-    await r.frame(iso(T0 + t * 1000), t, sample(keys, t), path);
+    await r.frame(iso(T0 + t * 1000), t, smoothSample(keys, t), path);
     if (i % 60 === 0) console.log(name, 'earth', i, '/', n, `${((Date.now() - t0) / 1000).toFixed(0)} s`);
   }
   await r.close();
@@ -104,10 +100,10 @@ function encode(name, outFile) {
   console.log('wrote', outFile);
 }
 
-// --- 1. Instagram story video ---------------------------------------------------
+// --- 1. Instagram story video (16 s) ---------------------------------------------------
 if (want('story')) {
   const [w, h, s] = preview ? [540, 960, 1] : [1080, 1920, 2];
-  const n = await renderEarth(preview ? 'story-prev' : 'story', storyKeys, 15, w, h, s);
+  const n = await renderEarth(preview ? 'story-prev' : 'story', storyKeys, 16, w, h, s);
   await composite(preview ? 'story-prev' : 'story', 'story', n, 1080, 1920);
   encode(preview ? 'story-prev' : 'story', preview ? `${B}/story-preview.mp4` : `${OUT}/earth-now-story-demo-1080x1920.mp4`);
 }
@@ -115,7 +111,7 @@ if (want('story')) {
 // --- 4. Landscape demo -------------------------------------------------------------
 if (want('landscape')) {
   const L = preview ? 'landscape-prev' : 'landscape';
-  const n = await renderEarth(L, landKeys, 18, preview ? 960 : 1920, preview ? 540 : 1080, preview ? 1 : 1.5);
+  const n = await renderEarth(L, landKeys, 20, preview ? 960 : 1920, preview ? 540 : 1080, preview ? 1 : 1.5);
   await composite(L, 'landscape', n, 1920, 1080);
   encode(L, preview ? `${B}/landscape-preview.mp4` : `${OUT}/earth-now-demo-landscape-1920x1080.mp4`);
 }

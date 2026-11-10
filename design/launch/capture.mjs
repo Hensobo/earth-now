@@ -78,10 +78,28 @@ export function sample(keys, t) {
       const out = {};
       for (const k of new Set([...Object.keys(a.view), ...Object.keys(b.view)])) {
         const va = a.view[k] ?? b.view[k], vb = b.view[k] ?? a.view[k];
-        out[k] = typeof va === 'number' ? va + (vb - va) * u : vb;
+        // zoom in log space: a pull-back or push-in then feels equally fast all the way
+        out[k] = typeof va !== 'number' ? vb
+          : k === 'zoom' ? Math.exp(Math.log(va) + (Math.log(vb) - Math.log(va)) * u)
+          : va + (vb - va) * u;
       }
       return out;
     }
   }
   return { ...keys.at(-1).view };
+}
+
+// Keyframes plus a Gaussian blur over time (sigma in seconds): removes every kink where one
+// camera move hands over to the next, so speeds always change gradually.
+export function smoothSample(keys, t, sigma = 0.18) {
+  const end = keys.at(-1).t, acc = {}, n = 12;
+  let wsum = 0;
+  for (let i = -n; i <= n; i++) {
+    const dt = (i / n) * 2.5 * sigma, w = Math.exp(-0.5 * (dt / sigma) ** 2);
+    const v = sample(keys, Math.max(0, Math.min(end, t + dt)));
+    for (const [k, x] of Object.entries(v)) if (typeof x === 'number') acc[k] = (acc[k] || 0) + (k === 'zoom' ? Math.log(x) : x) * w;
+    wsum += w;
+  }
+  for (const k in acc) acc[k] = k === 'zoom' ? Math.exp(acc[k] / wsum) : acc[k] / wsum;
+  return acc;
 }

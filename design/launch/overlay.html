@@ -19,7 +19,7 @@
   .title { font-family: "Inter Display", "Inter", sans-serif; font-weight: 700; letter-spacing: .22em;
     text-indent: .22em; text-align: center; text-shadow: 0 2px 30px rgba(0,0,0,.55); }
   .line { font-family: "Inter Display", "Inter", sans-serif; font-weight: 600; letter-spacing: -.01em;
-    text-align: center; text-shadow: 0 2px 24px rgba(0,0,0,.6); }
+    text-align: center; text-shadow: 0 2px 24px rgba(0,0,0,.7), 0 0 8px rgba(0,0,0,.55); }
   .soft { color: #cfdcef; font-weight: 500; }
   .pill { display: inline-block; padding: .38em 1em; border-radius: 999px; font-weight: 600; letter-spacing: .04em;
     background: rgba(12,16,26,.55); border: 1px solid rgba(255,255,255,.18); backdrop-filter: blur(8px); }
@@ -75,28 +75,26 @@ function buildStory() {
 
 function story(t) {
   const o = (id, v, dy = 0) => { el[id].style.opacity = v; el[id].style.transform = `translateY(${dy}px)`; };
-  stage.style.opacity = smooth(t / 0.5) * (1 - smooth((t - 14.75) / 0.25) * 0);  // fade in from black
-  o('t1', win(t, 0.35, 1.1, 2.55, 3.0), rise(t, 0.35, 1.2, 24));
-  o('t1s', win(t, 0.9, 1.6, 2.5, 2.95), rise(t, 0.9, 1.7, 18));
-  o('r1', win(t, 3.6, 4.3, 6.55, 7.0), rise(t, 3.6, 4.4, 26));
-  o('r2', win(t, 4.3, 5.0, 6.55, 7.0), rise(t, 4.3, 5.1, 22));
-  o('p1', win(t, 7.15, 7.6, 9.6, 10.0), rise(t, 7.15, 7.7, 20));
-  o('p2', win(t, 7.9, 8.35, 9.6, 10.0), rise(t, 7.9, 8.45, 20));
-  o('p3', win(t, 8.7, 9.15, 9.6, 10.0), rise(t, 8.7, 9.25, 20));
-  o('v1', win(t, 7.1, 7.35, 7.75, 7.95));
-  o('v2', win(t, 8.45, 8.6, 9.0, 9.2));
-  o('v3', win(t, 9.55, 9.7, 9.95, 10.1));
-  const cust = win(t, 10.0, 10.45, 12.25, 12.75);
+  stage.style.opacity = smooth(t / 0.5);  // fade in from black
+  o('t1', win(t, 0.35, 1.1, 2.3, 2.9), rise(t, 0.35, 1.2, 24));
+  o('t1s', win(t, 0.9, 1.6, 2.25, 2.85), rise(t, 0.9, 1.7, 18));
+  o('r1', win(t, 3.4, 4.2, 7.6, 8.2), rise(t, 3.4, 4.3, 26));
+  o('r2', win(t, 4.2, 5.0, 7.6, 8.2), rise(t, 4.2, 5.1, 22));
+  o('p1', win(t, 8.5, 9.0, 11.9, 12.3), rise(t, 8.5, 9.1, 20));
+  o('p2', win(t, 9.5, 10.0, 11.9, 12.3), rise(t, 9.5, 10.1, 20));
+  o('p3', win(t, 10.6, 11.1, 11.9, 12.3), rise(t, 10.6, 11.2, 20));
+  o('v1', win(t, 8.4, 8.7, 9.0, 9.35));
+  o('v2', win(t, 10.0, 10.3, 10.7, 11.0));
+  o('v3', win(t, 11.6, 11.85, 12.1, 12.35));
+  const cust = win(t, 12.2, 12.7, 13.7, 14.2);
   earth.style.filter = cust > 0.001 ? `blur(${cust * 16}px) brightness(${1 - cust * 0.55})` : 'none';
-  o('c0', cust, rise(t, 10.0, 10.5, 16));
-  o('c0s', cust, rise(t, 10.1, 10.6, 16));
-  const card = win(t, 10.15, 10.65, 12.2, 12.6);
-  const swap = smooth((t - 11.25) / 0.35);
-  o('c1', card * (1 - swap), rise(t, 10.15, 10.75, 70));
-  o('c2', card * swap, rise(t, 10.15, 10.75, 70));
-  o('e1', win(t, 12.85, 13.5, 99, 100), rise(t, 12.85, 13.6, 24));
-  o('e2', win(t, 13.3, 13.95, 99, 100), rise(t, 13.3, 14.05, 18));
-  o('e3', win(t, 13.55, 14.2, 99, 100), rise(t, 13.55, 14.3, 14));
+  o('c0', cust, rise(t, 12.2, 12.7, 16));
+  o('c0s', cust, rise(t, 12.3, 12.8, 16));
+  o('c1', win(t, 12.3, 12.85, 13.6, 14.05), rise(t, 12.3, 12.95, 70));
+  o('c2', 0);
+  o('e1', win(t, 14.0, 14.6, 99, 100), rise(t, 14.0, 14.7, 24));
+  o('e2', win(t, 14.4, 15.0, 99, 100), rise(t, 14.4, 15.1, 18));
+  o('e3', win(t, 14.65, 15.25, 99, 100), rise(t, 14.65, 15.35, 14));
 }
 
 // --- Landscape ---------------------------------------------------------------
@@ -129,30 +127,30 @@ function buildLandscape() {
 function landscape(t) {
   const o = (id, v, dy = 0) => { el[id].style.opacity = v; el[id].style.transform = `translateY(${dy}px)`; };
   stage.style.opacity = smooth(t / 0.5);
-  o('t1', win(t, 0.35, 1.1, 2.55, 3.0), rise(t, 0.35, 1.2, 22));
-  o('t1s', win(t, 0.9, 1.6, 2.5, 2.95), rise(t, 0.9, 1.7, 16));
-  o('r1', win(t, 3.6, 4.3, 6.55, 7.0), rise(t, 3.6, 4.4, 24));
-  o('r2', win(t, 4.3, 5.0, 6.55, 7.0), rise(t, 4.3, 5.1, 20));
+  o('t1', win(t, 0.35, 1.1, 2.3, 2.9), rise(t, 0.35, 1.2, 22));
+  o('t1s', win(t, 0.9, 1.6, 2.25, 2.85), rise(t, 0.9, 1.7, 16));
+  o('r1', win(t, 3.4, 4.2, 7.6, 8.2), rise(t, 3.4, 4.3, 24));
+  o('r2', win(t, 4.2, 5.0, 7.6, 8.2), rise(t, 4.2, 5.1, 20));
   // desktop: shrink the stage into a display (7.2..8.2), hold, grow back (11.6..12.4)
-  const d = smooth((t - 7.2) / 1.0) * (1 - smooth((t - 11.6) / 0.8));
+  const d = smooth((t - 9.0) / 1.2) * (1 - smooth((t - 13.6) / 1.0));
   const s = 1 - d * (1 - 0.78), top = d * 90, left = (1920 - 1920 * s) / 2;
   stage.style.transform = `translate(${left}px, ${top}px) scale(${s})`;
   stage.style.transformOrigin = '0 0';
   stage.style.borderRadius = `${d * 16}px`;
   stage.style.boxShadow = d > 0 ? `0 0 0 ${d * 12}px #0b0c10, 0 0 0 ${d * 13}px rgba(255,255,255,.12), 0 30px 120px rgba(0,0,0,${d * .8})` : 'none';
   document.body.style.background = d > 0 ? `radial-gradient(80% 70% at 50% 45%, rgb(${22 * d},${28 * d},${44 * d}), #000)` : '#000';
-  const mb = el.menubar; mb.style.opacity = smooth((t - 8.0) / 0.4) * (1 - smooth((t - 11.3) / 0.3));
+  const mb = el.menubar; mb.style.opacity = smooth((t - 9.9) / 0.5) * (1 - smooth((t - 13.2) / 0.4));
   mb.style.transform = `translate(${left}px, ${top}px) scale(${s})`;
-  const w = el.win, wv = win(t, 8.6, 9.1, 11.1, 11.45);
+  const w = el.win, wv = win(t, 10.3, 10.9, 12.9, 13.4);
   w.style.opacity = wv;
-  w.style.transform = `translate(${left + 120 * s}px, ${top + (90 + rise(t, 8.6, 9.2, 40)) * s}px) scale(${s})`;
-  o('d1', win(t, 8.3, 8.9, 11.2, 11.6), rise(t, 8.3, 9.0, 16));
-  o('d0', win(t, 8.5, 9.1, 11.2, 11.6));
-  o('v1', win(t, 12.6, 12.9, 13.7, 14.0));
-  o('v2', win(t, 14.3, 14.6, 15.1, 15.4));
-  o('e1', win(t, 15.4, 16.0, 99, 100), rise(t, 15.4, 16.1, 22));
-  o('e2', win(t, 15.8, 16.4, 99, 100), rise(t, 15.8, 16.5, 18));
-  o('e3', win(t, 16.1, 16.7, 99, 100), rise(t, 16.1, 16.8, 14));
+  w.style.transform = `translate(${left + 120 * s}px, ${top + (90 + rise(t, 10.3, 11.0, 40)) * s}px) scale(${s})`;
+  o('d1', win(t, 10.0, 10.6, 13.1, 13.6), rise(t, 10.0, 10.7, 16));
+  o('d0', win(t, 10.2, 10.8, 13.1, 13.6));
+  o('v1', win(t, 15.2, 15.5, 16.0, 16.4));
+  o('v2', 0);
+  o('e1', win(t, 16.8, 17.4, 99, 100), rise(t, 16.8, 17.5, 22));
+  o('e2', win(t, 17.2, 17.8, 99, 100), rise(t, 17.2, 17.9, 18));
+  o('e3', win(t, 17.5, 18.1, 99, 100), rise(t, 17.5, 18.2, 14));
 }
 
 window.setFrame = async ({ t, src, format }) => {
