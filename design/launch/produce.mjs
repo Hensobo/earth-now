@@ -42,8 +42,8 @@ const storyKeys = [
   { t: 27.0, view: V({ lat: 22, lon: 48, zoom: 0.95, tilt: 18, x: 0.55, y: 0.05 }), ease: 'sine' },
   { t: 29.4, view: V({ lat: 22, lon: 46.5, zoom: 0.95, tilt: 18, x: 0.55, y: 0.05 }), ease: 'linear' },
   // behind the settings card: settle into the closing frame (half day, half night)
-  { t: 35.4, view: V({ lat: 18, lon: 46, zoom: 0.42, tilt: 16, y: 0.12 }), ease: 'sine' },
-  { t: 41.0, view: V({ lat: 18, lon: 43, zoom: 0.42, tilt: 16, y: 0.12 }), ease: 'linear' },
+  { t: 35.4, view: V({ lat: 18, lon: 46, zoom: 0.40, tilt: 16, y: 0.058 }), ease: 'sine' },
+  { t: 41.0, view: V({ lat: 18, lon: 43, zoom: 0.40, tilt: 16, y: 0.058 }), ease: 'linear' },
 ];
 
 const landKeys = [
