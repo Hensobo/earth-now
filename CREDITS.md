@@ -19,6 +19,15 @@ and on the website.
 | Library | Version | License |
 |---|---|---|
 | [three.js](https://threejs.org) (`web/lib/three.module.min.js`) | 0.160.0 | MIT, full text: [`licenses/three.js-LICENSE.txt`](licenses/three.js-LICENSE.txt) |
+| [GSAP](https://gsap.com) with ScrollTrigger and SplitText (`site/assets/vendor/`, website only) | 3.15.1 | GSAP Standard "no charge" license ([gsap.com/standard-license](https://gsap.com/standard-license)) |
+| [Lenis](https://github.com/darkroomengineering/lenis) (`site/assets/vendor/lenis.min.js`, website only) | 1.3.27 | MIT |
+
+## Fonts (website only)
+
+| Font | Files | License |
+|---|---|---|
+| [Bricolage Grotesque](https://fonts.google.com/specimen/Bricolage+Grotesque) | `site/assets/fonts/bricolage-200_800-normal.woff2` | SIL Open Font License 1.1 |
+| [Geist Mono](https://fonts.google.com/specimen/Geist+Mono) | `site/assets/fonts/geist-mono-500-normal.woff2` | SIL Open Font License 1.1 |
 
 ## Not affiliated
 

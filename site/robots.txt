@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://hensobo.github.io/earth-now/sitemap.xml

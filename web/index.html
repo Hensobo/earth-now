@@ -34,13 +34,16 @@ import * as THREE from './lib/three.module.min.js';
 //   fov      Brennweite (vertikaler Blickwinkel)
 //   x,y      Verschiebung des Bildausschnitts (-1..1)
 //   fps, hud (0/1), clouds (live|static|off), warp (Zeitraffer-Faktor)
+//   transparent=1  ohne Sterne und Hintergrund (für die Website, die Erde liegt über der Seitenfarbe)
+//   sunoff   im sun-Modus: Kamera so viele Grad östlich des Sonnenpunkts (-90 = Tag/Nacht-Grenze in der Mitte)
+//   dpr      maximale Pixeldichte (0 = automatisch)
 //   time     Startzeitpunkt statt jetzt, ISO 8601, z. B. time=2026-06-21T18:00:00Z (für Tests/Screenshots)
 // ---------------------------------------------------------------------------
 const P = new URLSearchParams(location.search);
 const cfg = {
   motion: 'orbit', speed: 0.4, lat: 28, lon: 10, place: '',
   zoom: 0.62, pitch: 0, heading: 0, tilt: 18, fov: 30, x: 0, y: 0,
-  fps: 30, hud: false, clouds: 'live', warp: 1,
+  fps: 30, hud: false, clouds: 'live', warp: 1, sunoff: -55, dpr: 0,
   ...(window.__initialConfig || {}),
 };
 for (const [k, v] of P) {
@@ -49,9 +52,11 @@ for (const [k, v] of P) {
 }
 
 const DEG = Math.PI / 180;
+const TRANSPARENT = P.get('transparent') === '1';
 const startReal = Date.now();
 const startSim = Date.parse(P.get('time') || window.__startTime || '') || startReal;
-const now = () => new Date(startSim + (Date.now() - startReal) * cfg.warp);
+let offsetMs = 0;  // von der Website gesetzt (setTimeOffset), die App nutzt es nicht
+const now = () => new Date(startSim + (Date.now() - startReal) * cfg.warp + offsetMs);
 
 // --- Sonnenstand (Subsolarpunkt) -------------------------------------------
 // Low-precision-Formeln des Astronomical Almanac, Genauigkeit ~0.01°.
@@ -77,10 +82,14 @@ function latLonToVec(lat, lon, out = new THREE.Vector3()) {
 }
 
 // --- Renderer / Szene --------------------------------------------------------
-const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'low-power' });
+const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'low-power', alpha: TRANSPARENT });
+if (TRANSPARENT) {
+  renderer.setClearColor(0x000000, 0);
+  document.documentElement.style.background = document.body.style.background = 'transparent';
+}
 // 1.5-fache Auflösung reicht für die weichen Erdtexturen und spart ~45 % GPU-Arbeit.
 // Im „Flüssig“-Modus (60 fps) volle Retina-Auflösung.
-const applyPixelRatio = () => renderer.setPixelRatio(Math.min(window.devicePixelRatio, cfg.fps >= 60 ? 2 : 1.5));
+const applyPixelRatio = () => renderer.setPixelRatio(Math.min(window.devicePixelRatio, cfg.dpr || (cfg.fps >= 60 ? 2 : 1.5)));
 applyPixelRatio();
 renderer.setSize(innerWidth, innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -302,10 +311,12 @@ const atmoMat = new THREE.ShaderMaterial({
       float sunN = dot(normalize(closest), sunDir);
       float lit = smoothstep(-0.2, 0.25, sunN);
       vec3 col = mix(vec3(1.0, 0.42, 0.18), vec3(0.32, 0.6, 1.0), smoothstep(-0.06, 0.18, sunN));
-      gl_FragColor = vec4(col * glow * lit * 1.5, 1.0);
+      vec3 c = col * glow * lit * 1.5;
+      gl_FragColor = vec4(c, ${TRANSPARENT ? 'clamp(max(c.r, max(c.g, c.b)), 0.0, 1.0)' : '1.0'});
       #include <colorspace_fragment>
     }`,
 });
+if (TRANSPARENT) atmoMat.premultipliedAlpha = true;  // additiv: Licht über der Seitenfarbe
 const atmo = new THREE.Mesh(new THREE.SphereGeometry(ATMO, 160, 80), atmoMat);
 scene.add(atmo);
 
@@ -322,7 +333,7 @@ scene.add(atmo);
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
   g.setAttribute('color', new THREE.BufferAttribute(col, 3));
-  scene.add(new THREE.Points(g, new THREE.PointsMaterial({
+  if (!TRANSPARENT) scene.add(new THREE.Points(g, new THREE.PointsMaterial({
     size: 1.3, sizeAttenuation: false, vertexColors: true, transparent: true, opacity: 0.85,
   })));
 }
@@ -337,7 +348,7 @@ const wrap180 = (a) => ((a % 360) + 540) % 360 - 180;
 
 function targetLon(sun) {
   if (cfg.motion === 'orbit') return cfg.lon + orbitLon;
-  if (cfg.motion === 'sun') return sun.lon - 55;
+  if (cfg.motion === 'sun') return sun.lon + cfg.sunoff;
   return cfg.lon;
 }
 
@@ -389,6 +400,14 @@ window.applyConfig = (c) => {
   renderer.setSize(innerWidth, innerHeight);
   if (cloudsChanged || (liveCloudRes && liveCloudRes !== wantedCloudRes())) applyCloudMode();
   boostUntil = performance.now() + 1500;
+  requestRender();
+};
+
+// Von der Website aufgerufen: verschiebt die dargestellte Uhrzeit um h Stunden
+// (Scrollen dreht die Beleuchtung weiter). Die App ruft das nicht auf.
+window.setTimeOffset = (h) => {
+  offsetMs = h * 3600000;
+  boostUntil = performance.now() + 600;
   requestRender();
 };
 

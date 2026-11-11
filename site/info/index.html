@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Privacy and credits · Earth Now</title>
+<meta name="description" content="What Earth Now and this website do with your data (nothing), and the NASA, EUMETSAT and open-source work the app is built on.">
+<meta name="theme-color" content="#05060d">
+<link rel="canonical" href="https://hensobo.github.io/earth-now/info/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Earth Now">
+<meta property="og:title" content="Privacy and credits · Earth Now">
+<meta property="og:description" content="No tracking, no accounts. Built on NASA imagery, EUMETSAT cloud data and three.js.">
+<meta property="og:url" content="https://hensobo.github.io/earth-now/info/">
+<meta property="og:image" content="https://hensobo.github.io/earth-now/assets/screenshots/social-preview.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="../favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="icon" href="../assets/icon/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../assets/icon/apple-touch-icon.png">
+<link rel="preload" href="../assets/fonts/bricolage-200_800-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="../assets/css/site.css">
+<script>document.documentElement.classList.add('js')</script>
+<script defer src="../assets/vendor/gsap.min.js"></script>
+<script defer src="../assets/vendor/ScrollTrigger.min.js"></script>
+<script defer src="../assets/vendor/SplitText.min.js"></script>
+<script defer src="../assets/vendor/lenis.min.js"></script>
+<script defer src="../assets/js/site.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="sky" aria-hidden="true"></div>
+<header class="top">
+  <div class="wrap top__in">
+    <a class="brand" href="../" aria-label="Earth Now, home"><img src="../assets/icon/mark.svg" alt="" width="30" height="30">Earth Now</a>
+    <p class="clock mono"><span><span data-clock>Your time</span> <span data-place></span></span><span class="clock__ahead">Live</span></p>
+    <nav aria-label="Main">
+      <a class="roll" href="../#features"><span>Features</span><span aria-hidden="true">Features</span></a>
+      <a class="roll" href="../#views"><span>Views</span><span aria-hidden="true">Views</span></a>
+      <a class="roll" href="../#faq"><span>FAQ</span><span aria-hidden="true">FAQ</span></a>
+      <a class="roll gh" href="https://github.com/Hensobo/earth-now" aria-label="Earth Now on GitHub"><span>GitHub</span><span aria-hidden="true">GitHub</span></a>
+      <a class="btn btn--sm" href="../#download">Download</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main" tabindex="-1" class="page">
+  <div class="wrap">
+    <h1 class="display" data-rise>Privacy and credits</h1>
+    <p class="lead" data-rise>Your data stays on your Mac. The pictures come from NASA and weather satellites.</p>
+
+    <section class="grid" aria-labelledby="p-app">
+      <h2 id="p-app">The app</h2>
+      <div class="body">
+        <p><b>Earth Now collects no data.</b> No analytics, no accounts, no update checks in the background. It goes online for exactly two things: the cloud map from <code>clouds.matteason.co.uk</code> every few hours, and, only when you search for a place, your search text to Apple Maps. Like any web request, those servers see your IP address.</p>
+      </div>
+    </section>
+
+    <section class="grid" aria-labelledby="p-web">
+      <h2 id="p-web">This website</h2>
+      <div class="body">
+        <p><b>No cookies, no trackers, no external fonts or scripts.</b> Everything is served from GitHub Pages; GitHub may log your IP address for security (see <a class="link" href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">GitHub&rsquo;s privacy statement</a>). The live Earth on the home page loads its cloud map from <code>clouds.matteason.co.uk</code>.</p>
+        <p>The clock and the colour of the home page are worked out in your browser from your time zone setting. Your location is never asked for and nothing is sent anywhere.</p>
+      </div>
+    </section>
+
+    <section class="grid" aria-labelledby="p-credits">
+      <h2 id="p-credits">Credits and licenses</h2>
+      <div class="body">
+        <ul class="credits">
+          <li><b>Daytime Earth</b><span>NASA Earth Observatory, Blue Marble: Next Generation (Reto St&ouml;ckli). Public domain.</span></li>
+          <li><b>Night lights</b><span>NASA Earth Observatory, Black Marble 2016, Suomi NPP VIIRS. Public domain.</span></li>
+          <li><b>Live clouds</b><span><a class="link" href="https://github.com/matteason/live-cloud-maps">matteason/live-cloud-maps</a>, images CC0 1.0. Contains modified EUMETSAT data.</span></li>
+          <li><b>Static clouds, normal and specular maps</b><span>three.js example textures. MIT License.</span></li>
+          <li><b>3D rendering</b><span><a class="link" href="https://threejs.org">three.js</a> 0.160.0. MIT License.</span></li>
+          <li><b>Website motion</b><span><a class="link" href="https://gsap.com">GSAP</a> (standard no-charge license) and <a class="link" href="https://github.com/darkroomengineering/lenis">Lenis</a> (MIT), served from this site.</span></li>
+          <li><b>Type</b><span>Bricolage Grotesque and Geist Mono, SIL Open Font License, served from this site.</span></li>
+        </ul>
+        <p class="notice"><b>Notice:</b> the live clouds in the app and on the home page contain modified EUMETSAT data, provided via live-cloud-maps under the <a class="link" href="https://www.eumetsat.int/eumetsat-data-licensing">EUMETSAT licensing conditions</a>.</p>
+      </div>
+    </section>
+  </div>
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <div class="foot__links">
+      <a class="btn" href="https://github.com/Hensobo/earth-now/releases/latest/download/EarthNow.dmg">Download for Mac</a>
+      <nav aria-label="Footer">
+        <a href="https://github.com/Hensobo/earth-now">GitHub</a>
+        <a href="https://github.com/Hensobo/earth-now/releases">Releases</a>
+        <a href="./" aria-current="page">Privacy and credits</a>
+        <a href="https://github.com/Hensobo/earth-now/blob/main/LICENSE">MIT License</a>
+      </nav>
+    </div>
+    <p class="foot__mark display" aria-hidden="true" data-wght>Earth Now</p>
+    <div class="foot__small">
+      <p>&copy; 2026 <a class="link" href="https://hensobo.com">Henning Sobota</a>. Not affiliated with NASA, EUMETSAT or Apple. Mac and macOS are trademarks of Apple Inc.</p>
+    </div>
+  </div>
+</footer>
+</body>
+</html>
