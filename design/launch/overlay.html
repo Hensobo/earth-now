@@ -29,7 +29,11 @@
   .lights i:nth-child(2) { background: #febc2e; } .lights i:nth-child(3) { background: #28c840; }
   .sodium { color: var(--sodium); }
   .wordmark { display: flex; align-items: center; }
-  .wordmark img { display: block; }
+  /* mark next to the wordmark, balanced optically: the round mark is only slightly taller than the
+     letters (cap height = 0.70 em in Bricolage at this cut), is centred on the letters (overshoots geometric
+     top and bottom equally) and keeps a generous gap */
+  .wordmark { gap: 0.28em; }
+  .wordmark img { display: block; width: 0.75em; height: 0.75em; position: relative; top: 0; }
   .scrim { position: absolute; inset: 0; pointer-events: none; }
   /* hierarchy: headline (display, the website's cut) > subline (text, muted) > label (small) > meta (mono) */
   .ctr { left: 0; right: 0; text-align: center; }
@@ -79,7 +83,7 @@ function buildStory() {
   // nearly full width, so the controls stay readable on a phone; slowly scrolled
   add('c1', `<div class="abs card" style="left:60px;width:960px;top:480px;height:1040px"><img src="${shots}settings-en-dark.png"></div>`);
   add('c2', `<div class="abs card" style="left:60px;width:960px;top:480px;height:1040px"><img src="${shots}settings-en-bottom.png"></div>`);
-  add('e1', `<div class="abs ctr shadow" style="top:300px"><div class="wordmark" style="display:inline-flex;gap:30px"><img src="assets/mark.svg" style="width:118px;height:118px"><span class="hl" style="font-size:150px">Earth Now</span></div></div>`);
+  add('e1', `<div class="abs ctr shadow" style="top:300px"><div class="wordmark" style="display:inline-flex;font-size:150px"><img src="assets/mark.svg" alt=""><span class="hl">Earth Now</span></div></div>`);
   add('e2', `<div class="abs ctr sub shadow" style="top:1290px;font-size:46px;color:var(--star)">Free and open source for macOS</div>`);
   add('e3', `<div class="abs ctr shadow mono" style="top:1372px;font-size:26px;color:var(--muted)">macOS 13 or later · Apple Silicon and Intel</div>`);
 }
@@ -132,7 +136,7 @@ function buildLandscape() {
   add('d0', `<div class="abs ctr sub" style="top:22px;font-size:26px">Lives in the menu bar. Set it once, then forget it.</div>`);
   add('p1', `<div class="abs ctr hl shadow" style="top:110px;font-size:92px">Your location. Your angle. <span class="sodium">Your view.</span></div>`);
   lab('v1', 'Whole Earth'); lab('v2', 'Close-up'); lab('v3', 'Horizon');
-  add('e1', `<div class="abs shadow" style="left:0;width:1040px;top:360px;text-align:center"><div class="wordmark" style="display:inline-flex;gap:28px"><img src="assets/mark.svg" style="width:110px;height:110px"><span class="hl" style="font-size:140px">Earth Now</span></div></div>`);
+  add('e1', `<div class="abs shadow" style="left:0;width:1040px;top:360px;text-align:center"><div class="wordmark" style="display:inline-flex;font-size:140px"><img src="assets/mark.svg" alt=""><span class="hl">Earth Now</span></div></div>`);
   add('e2', `<div class="abs sub shadow" style="left:0;width:1040px;top:560px;text-align:center;font-size:44px;color:var(--star)">The real Earth, right now,<br>as your Mac's desktop.</div>`);
   add('e3', `<div class="abs mono shadow" style="left:0;width:1040px;top:720px;text-align:center;font-size:22px;color:var(--muted)">Free and open source · macOS 13 or later</div>`);
 }
