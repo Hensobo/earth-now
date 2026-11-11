@@ -118,6 +118,7 @@ jobs:
           ls -la shots
 
       - name: Settings scrolled from top to bottom (for the launch video)
+        if: contains(github.event.head_commit.message, '[settings-scroll]')
         run: |
           mkdir -p shots/scroll
           for y in 0 120 240 360 480 600 720 840 960 1080 1200 bottom; do

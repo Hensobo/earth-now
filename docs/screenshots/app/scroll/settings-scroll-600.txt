@@ -1,1 +1,0 @@
-settings-scroll offset=600.0 max=631.0 viewport=400.0 window=700.0 frame=0.0,400.0
