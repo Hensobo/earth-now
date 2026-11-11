@@ -67,7 +67,7 @@ const CAPS = { 'Horizon': 'low over the sunrise line', 'Close-up': 'your region,
 function buildStory() {
   ui.innerHTML = '';
   const add = (id, h) => { el[id] = $(h); ui.appendChild(el[id]); };
-  const lab = (id, name, top) => add(id, `<div class="abs ctr lab shadow" style="top:${top}px"><b style="font-size:46px">${name}</b><span style="font-size:24px">${CAPS[name]}</span></div>`);
+  const lab = (id, name, top) => add(id, `<div class="abs ctr lab shadow" style="top:${top}px"><b style="font-size:50px">${name}</b><span style="font-size:27px">${CAPS[name]}</span></div>`);
   add('t1', `<div class="abs ctr h1wrap" style="top:330px"><h1 class="mega shadow" style="font-size:176px;font-weight:760"><span class="ln">The Earth,</span><span class="ln">right now.</span></h1></div>`);
   add('r1', `<div class="abs ctr hl shadow" style="top:300px;font-size:132px">The real Earth.</div>`);
   add('r2', `<div class="abs ctr sub shadow" style="top:470px;font-size:44px">Right on your desktop.</div>`);
