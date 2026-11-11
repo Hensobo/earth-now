@@ -386,7 +386,9 @@ html.earth-ready .hero__still { opacity: 0; }
 .foot__mark { pointer-events: none; user-select: none; display: block; font-size: min(32.6vw, 42rem); line-height: .78; margin: clamp(36px, 7vh, 80px) 0 clamp(20px, 4vh, 40px) -0.05em; white-space: nowrap; font-weight: var(--wght); }
 .foot__small { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px 32px; color: var(--muted); font-size: var(--t-s); }
 .foot__small p { max-width: 62ch; }
-.foot__small .link { color: var(--ink); font-weight: 600; }
+.foot__small .link { color: var(--inv); background: var(--ink); font-weight: 600; padding: .12em .42em; border-radius: 6px; transition: background-color .3s var(--e-out), color .3s var(--e-out); }
+@media (hover: hover) { .foot__small .link:hover { background: var(--sodium); color: var(--deep); } }
+.foot__small .link:focus-visible { background: var(--sodium); color: var(--deep); }
 
 /* ---------------------------------------------------------------- inner page + 404 */
 .page { padding: 150px 0 100px; }
