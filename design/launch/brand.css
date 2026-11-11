@@ -1,0 +1,23 @@
+/* Earth Now brand for the launch media: the 2026 website design (design/website/DESIGN.md on main).
+   Fonts are self-hosted copies of site/assets/fonts (SIL Open Font License 1.1). */
+@font-face { font-family: 'Bricolage'; src: url('assets/fonts/bricolage-200_800-normal.woff2') format('woff2');
+  font-weight: 200 800; font-stretch: 75% 100%; font-style: normal; }
+@font-face { font-family: 'Geist Mono'; src: url('assets/fonts/geist-mono-500-normal.woff2') format('woff2');
+  font-weight: 500; font-style: normal; }
+:root {
+  --space: #05060d; --star: #f4f2ee; --deep: #08101f; --sodium: #ff8a3d;
+  --muted: #c9cad2; --lead: #d9dae0; --line: rgba(244, 242, 238, .18);
+  --f: 'Bricolage', ui-sans-serif, system-ui, sans-serif;
+  --f-mono: 'Geist Mono', ui-monospace, monospace;
+}
+.display { font-family: var(--f); font-stretch: 78%; font-weight: 760; font-variation-settings: 'opsz' 96;
+  letter-spacing: -0.028em; line-height: 0.88; }
+.mega { font-family: var(--f); font-stretch: 78%; font-variation-settings: 'opsz' 96; letter-spacing: -0.028em; line-height: 0.88; }
+.mega .ln { display: block; white-space: nowrap; }
+.mega .ln + .ln { padding-left: 0.62em; }
+.text { font-family: var(--f); font-optical-sizing: auto; font-weight: 400; }
+.mono { font-family: var(--f-mono); font-weight: 500; letter-spacing: 0.01em; font-variant-numeric: tabular-nums; }
+.brand { display: inline-flex; align-items: center; font-family: var(--f); font-weight: 700; font-stretch: 85%; letter-spacing: -0.02em; }
+.live-dot { display: inline-block; width: .5em; height: .5em; border-radius: 50%; background: var(--sodium);
+  margin-right: .6em; vertical-align: .08em; box-shadow: 0 0 0 .28em rgba(255, 138, 61, .22); }
+.shadow { text-shadow: 0 2px 28px rgba(5, 6, 13, .65), 0 0 8px rgba(5, 6, 13, .45); }

@@ -13,6 +13,7 @@ import { openRenderer, getBrowser, baseUrl, done, smoothSample } from './capture
 
 const args = process.argv.slice(2);
 const want = (k) => args.includes(k) || !args.some((a) => !a.startsWith('--'));
+if (!args.some((a) => !a.startsWith('--'))) args.push('share');
 const preview = args.includes('--preview');
 const FPS = 30;
 const OUT = 'design/launch/out';
@@ -146,15 +147,33 @@ if (want('gif')) {
   console.log('wrote gif');
 }
 
-// --- 2, 3, 6. Stills ------------------------------------------------------------------
-if (want('stills')) {
+// --- 6. Social share card (website design): 1280x640 for GitHub / Open Graph, 1200x630 for X, LinkedIn
+if (args.includes('share')) {
+  await mkdir(`${B}/stills`, { recursive: true });
+  const browser = await getBrowser();
+  for (const [w, h, file] of [[1280, 640, 'earth-now-social-1280x640.png'], [1200, 630, 'earth-now-social-static-1200x630.png']]) {
+    // the globe on the right, day side outward, as in the website's hero (camera ≈ 88° west of the Sun)
+    const r = await openRenderer({ width: w, height: h, scale: 2 });
+    await r.frame('2026-03-20T03:00:00Z', 0, V({ lat: 16, lon: 48, zoom: 0.96, tilt: 16, x: 0.5, y: 0.02 }), `${B}/stills/share-${w}.png`);
+    await r.close();
+    const page = await browser.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: 1 });
+    await page.goto(`${baseUrl()}/design/launch/stills.html?scene=social&img=share-${w}`);
+    await page.waitForLoadState('networkidle');
+    await page.evaluate(() => document.fonts.ready);
+    await page.screenshot({ path: `${OUT}/${file}` });
+    await page.close();
+    console.log('wrote', file);
+  }
+}
+
+// --- 2, 3. Stills ------------------------------------------------------------------
+if (want('stills') && !args.includes('share')) {
   await mkdir(`${B}/stills`, { recursive: true });
   const stills = [
     // story hero: half day / half night, large, low in the frame
     ['hero-portrait', 1080, 1920, '2026-03-20T03:00:00Z', V({ lat: 18, lon: 45, zoom: 0.37, tilt: 16, y: 0.02 })],
     // cover: the sunrise line across Arabia and India, Europe's lights on the night side
     ['cover-portrait', 1080, 1920, '2026-03-20T03:00:00Z', V({ lat: 22, lon: 44, zoom: 0.8, tilt: 24, y: -0.37 })],
-    ['social', 1200, 630, '2026-03-20T03:00:00Z', V({ lat: 18, lon: 46, zoom: 0.86, tilt: 16, x: 0.42 })],
   ];
   for (const [name, w, h, time, view] of stills) {
     const r = await openRenderer({ width: w, height: h, scale: 2 });
@@ -164,7 +183,7 @@ if (want('stills')) {
   }
   const browser = await getBrowser();
   for (const [scene, w, h, file] of [['story', 1080, 1920, 'earth-now-story-static-1080x1920.png'],
-    ['cover', 1080, 1920, 'earth-now-story-cover-1080x1920.png'], ['social', 1200, 630, 'earth-now-social-static-1200x630.png']]) {
+    ['cover', 1080, 1920, 'earth-now-story-cover-1080x1920.png']]) {
     const page = await browser.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: 1 });
     await page.goto(`${baseUrl()}/design/launch/stills.html?scene=${scene}`);
     await page.waitForLoadState('networkidle');

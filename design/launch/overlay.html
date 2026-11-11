@@ -9,29 +9,28 @@
 <head>
 <meta charset="utf-8">
 <title>Earth Now launch overlay</title>
+<link rel="stylesheet" href="brand.css">
 <style>
   * { box-sizing: border-box; margin: 0; }
-  html, body { width: 100%; height: 100%; overflow: hidden; background: #000; color: #fff;
-    font-family: "Inter", sans-serif; -webkit-font-smoothing: antialiased; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: var(--space); color: var(--star);
+    font-family: var(--f); -webkit-font-smoothing: antialiased; }
   .abs { position: absolute; }
   #stage { position: absolute; inset: 0; overflow: hidden; }
   #earth { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform-origin: 50% 50%; }
-  .title { font-family: "Inter Display", "Inter", sans-serif; font-weight: 700; letter-spacing: .22em;
-    text-indent: .22em; text-align: center; text-shadow: 0 2px 30px rgba(0,0,0,.55); }
-  .line { font-family: "Inter Display", "Inter", sans-serif; font-weight: 600; letter-spacing: -.01em;
-    text-align: center; text-shadow: 0 2px 24px rgba(0,0,0,.7), 0 0 8px rgba(0,0,0,.55); }
-  .soft { color: #cfdcef; font-weight: 500; }
-  .pill { display: inline-block; padding: .38em 1em; border-radius: 999px; font-weight: 600; letter-spacing: .04em;
-    background: rgba(12,16,26,.55); border: 1px solid rgba(255,255,255,.18); backdrop-filter: blur(8px); }
-  .card { border-radius: 26px; overflow: hidden; box-shadow: 0 40px 120px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.14); background: #1e1e1e; }
+  .lead { font-family: var(--f); font-weight: 400; color: var(--lead); line-height: 1.3; }
+  .cap b { display: block; font-family: var(--f); font-weight: 650; font-stretch: 82%; letter-spacing: -0.02em; line-height: 1; color: var(--star); }
+  .cap span { display: block; margin-top: .55em; color: var(--muted); }
+  .card { border-radius: 12px; overflow: hidden; box-shadow: 0 40px 120px rgba(0,0,0,.7), 0 0 0 1px rgba(244,242,238,.14); background: #1e1e1e; }
   .card img { display: block; width: 100%; }
   .titlebar { height: 34px; display: flex; align-items: center; justify-content: center; position: relative;
-    background: #2a2a2c; font: 600 14px "Inter", sans-serif; color: #e8e8e8; border-bottom: 1px solid #000; }
+    background: #2a2a2c; font: 600 14px -apple-system, "Inter", sans-serif; color: #e8e8e8; border-bottom: 1px solid #000; }
   .lights { position: absolute; left: 13px; display: flex; gap: 8px; }
   .lights i { width: 12px; height: 12px; border-radius: 50%; background: #ff5f57; }
   .lights i:nth-child(2) { background: #febc2e; } .lights i:nth-child(3) { background: #28c840; }
-  .accent { color: #7cc8ff; }
-  .dot { opacity: .55; padding: 0 .35em; }
+  .sodium { color: var(--sodium); }
+  .wordmark { display: flex; align-items: center; }
+  .wordmark img { display: block; }
+  .scrim { position: absolute; inset: 0; pointer-events: none; }
 </style>
 </head>
 <body>
@@ -52,26 +51,32 @@ let built = null;
 const el = {};
 const shots = 'assets/';  // V1 (launch version) CI screenshots
 
+// The time and Sun position of the recording (20 Mar 2026, 03:00 UTC; planets.js subsolarOfDate)
+const READOUT = `<span class="live-dot"></span>20 Mar 2026, 03:00 UTC · Sun overhead at <b style="color:var(--star);font-weight:500">0.2° S, 136.9° E</b>`;
+const CAPS = { 'Horizon': 'low over the sunrise line', 'Close-up': 'your region, up close',
+  'Whole Earth': 'day, night and the line between', 'Side View': 'the Earth beside your icons' };
+
 function buildStory() {
   ui.innerHTML = '';
   const add = (id, h) => { el[id] = $(h); ui.appendChild(el[id]); };
-  add('t1', `<div class="abs title" style="left:0;right:0;top:330px;font-size:104px">EARTH NOW</div>`);
-  add('r1', `<div class="abs line" style="left:60px;right:60px;top:300px;font-size:78px;line-height:1.08">The real Earth.</div>`);
-  add('r2', `<div class="abs line soft" style="left:60px;right:60px;top:400px;font-size:62px;line-height:1.1">Right on your desktop.</div>`);
-  add('p1', `<div class="abs line" style="left:0;right:0;top:300px;font-size:70px">Your location.</div>`);
-  add('p2', `<div class="abs line" style="left:0;right:0;top:385px;font-size:70px">Your angle.</div>`);
-  add('p3', `<div class="abs line accent" style="left:0;right:0;top:470px;font-size:70px">Your view.</div>`);
-  for (const [id, name] of [['v1', 'Horizon'], ['v2', 'Close-up'], ['v3', 'Whole Earth'], ['v4', 'Side View']])
-    add(id, `<div class="abs" style="left:0;right:0;top:1480px;text-align:center;font-size:38px"><span class="pill">${name}</span></div>`);
-  add('c0', `<div class="abs line" style="left:0;right:0;top:270px;font-size:56px;line-height:1.15">Make it yours.</div>`);
-  add('c0s', `<div class="abs line soft" style="left:0;right:0;top:350px;font-size:36px">Pick a view, a place and how it moves.</div>`);
-  add('c0t', `<div class="abs line soft" style="left:0;right:0;top:350px;font-size:36px">Fine-tune the framing, clouds and quality.</div>`);
+  add('t1', `<h1 class="abs mega shadow" style="left:60px;top:300px;font-size:196px;font-weight:300"><span class="ln">The Earth,</span><span class="ln">right now.</span></h1>`);
+  add('ro', `<div class="abs mono shadow" style="left:64px;right:40px;top:1530px;font-size:27px;color:var(--muted)">${READOUT}</div>`);
+  add('r1', `<div class="abs mega shadow" style="left:60px;right:40px;top:290px;font-size:150px">The real Earth.</div>`);
+  add('r2', `<div class="abs lead shadow" style="left:64px;right:40px;top:440px;font-size:56px">Right on your desktop.</div>`);
+  add('p1', `<div class="abs display shadow" style="left:60px;top:290px;font-size:124px">Your location.</div>`);
+  add('p2', `<div class="abs display shadow" style="left:60px;top:400px;font-size:124px">Your angle.</div>`);
+  add('p3', `<div class="abs display shadow sodium" style="left:60px;top:510px;font-size:124px">Your view.</div>`);
+  [['v1', 'Horizon'], ['v2', 'Close-up'], ['v3', 'Whole Earth'], ['v4', 'Side View']].forEach(([id, name]) =>
+    add(id, `<div class="abs cap shadow" style="left:64px;top:1430px"><b style="font-size:58px">${name}</b><span class="mono" style="font-size:28px">${CAPS[name]}</span></div>`));
+  add('c0', `<div class="abs display shadow" style="left:50px;top:262px;font-size:96px">Make it yours.</div>`);
+  add('c0s', `<div class="abs lead shadow" style="left:54px;right:40px;top:360px;font-size:38px">Pick a view, a place and how it moves.</div>`);
+  add('c0t', `<div class="abs lead shadow" style="left:54px;right:40px;top:360px;font-size:38px">Fine-tune the framing, clouds and quality.</div>`);
   // nearly full width, so the controls stay readable on a phone; slowly scrolled
   add('c1', `<div class="abs card" style="left:50px;width:980px;top:450px;height:1080px"><img src="${shots}settings-en-dark.png"></div>`);
   add('c2', `<div class="abs card" style="left:50px;width:980px;top:450px;height:1080px"><img src="${shots}settings-en-bottom.png"></div>`);
-  add('e1', `<div class="abs title" style="left:0;right:0;top:290px;font-size:112px">EARTH NOW</div>`);
-  add('e2', `<div class="abs line" style="left:0;right:0;top:1300px;font-size:52px">Free &amp; Open Source for macOS</div>`);
-  add('e3', `<div class="abs line soft" style="left:0;right:0;top:1375px;font-size:38px">macOS 13+</div>`);
+  add('e1', `<div class="abs wordmark shadow" style="left:60px;top:286px;gap:30px"><img src="assets/mark.svg" style="width:124px;height:124px"><span class="display" style="font-size:150px">Earth Now</span></div>`);
+  add('e2', `<div class="abs lead shadow" style="left:64px;right:40px;top:1290px;font-size:54px;color:var(--star)">Free and open source for macOS.</div>`);
+  add('e3', `<div class="abs mono shadow" style="left:64px;right:40px;top:1376px;font-size:28px;color:var(--muted)">macOS 13 or later · Apple Silicon and Intel</div>`);
 }
 
 function story(t) {
@@ -80,6 +85,9 @@ function story(t) {
   o('t1', win(t, 0.4, 1.2, 2.8, 3.4), rise(t, 0.4, 1.3, 24));
   o('r1', win(t, 4.0, 4.8, 9.8, 10.4), rise(t, 4.0, 4.9, 26));
   o('r2', win(t, 4.8, 5.6, 9.8, 10.4), rise(t, 4.8, 5.7, 22));
+  // like the website's headline: thin at night, heavy in daylight
+  el.r1.style.fontWeight = Math.round(300 + 470 * smooth((t - 6.6) / 3.8));
+  o('ro', win(t, 0.8, 1.6, 9.8, 10.4));
   o('p1', win(t, 10.9, 11.5, 22.3, 22.8), rise(t, 10.9, 11.6, 20));
   o('p2', win(t, 14.1, 14.7, 22.3, 22.8), rise(t, 14.1, 14.8, 20));
   o('p3', win(t, 17.9, 18.5, 22.3, 22.8), rise(t, 17.9, 18.6, 20));
@@ -106,25 +114,27 @@ function story(t) {
 function buildLandscape() {
   ui.innerHTML = '';
   const add = (id, h, parent = ui) => { el[id] = $(h); parent.appendChild(el[id]); };
-  add('t1', `<div class="abs title" style="left:0;right:0;top:760px;font-size:96px">EARTH NOW</div>`);
-  add('r1', `<div class="abs line" style="left:0;right:0;top:120px;font-size:72px">The real Earth.</div>`);
-  add('r2', `<div class="abs line soft" style="left:0;right:0;top:210px;font-size:54px">Right on your desktop.</div>`);
+  add('scr', `<div class="scrim" style="background:radial-gradient(90% 80% at 0% 100%, rgba(5,6,13,.8) 0%, rgba(5,6,13,.35) 45%, rgba(5,6,13,0) 70%)"></div>`);
+  add('t1', `<h1 class="abs mega shadow" style="left:72px;top:560px;font-size:210px;font-weight:300"><span class="ln">The Earth,</span><span class="ln">right now.</span></h1>`);
+  add('ro', `<div class="abs mono shadow" style="left:80px;top:1010px;font-size:22px;color:var(--muted)">${READOUT}</div>`);
+  add('r1', `<div class="abs mega shadow" style="left:72px;top:96px;font-size:150px">The real Earth.</div>`);
+  add('r2', `<div class="abs lead shadow" style="left:80px;top:250px;font-size:50px">Right on your desktop.</div>`);
   // display frame drawn around the stage
-  add('bezel', `<div class="abs" style="left:0;top:0;width:1920px;height:1080px;pointer-events:none;border-radius:0;box-shadow:0 0 0 0 #000"></div>`);
+  add('bezel', `<div class="abs" style="left:0;top:0;width:1920px;height:1080px;pointer-events:none"></div>`);
   add('menubar', `<div class="abs" style="left:0;top:0;width:1920px;height:30px;display:flex;align-items:center;gap:22px;padding:0 18px;
-     background:rgba(16,18,26,.62);font:500 15px Inter;transform-origin:0 0">
+     background:rgba(16,18,26,.62);font:500 15px -apple-system, Inter, sans-serif;transform-origin:0 0">
      <b>Finder</b><span>File</span><span>Edit</span><span>View</span><span>Go</span><span>Window</span><span>Help</span>
      <span style="margin-left:auto">Fri 20 Mar&nbsp;&nbsp;04:00</span></div>`);
-  add('win', `<div class="abs card" style="left:0;top:0;width:640px;border-radius:12px;transform-origin:0 0">
+  add('win', `<div class="abs card" style="left:0;top:0;width:640px;transform-origin:0 0">
      <div class="titlebar"><div class="lights"><i></i><i></i><i></i></div>Earth Now</div>
      <img src="${shots}settings-en-dark.png"></div>`);
-  add('d1', `<div class="abs line" style="left:0;right:0;top:985px;font-size:44px">It's your wallpaper. Live, all day.</div>`);
-  add('d0', `<div class="abs line soft" style="left:0;right:0;top:22px;font-size:30px">Lives in the menu bar · set it once, then forget it</div>`);
-  for (const [id, name] of [['v1', 'Whole Earth'], ['v2', 'Close-up'], ['v3', 'Horizon']])
-    add(id, `<div class="abs" style="left:0;right:0;top:950px;text-align:center;font-size:30px"><span class="pill">${name}</span></div>`);
-  add('e1', `<div class="abs title" style="left:150px;top:390px;font-size:110px;text-align:left;text-indent:0">EARTH NOW</div>`);
-  add('e2', `<div class="abs line" style="left:150px;top:540px;font-size:46px;text-align:left">The real Earth, right now,<br>as your Mac's desktop.</div>`);
-  add('e3', `<div class="abs line soft" style="left:150px;top:690px;font-size:34px;text-align:left">Free &amp; Open Source <span class="dot">·</span> macOS 13+</div>`);
+  add('d1', `<div class="abs display" style="left:0;right:0;top:972px;font-size:66px;text-align:center">It's your wallpaper. Live, all day.</div>`);
+  add('d0', `<div class="abs mono" style="left:0;right:0;top:28px;font-size:22px;text-align:center;color:var(--muted)">Lives in the menu bar · set it once, then forget it</div>`);
+  [['v1', 'Whole Earth'], ['v2', 'Close-up'], ['v3', 'Horizon']].forEach(([id, name]) =>
+    add(id, `<div class="abs cap shadow" style="left:80px;top:900px"><b style="font-size:52px">${name}</b><span class="mono" style="font-size:22px">${CAPS[name]}</span></div>`));
+  add('e1', `<div class="abs wordmark shadow" style="left:120px;top:360px;gap:28px"><img src="assets/mark.svg" style="width:118px;height:118px"><span class="display" style="font-size:150px">Earth Now</span></div>`);
+  add('e2', `<div class="abs lead shadow" style="left:124px;top:540px;font-size:48px;color:var(--star)">The real Earth, right now,<br>as your Mac's desktop.</div>`);
+  add('e3', `<div class="abs mono shadow" style="left:124px;top:690px;font-size:24px;color:var(--muted)">Free and open source · macOS 13 or later · Apple Silicon and Intel</div>`);
 }
 
 function landscape(t) {
@@ -133,6 +143,9 @@ function landscape(t) {
   o('t1', win(t, 0.4, 1.2, 2.8, 3.4), rise(t, 0.4, 1.3, 22));
   o('r1', win(t, 4.0, 4.8, 9.8, 10.4), rise(t, 4.0, 4.9, 24));
   o('r2', win(t, 4.8, 5.6, 9.8, 10.4), rise(t, 4.8, 5.7, 20));
+  el.r1.style.fontWeight = Math.round(300 + 470 * smooth((t - 6.6) / 3.8));
+  o('ro', win(t, 0.8, 1.6, 9.8, 10.4));
+  o('scr', win(t, 0, 0.1, 2.8, 3.6));
   // desktop: shrink the stage into a display, hold, grow back
   const d = smooth((t - 11.0) / 1.2) * (1 - smooth((t - 18.0) / 1.0));
   const s = 1 - d * (1 - 0.78), top = d * 90, left = (1920 - 1920 * s) / 2;
