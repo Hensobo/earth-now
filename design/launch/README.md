@@ -12,10 +12,10 @@ frames to `build/launch/` (safe to delete). Takes about 45 minutes with software
 
 | File | What |
 |---|---|
-| `earth-now-story-demo-1080x1920.mp4` | Instagram story, 31 s, 30 fps, H.264, no audio |
+| `earth-now-story-demo-1080x1920.mp4` | Instagram story, 41 s, 30 fps, H.264, no audio |
 | `earth-now-story-static-1080x1920.png` | Story still with copy |
 | `earth-now-story-cover-1080x1920.png` | Story cover |
-| `earth-now-demo-landscape-1920x1080.mp4` | 33 s, 16:9, includes the desktop segment |
+| `earth-now-demo-landscape-1920x1080.mp4` | 44 s, 16:9, includes the desktop segment |
 | `earth-now-github-preview.gif` | 7 s seamless loop (one full day), 640×400 |
 | `earth-now-social-static-1200x630.png` | Link preview / social card |
 

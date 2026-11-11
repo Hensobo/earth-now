@@ -31,6 +31,14 @@
   .wordmark { display: flex; align-items: center; }
   .wordmark img { display: block; }
   .scrim { position: absolute; inset: 0; pointer-events: none; }
+  /* hierarchy: headline (display, the website's cut) > subline (text, muted) > label (small) > meta (mono) */
+  .ctr { left: 0; right: 0; text-align: center; }
+  .hl { font-family: var(--f); font-stretch: 78%; font-weight: 760; font-variation-settings: 'opsz' 96;
+    letter-spacing: -0.028em; line-height: 0.92; color: var(--star); }
+  .sub { font-family: var(--f); font-weight: 400; line-height: 1.3; color: var(--muted); }
+  .lab b { display: block; font-family: var(--f); font-weight: 600; letter-spacing: -0.01em; color: rgba(244,242,238,.9); }
+  .lab span { display: block; margin-top: .5em; font-family: var(--f-mono); font-weight: 500; color: rgba(201,202,210,.8); }
+  .h1wrap h1 { display: inline-block; text-align: left; margin: 0; }
 </style>
 </head>
 <body>
@@ -59,54 +67,46 @@ const CAPS = { 'Horizon': 'low over the sunrise line', 'Close-up': 'your region,
 function buildStory() {
   ui.innerHTML = '';
   const add = (id, h) => { el[id] = $(h); ui.appendChild(el[id]); };
-  add('t1', `<h1 class="abs mega shadow" style="left:60px;top:300px;font-size:196px;font-weight:300"><span class="ln">The Earth,</span><span class="ln">right now.</span></h1>`);
-  add('ro', `<div class="abs mono shadow" style="left:64px;right:40px;top:1530px;font-size:27px;color:var(--muted)">${READOUT}</div>`);
-  add('r1', `<div class="abs mega shadow" style="left:60px;right:40px;top:290px;font-size:150px">The real Earth.</div>`);
-  add('r2', `<div class="abs lead shadow" style="left:64px;right:40px;top:440px;font-size:56px">Right on your desktop.</div>`);
-  add('p1', `<div class="abs display shadow" style="left:60px;top:290px;font-size:124px">Your location.</div>`);
-  add('p2', `<div class="abs display shadow" style="left:60px;top:400px;font-size:124px">Your angle.</div>`);
-  add('p3', `<div class="abs display shadow sodium" style="left:60px;top:510px;font-size:124px">Your view.</div>`);
-  [['v1', 'Horizon'], ['v2', 'Close-up'], ['v3', 'Whole Earth'], ['v4', 'Side View']].forEach(([id, name]) =>
-    add(id, `<div class="abs cap shadow" style="left:64px;top:1430px"><b style="font-size:58px">${name}</b><span class="mono" style="font-size:28px">${CAPS[name]}</span></div>`));
-  add('c0', `<div class="abs display shadow" style="left:50px;top:262px;font-size:96px">Make it yours.</div>`);
-  add('c0s', `<div class="abs lead shadow" style="left:54px;right:40px;top:360px;font-size:38px">Pick a view, a place and how it moves.</div>`);
-  add('c0t', `<div class="abs lead shadow" style="left:54px;right:40px;top:360px;font-size:38px">Fine-tune the framing, clouds and quality.</div>`);
+  const lab = (id, name, top) => add(id, `<div class="abs ctr lab shadow" style="top:${top}px"><b style="font-size:46px">${name}</b><span style="font-size:24px">${CAPS[name]}</span></div>`);
+  add('t1', `<div class="abs ctr h1wrap" style="top:330px"><h1 class="mega shadow" style="font-size:176px;font-weight:760"><span class="ln">The Earth,</span><span class="ln">right now.</span></h1></div>`);
+  add('r1', `<div class="abs ctr hl shadow" style="top:300px;font-size:132px">The real Earth.</div>`);
+  add('r2', `<div class="abs ctr sub shadow" style="top:470px;font-size:44px">Right on your desktop.</div>`);
+  add('p1', `<div class="abs ctr hl shadow" style="top:300px;font-size:116px;line-height:1.08">Your location.<br>Your angle.<br><span class="sodium">Your view.</span></div>`);
+  lab('v1', 'Horizon', 1420); lab('v2', 'Close-up', 1420); lab('v3', 'Whole Earth', 1420); lab('v4', 'Side View', 1420);
+  add('c0', `<div class="abs ctr hl shadow" style="top:262px;font-size:104px">Make it yours.</div>`);
+  add('c0s', `<div class="abs ctr sub shadow" style="top:392px;font-size:36px">Pick a view, a place and how it moves.</div>`);
+  add('c0t', `<div class="abs ctr sub shadow" style="top:392px;font-size:36px">Fine-tune the framing, clouds and quality.</div>`);
   // nearly full width, so the controls stay readable on a phone; slowly scrolled
-  add('c1', `<div class="abs card" style="left:50px;width:980px;top:450px;height:1080px"><img src="${shots}settings-en-dark.png"></div>`);
-  add('c2', `<div class="abs card" style="left:50px;width:980px;top:450px;height:1080px"><img src="${shots}settings-en-bottom.png"></div>`);
-  add('e1', `<div class="abs wordmark shadow" style="left:60px;top:286px;gap:30px"><img src="assets/mark.svg" style="width:124px;height:124px"><span class="display" style="font-size:150px">Earth Now</span></div>`);
-  add('e2', `<div class="abs lead shadow" style="left:64px;right:40px;top:1290px;font-size:54px;color:var(--star)">Free and open source for macOS.</div>`);
-  add('e3', `<div class="abs mono shadow" style="left:64px;right:40px;top:1376px;font-size:28px;color:var(--muted)">macOS 13 or later · Apple Silicon and Intel</div>`);
+  add('c1', `<div class="abs card" style="left:60px;width:960px;top:480px;height:1040px"><img src="${shots}settings-en-dark.png"></div>`);
+  add('c2', `<div class="abs card" style="left:60px;width:960px;top:480px;height:1040px"><img src="${shots}settings-en-bottom.png"></div>`);
+  add('e1', `<div class="abs ctr shadow" style="top:300px"><div class="wordmark" style="display:inline-flex;gap:30px"><img src="assets/mark.svg" style="width:118px;height:118px"><span class="hl" style="font-size:150px">Earth Now</span></div></div>`);
+  add('e2', `<div class="abs ctr sub shadow" style="top:1290px;font-size:46px;color:var(--star)">Free and open source for macOS</div>`);
+  add('e3', `<div class="abs ctr shadow mono" style="top:1372px;font-size:26px;color:var(--muted)">macOS 13 or later · Apple Silicon and Intel</div>`);
 }
 
 function story(t) {
   const o = (id, v, dy = 0) => { el[id].style.opacity = v; el[id].style.transform = `translateY(${dy}px)`; };
   stage.style.opacity = smooth(t / 0.6);  // fade in from black
-  o('t1', win(t, 0.4, 1.2, 2.8, 3.4), rise(t, 0.4, 1.3, 24));
-  o('r1', win(t, 4.0, 4.8, 9.8, 10.4), rise(t, 4.0, 4.9, 26));
-  o('r2', win(t, 4.8, 5.6, 9.8, 10.4), rise(t, 4.8, 5.7, 22));
-  // like the website's headline: thin at night, heavy in daylight
-  el.r1.style.fontWeight = Math.round(300 + 470 * smooth((t - 6.6) / 3.8));
-  o('ro', win(t, 0.8, 1.6, 9.8, 10.4));
-  o('p1', win(t, 10.9, 11.5, 22.3, 22.8), rise(t, 10.9, 11.6, 20));
-  o('p2', win(t, 14.1, 14.7, 22.3, 22.8), rise(t, 14.1, 14.8, 20));
-  o('p3', win(t, 17.9, 18.5, 22.3, 22.8), rise(t, 17.9, 18.6, 20));
-  o('v1', win(t, 10.6, 11.0, 12.0, 12.4));
-  o('v2', win(t, 13.9, 14.3, 15.6, 16.0));
-  o('v3', win(t, 17.7, 18.1, 19.3, 19.7));
-  o('v4', win(t, 21.1, 21.5, 22.6, 23.0));
-  const cust = win(t, 22.8, 23.4, 27.0, 27.6);
+  o('t1', win(t, 0.5, 1.4, 3.3, 3.9), rise(t, 0.5, 1.5, 24));
+  o('r1', win(t, 4.8, 5.6, 10.3, 10.9), rise(t, 4.8, 5.7, 24));
+  o('r2', win(t, 5.8, 6.6, 10.3, 10.9), rise(t, 5.8, 6.7, 16));
+  o('p1', win(t, 11.4, 12.2, 13.9, 14.5), rise(t, 11.4, 12.3, 24));
+  o('v1', win(t, 14.7, 15.2, 15.9, 16.4));
+  o('v2', win(t, 18.3, 18.8, 20.0, 20.5));
+  o('v3', win(t, 22.7, 23.2, 24.4, 24.9));
+  o('v4', win(t, 27.1, 27.6, 28.8, 29.3));
+  const cust = win(t, 29.4, 30.0, 34.9, 35.5);
   earth.style.filter = cust > 0.001 ? `blur(${cust * 16}px) brightness(${1 - cust * 0.55})` : 'none';
-  o('c0', cust, rise(t, 22.8, 23.4, 16));
-  o('c0s', win(t, 22.9, 23.5, 25.0, 25.4));
-  o('c0t', win(t, 25.2, 25.6, 27.0, 27.5));
-  o('c1', win(t, 23.0, 23.6, 25.1, 25.6), rise(t, 23.0, 23.7, 70));
-  o('c2', win(t, 25.1, 25.6, 27.0, 27.5));
-  el.c1.firstChild.style.transform = `translateY(${-145 * smooth((t - 23.4) / 2.0)}px)`;
-  el.c2.firstChild.style.transform = `translateY(${-145 * smooth((t - 25.4) / 1.8)}px)`;
-  o('e1', win(t, 27.4, 28.1, 99, 100), rise(t, 27.4, 28.2, 24));
-  o('e2', win(t, 27.9, 28.6, 99, 100), rise(t, 27.9, 28.7, 18));
-  o('e3', win(t, 28.2, 28.9, 99, 100), rise(t, 28.2, 29.0, 14));
+  o('c0', cust, rise(t, 29.4, 30.1, 16));
+  o('c0s', win(t, 30.2, 30.8, 32.3, 32.7));
+  o('c0t', win(t, 32.7, 33.2, 34.9, 35.4));
+  o('c1', win(t, 30.4, 31.0, 32.4, 32.9), rise(t, 30.4, 31.1, 60));
+  o('c2', win(t, 32.4, 32.9, 34.8, 35.3));
+  el.c1.firstChild.style.transform = `translateY(${-160 * smooth((t - 30.8) / 1.8)}px)`;
+  el.c2.firstChild.style.transform = `translateY(${-160 * smooth((t - 33.0) / 1.8)}px)`;
+  o('e1', win(t, 36.0, 36.8, 99, 100), rise(t, 36.0, 36.9, 24));
+  o('e2', win(t, 37.0, 37.8, 99, 100), rise(t, 37.0, 37.9, 16));
+  o('e3', win(t, 37.6, 38.4, 99, 100), rise(t, 37.6, 38.5, 12));
 }
 
 // --- Landscape ---------------------------------------------------------------
@@ -114,11 +114,11 @@ function story(t) {
 function buildLandscape() {
   ui.innerHTML = '';
   const add = (id, h, parent = ui) => { el[id] = $(h); parent.appendChild(el[id]); };
-  add('scr', `<div class="scrim" style="background:radial-gradient(90% 80% at 0% 100%, rgba(5,6,13,.8) 0%, rgba(5,6,13,.35) 45%, rgba(5,6,13,0) 70%)"></div>`);
-  add('t1', `<h1 class="abs mega shadow" style="left:72px;top:560px;font-size:210px;font-weight:300"><span class="ln">The Earth,</span><span class="ln">right now.</span></h1>`);
-  add('ro', `<div class="abs mono shadow" style="left:80px;top:1010px;font-size:22px;color:var(--muted)">${READOUT}</div>`);
-  add('r1', `<div class="abs mega shadow" style="left:72px;top:96px;font-size:150px">The real Earth.</div>`);
-  add('r2', `<div class="abs lead shadow" style="left:80px;top:250px;font-size:50px">Right on your desktop.</div>`);
+  const lab = (id, name) => add(id, `<div class="abs ctr lab shadow" style="top:918px"><b style="font-size:40px">${name}</b><span style="font-size:20px">${CAPS[name]}</span></div>`);
+  add('scr', `<div class="scrim" style="background:radial-gradient(70% 60% at 50% 50%, rgba(5,6,13,.55) 0%, rgba(5,6,13,0) 75%)"></div>`);
+  add('t1', `<div class="abs ctr h1wrap" style="top:330px"><h1 class="mega shadow" style="font-size:200px;font-weight:760"><span class="ln">The Earth,</span><span class="ln">right now.</span></h1></div>`);
+  add('r1', `<div class="abs ctr hl shadow" style="top:110px;font-size:124px">The real Earth.</div>`);
+  add('r2', `<div class="abs ctr sub shadow" style="top:258px;font-size:40px">Right on your desktop.</div>`);
   // display frame drawn around the stage
   add('bezel', `<div class="abs" style="left:0;top:0;width:1920px;height:1080px;pointer-events:none"></div>`);
   add('menubar', `<div class="abs" style="left:0;top:0;width:1920px;height:30px;display:flex;align-items:center;gap:22px;padding:0 18px;
@@ -128,45 +128,45 @@ function buildLandscape() {
   add('win', `<div class="abs card" style="left:0;top:0;width:640px;transform-origin:0 0">
      <div class="titlebar"><div class="lights"><i></i><i></i><i></i></div>Earth Now</div>
      <img src="${shots}settings-en-dark.png"></div>`);
-  add('d1', `<div class="abs display" style="left:0;right:0;top:972px;font-size:66px;text-align:center">It's your wallpaper. Live, all day.</div>`);
-  add('d0', `<div class="abs mono" style="left:0;right:0;top:28px;font-size:22px;text-align:center;color:var(--muted)">Lives in the menu bar · set it once, then forget it</div>`);
-  [['v1', 'Whole Earth'], ['v2', 'Close-up'], ['v3', 'Horizon']].forEach(([id, name]) =>
-    add(id, `<div class="abs cap shadow" style="left:80px;top:900px"><b style="font-size:52px">${name}</b><span class="mono" style="font-size:22px">${CAPS[name]}</span></div>`));
-  add('e1', `<div class="abs wordmark shadow" style="left:120px;top:360px;gap:28px"><img src="assets/mark.svg" style="width:118px;height:118px"><span class="display" style="font-size:150px">Earth Now</span></div>`);
-  add('e2', `<div class="abs lead shadow" style="left:124px;top:540px;font-size:48px;color:var(--star)">The real Earth, right now,<br>as your Mac's desktop.</div>`);
-  add('e3', `<div class="abs mono shadow" style="left:124px;top:690px;font-size:24px;color:var(--muted)">Free and open source · macOS 13 or later · Apple Silicon and Intel</div>`);
+  add('d1', `<div class="abs ctr hl" style="top:950px;font-size:64px">It's your wallpaper. Live, all day.</div>`);
+  add('d0', `<div class="abs ctr sub" style="top:22px;font-size:26px">Lives in the menu bar. Set it once, then forget it.</div>`);
+  add('p1', `<div class="abs ctr hl shadow" style="top:110px;font-size:92px">Your location. Your angle. <span class="sodium">Your view.</span></div>`);
+  lab('v1', 'Whole Earth'); lab('v2', 'Close-up'); lab('v3', 'Horizon');
+  add('e1', `<div class="abs shadow" style="left:0;width:1040px;top:360px;text-align:center"><div class="wordmark" style="display:inline-flex;gap:28px"><img src="assets/mark.svg" style="width:110px;height:110px"><span class="hl" style="font-size:140px">Earth Now</span></div></div>`);
+  add('e2', `<div class="abs sub shadow" style="left:0;width:1040px;top:560px;text-align:center;font-size:44px;color:var(--star)">The real Earth, right now,<br>as your Mac's desktop.</div>`);
+  add('e3', `<div class="abs mono shadow" style="left:0;width:1040px;top:720px;text-align:center;font-size:22px;color:var(--muted)">Free and open source · macOS 13 or later</div>`);
 }
 
 function landscape(t) {
   const o = (id, v, dy = 0) => { el[id].style.opacity = v; el[id].style.transform = `translateY(${dy}px)`; };
   stage.style.opacity = smooth(t / 0.6);
-  o('t1', win(t, 0.4, 1.2, 2.8, 3.4), rise(t, 0.4, 1.3, 22));
-  o('r1', win(t, 4.0, 4.8, 9.8, 10.4), rise(t, 4.0, 4.9, 24));
-  o('r2', win(t, 4.8, 5.6, 9.8, 10.4), rise(t, 4.8, 5.7, 20));
-  el.r1.style.fontWeight = Math.round(300 + 470 * smooth((t - 6.6) / 3.8));
-  o('ro', win(t, 0.8, 1.6, 9.8, 10.4));
-  o('scr', win(t, 0, 0.1, 2.8, 3.6));
+  o('scr', win(t, 0, 0.1, 3.4, 4.2));
+  o('t1', win(t, 0.5, 1.4, 3.3, 3.9), rise(t, 0.5, 1.5, 22));
+  o('r1', win(t, 4.8, 5.6, 10.3, 10.9), rise(t, 4.8, 5.7, 22));
+  o('r2', win(t, 5.8, 6.6, 10.3, 10.9), rise(t, 5.8, 6.7, 14));
   // desktop: shrink the stage into a display, hold, grow back
-  const d = smooth((t - 11.0) / 1.2) * (1 - smooth((t - 18.0) / 1.0));
+  const d = smooth((t - 12.2) / 1.3) * (1 - smooth((t - 20.6) / 1.0));
   const s = 1 - d * (1 - 0.78), top = d * 90, left = (1920 - 1920 * s) / 2;
   stage.style.transform = `translate(${left}px, ${top}px) scale(${s})`;
   stage.style.transformOrigin = '0 0';
   stage.style.borderRadius = `${d * 16}px`;
   stage.style.boxShadow = d > 0 ? `0 0 0 ${d * 12}px #0b0c10, 0 0 0 ${d * 13}px rgba(255,255,255,.12), 0 30px 120px rgba(0,0,0,${d * .8})` : 'none';
-  document.body.style.background = d > 0 ? `radial-gradient(80% 70% at 50% 45%, rgb(${22 * d},${28 * d},${44 * d}), #000)` : '#000';
-  const mb = el.menubar; mb.style.opacity = smooth((t - 11.9) / 0.5) * (1 - smooth((t - 17.6) / 0.4));
+  document.body.style.background = d > 0 ? `radial-gradient(80% 70% at 50% 45%, rgb(${22 * d},${28 * d},${44 * d}), #000)` : '#05060d';
+  const mb = el.menubar; mb.style.opacity = smooth((t - 13.2) / 0.5) * (1 - smooth((t - 20.2) / 0.4));
   mb.style.transform = `translate(${left}px, ${top}px) scale(${s})`;
-  const w = el.win, wv = win(t, 12.4, 13.0, 17.2, 17.7);
+  // first the message, then the window
+  o('d1', win(t, 13.8, 14.6, 19.9, 20.5), rise(t, 13.8, 14.7, 16));
+  const w = el.win, wv = win(t, 16.0, 16.7, 19.7, 20.3);
   w.style.opacity = wv;
-  w.style.transform = `translate(${left + 120 * s}px, ${top + (90 + rise(t, 12.4, 13.1, 40)) * s}px) scale(${s})`;
-  o('d1', win(t, 12.0, 12.6, 17.4, 17.9), rise(t, 12.0, 12.7, 16));
-  o('d0', win(t, 12.2, 12.8, 17.4, 17.9));
-  o('v1', win(t, 19.9, 20.3, 21.4, 21.8));
-  o('v2', win(t, 23.3, 23.7, 24.8, 25.2));
-  o('v3', win(t, 26.7, 27.1, 28.2, 28.6));
-  o('e1', win(t, 30.2, 30.9, 99, 100), rise(t, 30.2, 31.0, 22));
-  o('e2', win(t, 30.6, 31.3, 99, 100), rise(t, 30.6, 31.4, 18));
-  o('e3', win(t, 30.9, 31.6, 99, 100), rise(t, 30.9, 31.7, 14));
+  w.style.transform = `translate(${left + 120 * s}px, ${top + (90 + rise(t, 16.0, 16.8, 40)) * s}px) scale(${s})`;
+  o('d0', win(t, 16.6, 17.3, 19.9, 20.5));
+  o('p1', win(t, 22.2, 23.0, 24.6, 25.2), rise(t, 22.2, 23.1, 22));
+  o('v1', win(t, 25.3, 25.8, 26.5, 27.0));
+  o('v2', win(t, 28.9, 29.4, 30.7, 31.2));
+  o('v3', win(t, 33.3, 33.8, 35.1, 35.6));
+  o('e1', win(t, 37.6, 38.4, 99, 100), rise(t, 37.6, 38.5, 22));
+  o('e2', win(t, 38.6, 39.4, 99, 100), rise(t, 38.6, 39.5, 16));
+  o('e3', win(t, 39.2, 40.0, 99, 100), rise(t, 39.2, 40.1, 12));
 }
 
 window.setFrame = async ({ t, src, format }) => {
