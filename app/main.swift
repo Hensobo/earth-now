@@ -541,8 +541,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // Debug/screenshots: EARTHNOW_APPEARANCE=dark|light forces the appearance
         if let a = env["EARTHNOW_APPEARANCE"] { NSApp.appearance = NSAppearance(named: a == "dark" ? .darkAqua : .aqua) }
         if env["EARTHNOW_SETTINGS"] != nil { openSettings() }
-        // Debug: EARTHNOW_SETTINGS_SCROLL=bottom scrolls the settings form to its end before the snapshot
-        if env["EARTHNOW_SETTINGS_SCROLL"] == "bottom" {
+        // Debug: EARTHNOW_SETTINGS_SCROLL=bottom|<points> scrolls the settings form before the snapshot
+        // (to its end, or that many points down from the top; used to film a scroll for the launch video)
+        if let scroll = env["EARTHNOW_SETTINGS_SCROLL"], scroll != "top" {
             DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
                 func scrollViews(_ v: NSView) -> [NSScrollView] {
                     ((v as? NSScrollView).map { [$0] } ?? []) + v.subviews.flatMap(scrollViews)
@@ -550,9 +551,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 guard let content = self.settingsWindow?.contentView,
                       let sv = scrollViews(content).max(by: { $0.frame.height < $1.frame.height }),
                       let doc = sv.documentView else { return }
-                let y = doc.isFlipped ? max(0, doc.frame.height - sv.contentView.bounds.height) : 0
-                sv.contentView.scroll(to: NSPoint(x: 0, y: y))
+                let maxOffset = max(0, doc.frame.height - sv.contentView.bounds.height)
+                let offset = scroll == "bottom" ? maxOffset : min(maxOffset, max(0, CGFloat(Double(scroll) ?? 0)))
+                sv.contentView.scroll(to: NSPoint(x: 0, y: doc.isFlipped ? offset : maxOffset - offset))
                 sv.reflectScrolledClipView(sv.contentView)
+                let frame = sv.convert(sv.bounds, to: nil)
+                // stderr: unbuffered, so the line survives the app being killed after the snapshot
+                fputs("settings-scroll offset=\(offset) max=\(maxOffset) viewport=\(sv.contentView.bounds.height) " +
+                      "window=\(content.bounds.height) frame=\(frame.minY),\(frame.maxY)\n", stderr)
             }
         }
         // Debug: save an image of the settings window (including the live preview)

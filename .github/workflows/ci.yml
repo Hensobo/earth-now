@@ -2,7 +2,8 @@
 # a DMG plus real screenshots of the app windows (English and German) as artifacts.
 #
 # Put "[screenshots]" in a commit message to have the screenshots committed to
-# docs/screenshots/app/ on that branch.
+# docs/screenshots/app/ on that branch ("[settings-scroll]": the scrolled settings series, see
+# EARTHNOW_SETTINGS_SCROLL, to docs/screenshots/app/scroll/).
 name: CI
 
 on:
@@ -116,11 +117,31 @@ jobs:
           rm -f shots/dmg-desktop.png shots/desktop-en-dark.png shots/desktop-en-bottom.png shots/desktop-de-light.png
           ls -la shots
 
+      - name: Settings scrolled from top to bottom (for the launch video)
+        run: |
+          mkdir -p shots/scroll
+          for y in 0 120 240 360 480 600 720 840 960 1080 1200 bottom; do
+            EARTHNOW_SETTINGS=1 EARTHNOW_APPEARANCE=dark EARTHNOW_SETTINGS_SCROLL=$y \
+            EARTHNOW_TIME=2026-06-21T14:30:00Z \
+            EARTHNOW_SETTINGS_SNAPSHOT=$PWD/shots/scroll/settings-scroll-$y.png \
+              EarthNow.app/Contents/MacOS/EarthNow -AppleLanguages "(en)" > shots/scroll/settings-scroll-$y.txt 2>&1 &
+            PID=$!
+            sleep 12
+            kill $PID || true
+            wait $PID 2>/dev/null || true
+            grep settings-scroll shots/scroll/settings-scroll-$y.txt || true
+          done
+          ls -la shots/scroll
+
       - name: Commit screenshots to the branch
-        if: github.event_name == 'push' && contains(github.event.head_commit.message, '[screenshots]')
+        # "[screenshots]": the app screenshots; "[settings-scroll]": only the scrolled settings series
+        if: github.event_name == 'push' && (contains(github.event.head_commit.message, '[screenshots]') || contains(github.event.head_commit.message, '[settings-scroll]'))
+        env:
+          MESSAGE: ${{ github.event.head_commit.message }}
         run: |
           mkdir -p docs/screenshots/app
-          cp shots/*.png docs/screenshots/app/
+          case "$MESSAGE" in *"[screenshots]"*) cp shots/*.png docs/screenshots/app/ ;; esac
+          case "$MESSAGE" in *"[settings-scroll]"*) mkdir -p docs/screenshots/app/scroll && cp shots/scroll/* docs/screenshots/app/scroll/ ;; esac
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add docs/screenshots/app
