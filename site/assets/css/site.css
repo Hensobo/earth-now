@@ -185,8 +185,12 @@ html.over-hero .top .btn { --bg: var(--sodium); --fg: var(--deep); --flood: var(
 .hero { position: relative; height: 210svh; color: var(--star); }
 /* the hero's night does not end at a hard edge: it fades out into the sky below */
 .hero::after {
-  content: ''; position: absolute; left: 0; right: 0; top: 100%; height: min(38svh, 360px); pointer-events: none;
-  background: linear-gradient(180deg, rgba(5, 6, 13, var(--tail, .72)) 0%, rgba(5, 6, 13, calc(var(--tail, .72) * .66)) 16%, rgba(5, 6, 13, calc(var(--tail, .72) * .4)) 34%, rgba(5, 6, 13, calc(var(--tail, .72) * .2)) 54%, rgba(5, 6, 13, calc(var(--tail, .72) * .07)) 76%, rgba(5, 6, 13, 0) 100%);
+  content: ''; position: absolute; left: 0; right: 0; top: 100%; height: var(--tail-h, 62svh); pointer-events: none;
+  background: linear-gradient(180deg,
+    rgba(5, 6, 13, var(--tail, .7)) 0%, rgba(5, 6, 13, calc(var(--tail, .7) * .94)) 8%,
+    rgba(5, 6, 13, calc(var(--tail, .7) * .8)) 18%, rgba(5, 6, 13, calc(var(--tail, .7) * .6)) 30%,
+    rgba(5, 6, 13, calc(var(--tail, .7) * .38)) 44%, rgba(5, 6, 13, calc(var(--tail, .7) * .2)) 60%,
+    rgba(5, 6, 13, calc(var(--tail, .7) * .07)) 78%, rgba(5, 6, 13, 0) 100%);
 }
 .hero__stage { position: sticky; top: 0; height: 100svh; overflow: clip; }
 .hero__still { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 50%; transition: opacity .8s var(--e-soft); }
@@ -194,8 +198,8 @@ html.earth-ready .hero__still { opacity: 0; }
 .hero__scrim {
   position: absolute; inset: 0; pointer-events: none;
   background:
-    radial-gradient(120% 90% at 0% 60%, rgba(5, 6, 13, .78) 0%, rgba(5, 6, 13, .35) 45%, rgba(5, 6, 13, 0) 70%),
-    linear-gradient(0deg, rgba(5, 6, 13, .7) 0%, rgba(5, 6, 13, 0) 30%);
+    radial-gradient(120% 75% at 0% 50%, rgba(5, 6, 13, .78) 0%, rgba(5, 6, 13, .35) 45%, rgba(5, 6, 13, 0) 70%),
+    linear-gradient(0deg, rgba(5, 6, 13, .7) 0%, rgba(5, 6, 13, .7) 10%, rgba(5, 6, 13, .55) 18%, rgba(5, 6, 13, .3) 27%, rgba(5, 6, 13, .1) 36%, rgba(5, 6, 13, 0) 46%);
 }
 .hero__content {
   position: relative; z-index: 2; height: 100%;
@@ -215,9 +219,9 @@ html.earth-ready .hero__still { opacity: 0; }
 .live-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--sodium); margin-right: 8px; vertical-align: 1px; box-shadow: 0 0 0 4px rgba(255, 138, 61, .22); }
 
 @media (max-width: 760px) {
-  .hero { height: 170svh; --tail: .92; }
+  .hero { height: 170svh; --tail: .78; --tail-h: 40svh; }
   .hero__still { object-position: 30% 8%; }
-  .hero__scrim { background: linear-gradient(0deg, rgba(5, 6, 13, .92) 0%, rgba(5, 6, 13, .6) 42%, rgba(5, 6, 13, 0) 70%); }
+  .hero__scrim { background: linear-gradient(0deg, rgba(5, 6, 13, .78) 0%, rgba(5, 6, 13, .82) 14%, rgba(5, 6, 13, .6) 42%, rgba(5, 6, 13, 0) 70%); }
   .hero__content { grid-template-rows: 1fr auto auto; padding-top: 90px; }
   .hero h1 { font-size: clamp(3.4rem, 21vw, 7rem); }
   .hero h1 .line + .line { padding-left: 0; }
@@ -243,7 +247,7 @@ html.earth-ready .hero__still { opacity: 0; }
 .statement .live-city { font-family: var(--f-mono); font-weight: 500; font-size: .78em; letter-spacing: -0.02em; padding: 0 .3em; border-radius: 6px; background: color-mix(in srgb, var(--ink) 10%, transparent); white-space: nowrap; }
 .statement .aside { grid-column: 9 / span 4; margin-top: 40px; color: var(--muted); max-width: 34ch; }
 @media (max-width: 760px) {
-  .statement { padding: 56px 0 32px; } .index { padding: 16px 0 36px; } .views, .mac { padding: 36px 0; } .facts { padding: 44px 0 20px; } .get { padding: 44px 0 36px; } .faq { padding: 36px 0; }
+  .statement { padding: 84px 0 32px; } .index { padding: 16px 0 36px; } .views, .mac { padding: 36px 0; } .facts { padding: 44px 0 20px; } .get { padding: 44px 0 36px; } .faq { padding: 36px 0; }
   .get .get__row { margin-top: 24px; } .steps { margin-top: 28px !important; } .statement .aside { margin-top: 24px; } .mac .mac__small { margin-top: 20px; } .views .wall { row-gap: 22px; }
   .foot .foot__mark { font-size: 29.4vw; margin-block: 28px 18px; }
   .views__head, .index__head { margin-bottom: 24px; }
