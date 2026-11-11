@@ -31,3 +31,8 @@ How it works
 - `overlay.html` and `stills.html` add the typography. The app window shows real CI screenshots
   of the 1.0 app (`assets/`). The desktop frame and menu bar in the landscape video are drawn.
 - Instagram safe zones: no copy in the top 250 px or bottom 300 px of the story formats.
+- The settings window in both videos scrolls once from top to bottom. `assets/settings-list.png`
+  is the whole list, stitched from real app captures at known scroll offsets
+  (`assets/settings-scroll/`, taken by CI with `EARTHNOW_SETTINGS_SCROLL=<points>`; the overlaps
+  are pixel-identical). The preview above it (`assets/settings-preview.png`) is from the earlier
+  CI screenshot of the same window, because the live preview had not loaded in those captures.

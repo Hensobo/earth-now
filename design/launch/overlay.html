@@ -52,6 +52,7 @@
 const $ = (h) => { const d = document.createElement('div'); d.innerHTML = h.trim(); return d.firstChild; };
 const clamp = (x) => Math.max(0, Math.min(1, x));
 const smooth = (x) => { x = clamp(x); return x * x * (3 - 2 * x); };
+const ease3 = (x) => { x = clamp(x); return x < 0.5 ? 4 * x * x * x : 1 - (-2 * x + 2) ** 3 / 2; };  // scroll: gentle start and stop
 // visible between a and d, fading in a..b and out c..d
 const win = (t, a, b, c, d) => smooth((t - a) / (b - a)) * (1 - smooth((t - c) / (d - c)));
 const rise = (t, a, b, px) => (1 - smooth((t - a) / (b - a))) * px;   // slides up from +px to 0
@@ -68,6 +69,25 @@ const READOUT = `<span class="live-dot"></span>20 Mar 2026, 03:00 UTC · Sun ove
 const CAPS = { 'Horizon': 'low over the sunrise line', 'Close-up': 'your region, up close',
   'Whole Earth': 'day, night and the line between', 'Side View': 'the Earth beside your icons' };
 
+
+// The settings window as in the app: the preview stays, the list below scrolls. settings-list.png is
+// the whole list stitched from CI captures at known scroll offsets (pixel-identical overlaps).
+const LIST_H = 2062;  // px at 2x
+function settingsWindow(widthCss, viewPx, extra = '') {
+  const k = widthCss / 1120, thumb = viewPx * (viewPx - 30) / LIST_H;
+  return `<div class="abs card sw" data-k="${k}" data-view="${viewPx}" data-thumb="${thumb}" style="width:${widthCss}px;${extra}">
+    <img src="assets/settings-preview.png" style="display:block;width:100%">
+    <div style="position:relative;overflow:hidden;height:${viewPx * k}px;background:#262626">
+      <img class="swl" src="assets/settings-list.png" style="display:block;width:100%">
+      <i class="swt" style="position:absolute;left:${1099 * k}px;width:${14 * k}px;height:${thumb * k}px;border-radius:${7 * k}px;background:#717171"></i>
+    </div></div>`;
+}
+function scrollSettings(w, u) {  // u: 0 = top, 1 = end of the list
+  const k = +w.dataset.k, v = +w.dataset.view, th = +w.dataset.thumb;
+  w.querySelector('.swl').style.transform = `translateY(${-u * (LIST_H - v) * k}px)`;
+  w.querySelector('.swt').style.top = `${(8 + u * (v - 16 - th)) * k}px`;
+}
+
 function buildStory() {
   ui.innerHTML = '';
   const add = (id, h) => { el[id] = $(h); ui.appendChild(el[id]); };
@@ -81,8 +101,8 @@ function buildStory() {
   add('c0s', `<div class="abs ctr sub shadow" style="top:392px;font-size:36px">Pick a view, a place and how it moves.</div>`);
   add('c0t', `<div class="abs ctr sub shadow" style="top:392px;font-size:36px">Fine-tune the framing, clouds and quality.</div>`);
   // nearly full width, so the controls stay readable on a phone; slowly scrolled
-  add('c1', `<div class="abs card" style="left:60px;width:960px;top:480px;height:1040px"><img src="${shots}settings-en-dark.png"></div>`);
-  add('c2', `<div class="abs card" style="left:60px;width:960px;top:480px;height:1040px"><img src="${shots}settings-en-bottom.png"></div>`);
+  // one window, scrolled from top to bottom (614 px of list visible: 514 + 526 = 1040 px tall)
+  add('c1', settingsWindow(960, 614, 'left:60px;top:480px'));
   add('e1', `<div class="abs ctr shadow" style="top:300px"><div class="wordmark" style="display:inline-flex;font-size:150px"><img src="assets/mark.svg" alt=""><span class="hl">Earth Now</span></div></div>`);
   add('e2', `<div class="abs ctr sub shadow" style="top:1410px;font-size:46px;color:var(--star)">Free and open source for macOS</div>`);
   add('e3', `<div class="abs ctr shadow mono" style="top:1492px;font-size:26px;color:var(--muted)">macOS 13 or later · Apple Silicon and Intel</div>`);
@@ -104,10 +124,8 @@ function story(t) {
   o('c0', cust, rise(t, 29.4, 30.1, 16));
   o('c0s', win(t, 30.2, 30.8, 32.3, 32.7));
   o('c0t', win(t, 32.7, 33.2, 34.9, 35.4));
-  o('c1', win(t, 30.4, 31.0, 32.4, 32.9), rise(t, 30.4, 31.1, 60));
-  o('c2', win(t, 32.4, 32.9, 34.8, 35.3));
-  el.c1.firstChild.style.transform = `translateY(${-160 * smooth((t - 30.8) / 1.8)}px)`;
-  el.c2.firstChild.style.transform = `translateY(${-160 * smooth((t - 33.0) / 1.8)}px)`;
+  o('c1', win(t, 30.4, 31.0, 34.8, 35.3), rise(t, 30.4, 31.1, 60));
+  scrollSettings(el.c1, ease3((t - 31.3) / 3.1));
   o('e1', win(t, 36.0, 36.8, 99, 100), rise(t, 36.0, 36.9, 24));
   o('e2', win(t, 37.0, 37.8, 99, 100), rise(t, 37.0, 37.9, 16));
   o('e3', win(t, 37.6, 38.4, 99, 100), rise(t, 37.6, 38.5, 12));
@@ -131,7 +149,7 @@ function buildLandscape() {
      <span style="margin-left:auto">Fri 20 Mar&nbsp;&nbsp;04:00</span></div>`);
   add('win', `<div class="abs card" style="left:0;top:0;width:640px;transform-origin:0 0">
      <div class="titlebar"><div class="lights"><i></i><i></i><i></i></div>Earth Now</div>
-     <img src="${shots}settings-en-dark.png"></div>`);
+     ${settingsWindow(640, 800, 'position:relative;border-radius:0;box-shadow:none')}</div>`);
   add('d1', `<div class="abs ctr hl" style="top:950px;font-size:64px">It's your wallpaper. Live, all day.</div>`);
   add('d0', `<div class="abs ctr sub" style="top:22px;font-size:26px">Lives in the menu bar. Set it once, then forget it.</div>`);
   add('p1', `<div class="abs ctr hl shadow" style="top:110px;font-size:92px">Your location. Your angle. <span class="sodium">Your view.</span></div>`);
@@ -164,6 +182,7 @@ function landscape(t) {
   w.style.opacity = wv;
   w.style.transform = `translate(${left + 120 * s}px, ${top + (90 + rise(t, 16.0, 16.8, 40)) * s}px) scale(${s})`;
   o('d0', win(t, 16.6, 17.3, 19.9, 20.5));
+  scrollSettings(el.win.querySelector('.sw'), ease3((t - 16.9) / 2.6));
   o('p1', win(t, 22.2, 23.0, 24.6, 25.2), rise(t, 22.2, 23.1, 22));
   o('v1', win(t, 25.3, 25.8, 26.5, 27.0));
   o('v2', win(t, 28.9, 29.4, 30.7, 31.2));
