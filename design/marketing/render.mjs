@@ -15,7 +15,7 @@ import { execFileSync } from 'node:child_process';
 const require = createRequire(import.meta.url);
 const { chromium } = require('playwright');
 const root = resolve('.');
-const types = { '.html': 'text/html', '.js': 'text/javascript', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml' };
+const types = { '.html': 'text/html', '.js': 'text/javascript', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.css': 'text/css', '.woff2': 'font/woff2' };
 
 const server = createServer(async (req, res) => {
   try {

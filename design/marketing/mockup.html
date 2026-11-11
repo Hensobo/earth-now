@@ -3,7 +3,7 @@
   Desktop mockups for the README and website. Rendered by design/marketing/render.mjs.
   ?scene=menu      wallpaper + menu bar + open Earth Now menu
   ?scene=settings  wallpaper + menu bar + settings window (CI screenshot)
-  ?scene=social    1280×640 social preview
+  ?scene=social    1280×640 social preview (website design, social-earth.jpg)
   Images are real renders of web/index.html (docs/screenshots/views) and real app
   screenshots from CI (docs/screenshots/app). Only the desktop frame is drawn here.
 -->
@@ -67,6 +67,24 @@
   .social .earth { position: absolute; right: -120px; top: 50%; width: 760px; height: 760px; transform: translateY(-50%);
     background: center / 172% no-repeat;
     -webkit-mask-image: radial-gradient(circle, #000 58%, transparent 71%); mask-image: radial-gradient(circle, #000 58%, transparent 71%); }
+  /* social preview: the website's hero (design/website/DESIGN.md) */
+  @font-face { font-family: 'Bricolage'; src: url('../../site/assets/fonts/bricolage-200_800-normal.woff2') format('woff2'); font-weight: 200 800; font-stretch: 75% 100%; }
+  @font-face { font-family: 'Geist Mono'; src: url('../../site/assets/fonts/geist-mono-500-normal.woff2') format('woff2'); font-weight: 500; }
+  .share { position: absolute; inset: 0; background: #05060d center / cover no-repeat; color: #f4f2ee; font-family: 'Bricolage', sans-serif; }
+  .share::before { content: ''; position: absolute; inset: 0; background:
+    radial-gradient(110% 95% at 0% 60%, rgba(5,6,13,.86) 0%, rgba(5,6,13,.45) 45%, rgba(5,6,13,0) 70%),
+    linear-gradient(0deg, rgba(5,6,13,.75) 0%, rgba(5,6,13,0) 30%); }
+  .share .in { position: absolute; inset: 0; padding: 44px 56px 34px; display: grid; grid-template-rows: auto 1fr auto auto; }
+  .share .brand { display: flex; align-items: center; gap: 12px; font-size: 26px; font-weight: 700; font-stretch: 85%; letter-spacing: -0.02em; }
+  .share .brand img { width: 36px; height: 36px; }
+  .share h1 { align-self: end; margin: 0 0 0 -0.05em; font-size: 156px; font-weight: 760; font-stretch: 78%;
+    font-variation-settings: 'opsz' 96; letter-spacing: -0.028em; line-height: 0.88; }
+  .share h1 span { display: block; white-space: nowrap; } .share h1 span + span { padding-left: 0.62em; }
+  .share p { margin: 40px 0 0; font-size: 25px; line-height: 1.35; color: #d9dae0; max-width: 25ch; }
+  .share .meta { display: flex; justify-content: space-between; margin-top: 30px; padding-top: 14px; border-top: 1px solid rgba(244,242,238,.18);
+    font: 500 15.5px 'Geist Mono', monospace; letter-spacing: .01em; color: #c9cad2; }
+  .share .meta b { color: #f4f2ee; font-weight: 500; }
+  .share .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #ff8a3d; margin-right: 9px; box-shadow: 0 0 0 4px rgba(255,138,61,.22); }
 </style>
 </head>
 <body>
@@ -114,9 +132,14 @@ if (scene === 'menu') {
     ${q.get('second') ? win(q.get('second'), 770, 132) : ''}
     ${win(q.get('shot') || 'settings-en-dark.png', 110, 58)}`;
 } else if (scene === 'social') {
-  html = `<div class="social"><div class="earth" style="background-image:url(${root}docs/screenshots/views/whole-earth.jpg)"></div>
-    <div class="text"><img class="logo" src="${root}design/icon/png/earth-now-256.png" alt="">
-    <h1>Earth Now</h1><p>The real Earth, <b>right now</b>,<br>as your Mac's desktop.</p></div></div>`;
+  // social-earth.jpg: the renderer at 20 Mar 2026 03:00 UTC, globe right, day side outward;
+  // the readout is the true Sun position at that moment
+  html = `<div class="share" style="background-image:url(social-earth.jpg)"><div class="in">
+    <div class="brand"><img src="${root}site/assets/icon/mark.svg" alt="">Earth Now</div>
+    <h1><span>The Earth,</span><span>right now.</span></h1>
+    <p>A live wallpaper for your Mac. Daylight where the sun is up, glowing cities where it's night.</p>
+    <div class="meta"><span><span class="dot"></span>Sun overhead at <b>0.2° S, 136.9° E</b></span><span>Free and open source · macOS 13 or later</span></div>
+  </div></div>`;
 }
 document.body.insertAdjacentHTML('beforeend', html);
 </script>
