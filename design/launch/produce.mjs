@@ -30,8 +30,9 @@ const V = (v) => ({ pitch: 0, heading: 0, tilt: 0, fov: 30, x: 0, y: 0, ...v });
 // --- Camera paths --------------------------------------------------------------
 const storyKeys = [
   // THE NIGHT: Europe, north up; city lights in the west, the first light in the east
-  { t: 0.0, view: V({ lat: 47, lon: -12, zoom: 1.05, tilt: -8, y: -0.62 }) },
-  { t: 4.0, view: V({ lat: 45, lon: -8, zoom: 1.3, pitch: 10, heading: 20, tilt: -4, y: -0.44 }), ease: 'linear' },
+  { t: 0.0, view: V({ lat: 45, lon: -20, zoom: 1.05, tilt: -8, y: -0.62 }) },
+  // looking north over the night side (north-east is already in daylight), turning toward the dawn
+  { t: 4.0, view: V({ lat: 43, lon: -14, zoom: 1.3, pitch: 10, heading: 0, tilt: -4, y: -0.44 }), ease: 'linear' },
   // THE REVEAL: dawn glow on the horizon over the lights of Portugal and Spain ...
   { t: 7.0, view: V({ lat: 40, lon: -8, zoom: 4.0, pitch: 66, heading: 30, fov: 50, y: 0.1 }), ease: 'sine' },
   // ... then glide north-east across the sunrise line, over France into the morning light of the Alps
@@ -51,7 +52,7 @@ const storyKeys = [
 
 const landKeys = [
   { t: 0.0, view: V({ lat: 50, lon: -15, zoom: 1.0, tilt: -6, y: 0.1 }) },
-  { t: 4.0, view: V({ lat: 47, lon: -9, zoom: 1.22, pitch: 10, heading: 20, tilt: -3, y: 0.08 }), ease: 'linear' },
+  { t: 4.0, view: V({ lat: 46, lon: -16, zoom: 1.22, pitch: 10, heading: 0, tilt: -3, y: 0.08 }), ease: 'linear' },
   { t: 7.0, view: V({ lat: 40, lon: -8, zoom: 4.0, pitch: 66, heading: 30, fov: 50, y: 0.15 }), ease: 'sine' },
   { t: 11.0, view: V({ lat: 46.5, lon: 11, zoom: 4.0, pitch: 66, heading: 70, fov: 50, y: 0.15 }), ease: 'sine' },
   { t: 12.0, view: V({ lat: 46.7, lon: 12, zoom: 4.0, pitch: 66, heading: 71, fov: 50, y: 0.15 }), ease: 'linear' },
