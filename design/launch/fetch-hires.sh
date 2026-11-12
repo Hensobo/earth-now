@@ -39,12 +39,17 @@ NIGHT_URL=$(find_link 'BlackMarble_2016_3km(_geo)?\.(jpg|tif)' \
   https://earthobservatory.nasa.gov/features/NightLights/page3.php \
   https://earthobservatory.nasa.gov/images/144898/earth-at-night-black-marble-2016-color-maps \
   https://visibleearth.nasa.gov/images/144898/earth-at-night-black-marble-2016-color-maps) || true
-CLOUD_URL=$(find_link 'cloud_combined_(21600|8192|4096)\.(jpg|tif|png)' \
-  https://visibleearth.nasa.gov/images/57747/blue-marble-clouds \
-  https://visibleearth.nasa.gov/images/57747/blue-marble-clouds/57747l) || true
+# Blue Marble clouds (Visible Earth 57747): list every cloud file the pages link to
+CLOUD_PAGES="https://visibleearth.nasa.gov/images/57747/blue-marble-clouds https://visibleearth.nasa.gov/images/57747/blue-marble-clouds/57747l https://earthobservatory.nasa.gov/images/57747/blue-marble-clouds"
+CLOUD_LINKS=$(for page in $CLOUD_PAGES; do get "$page" 2>/dev/null | grep -oE "(https?://[^\"' ]*|/[^\"' ]*)cloud[^\"' /]*\.(jpg|png|tif)" || true; done | sort -u)
+echo "cloud files linked:"; echo "$CLOUD_LINKS"
+abs() { case "$1" in http*) echo "$1" ;; *) echo "https://visibleearth.nasa.gov$1" ;; esac; }
+CLOUD_W=$(echo "$CLOUD_LINKS" | grep -E 'cloud\.W\.[0-9]+\.21600x21600' | head -1 || true)
+CLOUD_E=$(echo "$CLOUD_LINKS" | grep -E 'cloud\.E\.[0-9]+\.21600x21600' | head -1 || true)
+CLOUD_URL=$(echo "$CLOUD_LINKS" | grep -E 'cloud_combined_(8192|4096)' | head -1 || true)
 echo "day:    ${DAY_URL:-not found}"
 echo "night:  ${NIGHT_URL:-not found}"
-echo "clouds: ${CLOUD_URL:-not found}"
+echo "clouds: W=${CLOUD_W:-none} E=${CLOUD_E:-none} combined=${CLOUD_URL:-none}"
 
 crop() {  # src  out  width_of_src  quality
   local src=$1 out=$2 w=$3 q=$4
@@ -62,23 +67,31 @@ global8k() {  # src out width quality
   vips jpegsave "$TMP/g.v" "$2" --Q "$4" --strip
 }
 
-if [[ -n "${DAY_URL:-}" ]]; then
+if [[ -n "${DAY_URL:-}" && ! -s "$OUT/day-europe.jpg" ]]; then
   get -o "$TMP/day.src" "$DAY_URL"
   w=$(vipsheader -f width "$TMP/day.src"); echo "day source ${w}px"
   crop "$TMP/day.src" "$OUT/day-europe.jpg" "$w" 90
 fi
-if [[ -n "${NIGHT_URL:-}" ]]; then
+if [[ -n "${NIGHT_URL:-}" && ! -s "$OUT/night-europe.jpg" ]]; then
   get -o "$TMP/night.src" "$NIGHT_URL"
   w=$(vipsheader -f width "$TMP/night.src"); echo "night source ${w}px"
   global8k "$TMP/night.src" "$OUT/night-8k.jpg" "$w" 88
   crop "$TMP/night.src" "$OUT/night-europe.jpg" "$w" 90
 fi
-if [[ -n "${CLOUD_URL:-}" ]]; then
-  get -o "$TMP/clouds.src" "$CLOUD_URL"
+if [[ -n "${CLOUD_W:-}" && -n "${CLOUD_E:-}" ]]; then
+  # two hemispheres, 21600x21600 each (120 px per degree): join into one equirectangular map
+  get -o "$TMP/cw.src" "$(abs "$CLOUD_W")"; get -o "$TMP/ce.src" "$(abs "$CLOUD_E")"
+  vips colourspace "$TMP/cw.src" "$TMP/cw.v" b-w; vips colourspace "$TMP/ce.src" "$TMP/ce.v" b-w
+  vips join "$TMP/cw.v" "$TMP/ce.v" "$TMP/cg.v" horizontal
+  w=$(vipsheader -f width "$TMP/cg.v"); echo "cloud source ${w}px"
+  global8k "$TMP/cg.v" "$OUT/clouds-8k.jpg" "$w" 90
+  crop "$TMP/cg.v" "$OUT/clouds-europe.jpg" "$w" 90
+elif [[ -n "${CLOUD_URL:-}" ]]; then
+  get -o "$TMP/clouds.src" "$(abs "$CLOUD_URL")"
   w=$(vipsheader -f width "$TMP/clouds.src"); echo "cloud source ${w}px"
   vips colourspace "$TMP/clouds.src" "$TMP/cg.v" b-w
   if (( w > 8192 )); then global8k "$TMP/cg.v" "$OUT/clouds-8k.jpg" "$w" 90; crop "$TMP/cg.v" "$OUT/clouds-europe.jpg" "$w" 90
-  else vips jpegsave "$TMP/cg.v" "$OUT/clouds-8k.jpg" --Q 90 --strip; fi
+  else vips jpegsave "$TMP/cg.v" "$OUT/clouds-8k.jpg" --Q 90 --strip; vips jpegsave "$TMP/cg.v" "$OUT/clouds-europe.jpg" --Q 90 --strip; fi
 fi
 rm -rf "$TMP"
 ls -la "$OUT"
