@@ -103,7 +103,8 @@ elif [[ -z "${CLOUD_URL:-}" ]]; then
   # "Contains modified EUMETSAT data"), 8192x4096; cloud cover is in the alpha channel
   get -o "$TMP/clouds.png" https://clouds.matteason.co.uk/images/8192x4096/clouds-alpha.png
   w=$(vipsheader -f width "$TMP/clouds.png"); echo "cloud source ${w}px (live-cloud-maps snapshot, $(date -u +%FT%H:%MZ))"
-  vips extract_band "$TMP/clouds.png" "$TMP/cg.v" 3
+  bands=$(vipsheader -f bands "$TMP/clouds.png"); echo "bands: $bands"
+  vips extract_band "$TMP/clouds.png" "$TMP/cg.v" $((bands - 1))   # alpha is the last band
   vips jpegsave "$TMP/cg.v" "$OUT/clouds-8k.jpg" --Q 92 --strip
   crop "$TMP/cg.v" "$OUT/clouds-europe.jpg" "$w" 92
   date -u +%FT%H:%MZ > "$OUT/clouds-snapshot-time.txt"
