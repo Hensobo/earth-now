@@ -112,15 +112,44 @@ function tex(url, srgb = true) {
   return t;
 }
 
+// Capture-only (launch videos, ?capture=1&detail=<folder>): higher-resolution NASA textures from
+// design/launch/textures: whole-globe night lights and clouds at 8K, plus full-resolution crops
+// over Europe that are blended in. The app never sets this; its shaders stay as they are.
+const DETAIL = P.has('capture') && P.get('detail') ? P.get('detail') : '';
+const DETAIL_RECT = [-32, 22, 48, 74];   // lon0, lat0, lon1, lat1 of the *-europe.jpg crops
+
 const dayTex = tex('textures/day.jpg');
-const nightTex = tex('textures/night.jpg');
+const nightTex = tex(DETAIL ? DETAIL + 'night-8k.jpg' : 'textures/night.jpg');
 const specTex = tex('textures/specular.jpg', false);
 const normalTex = tex('textures/normal.jpg', false);
 let cloudTex = null;  // statische Wolken, erst bei Bedarf geladen
 function staticClouds() {
-  if (!cloudTex) { cloudTex = tex('textures/clouds.png', false); cloudTex.wrapS = THREE.RepeatWrapping; }
+  if (!cloudTex) { cloudTex = tex(DETAIL ? DETAIL + 'clouds-8k.jpg' : 'textures/clouds.png', false); cloudTex.wrapS = THREE.RepeatWrapping; }
   return cloudTex;
 }
+const detailUniforms = DETAIL ? {
+  dayDetail: { value: tex(DETAIL + 'day-europe.jpg') },
+  nightDetail: { value: tex(DETAIL + 'night-europe.jpg') },
+  cloudDetail: { value: tex(DETAIL + 'clouds-europe.jpg', false) },
+  detailRect: { value: new THREE.Vector4((DETAIL_RECT[0] + 180) / 360, (DETAIL_RECT[1] + 90) / 180,
+                                         (DETAIL_RECT[2] + 180) / 360, (DETAIL_RECT[3] + 90) / 180) },
+} : {};
+// GLSL for the detail crops (only compiled in with DETAIL): weight w fades the crop in over its edge
+const DETAIL_GLSL = DETAIL ? `
+    uniform sampler2D dayDetail, nightDetail, cloudDetail; uniform vec4 detailRect;
+    vec3 detailAt(vec2 uv) {
+      vec2 d = (uv - detailRect.xy) / (detailRect.zw - detailRect.xy);
+      float w = smoothstep(0.0, 0.05, d.x) * smoothstep(0.0, 0.05, 1.0 - d.x) * smoothstep(0.0, 0.07, d.y) * smoothstep(0.0, 0.07, 1.0 - d.y);
+      return vec3(clamp(d, 0.0, 1.0), w);
+    }
+    // the static 8K cloud map stores cover in its grey value (the bundled one in alpha)
+    float cloudAt(sampler2D base, vec2 uv) {
+      vec3 dt = detailAt(uv);
+      return mix(texture2D(base, uv).r, texture2D(cloudDetail, dt.xy).r, dt.z);
+    }` : `
+    float cloudAt(sampler2D base, vec2 uv) { return texture2D(base, uv).a; }`;
+// live clouds (alpha) also work with DETAIL: they are only used without it
+
 const emptyTex = new THREE.DataTexture(new Uint8Array(4), 1, 1);
 emptyTex.needsUpdate = true;
 
@@ -138,6 +167,7 @@ const earthMat = new THREE.ShaderMaterial({
     moonPos: { value: new THREE.Vector3(60, 0, 0) },
     sunDir: { value: sunDir },
     camPos: { value: camera.position },
+    ...detailUniforms,
   },
   vertexShader: /* glsl */`
     varying vec2 vUv;
@@ -157,6 +187,7 @@ const earthMat = new THREE.ShaderMaterial({
     varying vec2 vUv;
     varying vec3 vNormal;
     varying vec3 vPos;
+    ${DETAIL_GLSL}
 
     // Anteil der Sonnenscheibe, den eine Kugel verdeckt (Winkelradien und Abstand in Radiant)
     float occult(float ab, float as, float sep) {
@@ -188,13 +219,17 @@ const earthMat = new THREE.ShaderMaterial({
       float dayAmt = smoothstep(-0.06, 0.14, sunN);
       float twilight = smoothstep(-0.18, 0.0, sunN) * (1.0 - smoothstep(0.0, 0.22, sunN));
 
-      vec3 day = pow(texture2D(dayMap, vUv).rgb, vec3(1.12)) * 0.92;
+      vec3 dayTexel = texture2D(dayMap, vUv).rgb;
       vec3 night = texture2D(nightMap, vUv).rgb;
+      ${DETAIL ? `vec3 dt = detailAt(vUv);
+      dayTexel = mix(dayTexel, texture2D(dayDetail, dt.xy).rgb, dt.z);
+      night = mix(night, texture2D(nightDetail, dt.xy).rgb, dt.z);` : ''}
+      vec3 day = pow(dayTexel, vec3(1.12)) * 0.92;
       float ocean = texture2D(specMap, vUv).r;
 
       // Wolkenschatten: Wolkentextur leicht Richtung Sonne versetzt
-      float cloud = texture2D(cloudMap, vUv).a * cloudAmt;
-      float shadow = texture2D(cloudMap, vUv + vec2(sunDir.x, sunDir.y) * 0.0015).a * cloudAmt;
+      float cloud = cloudAt(cloudMap, vUv) * cloudAmt;
+      float shadow = cloudAt(cloudMap, vUv + vec2(sunDir.x, sunDir.y) * 0.0015) * cloudAmt;
 
       float ecl = moonShadow(vPos);   // Sonnenfinsternis: Kern- und Halbschatten des Mondes
       vec3 color = day * (0.04 + 0.95 * max(lit, 0.0)) * (1.0 - 0.35 * shadow) * ecl;
@@ -228,7 +263,7 @@ scene.add(earth);
 
 // --- Wolken ------------------------------------------------------------------
 const cloudMat = new THREE.ShaderMaterial({
-  uniforms: { cloudMap: { value: emptyTex }, sunDir: { value: sunDir }, drift: { value: 0 }, moonPos: { value: new THREE.Vector3(60, 0, 0) } },
+  uniforms: { cloudMap: { value: emptyTex }, sunDir: { value: sunDir }, drift: { value: 0 }, moonPos: { value: new THREE.Vector3(60, 0, 0) }, ...detailUniforms },
   transparent: true,
   depthWrite: false,
   vertexShader: /* glsl */`
@@ -240,6 +275,7 @@ const cloudMat = new THREE.ShaderMaterial({
   fragmentShader: /* glsl */`
     uniform sampler2D cloudMap; uniform vec3 sunDir, moonPos; uniform float drift;
     varying vec2 vUv; varying vec3 vNormal;
+    ${DETAIL_GLSL}
     // Anteil der Sonnenscheibe, den eine Kugel verdeckt (Winkelradien und Abstand in Radiant)
     float occult(float ab, float as, float sep) {
       if (sep >= ab + as) return 0.0;
@@ -249,7 +285,7 @@ const cloudMat = new THREE.ShaderMaterial({
     }
 
     void main() {
-      float a = texture2D(cloudMap, vUv + vec2(drift, 0.0)).a;
+      float a = cloudAt(cloudMap, vUv + vec2(drift, 0.0));
       float sunN = dot(normalize(vNormal), sunDir);
       vec3 toM = moonPos - normalize(vNormal); float dm = length(toM);
       float light = smoothstep(-0.12, 0.25, sunN) *
