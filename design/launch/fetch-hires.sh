@@ -3,7 +3,8 @@
 # Run by .github/workflows/launch-textures.yml (NASA hosts are not reachable from every sandbox).
 #
 # WebGL in the software renderer allows at most 8192 px per texture, so:
-#   clouds-8k.jpg     NASA Blue Marble clouds, whole globe, 8192x4096 (grey = cloud cover)
+#   clouds-8k.jpg     cloud cover, whole globe, 8192x4096 (grey = cover): NASA Blue Marble clouds if
+#                     found, else Solar System Scope's 8K cloud map (CC BY 4.0)
 #   night-8k.jpg      NASA Black Marble 2016, whole globe, 8192x4096
 #   *-europe.jpg      full-resolution crops over Europe (lon -32..48, lat 22..74) for the close views:
 #                     day (Blue Marble NG, October 2004, the month of web/textures/day.jpg),
@@ -46,7 +47,6 @@ echo "cloud files linked:"; echo "$CLOUD_LINKS"
 abs() { case "$1" in http*) echo "$1" ;; *) echo "https://visibleearth.nasa.gov$1" ;; esac; }
 # not linked any more? try the known file names of record 57747 on both NASA hosts
 for base in https://assets.science.nasa.gov/content/dam/science/esd/eo/images/imagerecords/57000/57747 \
-            https://eoimages.gsfc.nasa.gov/images/imagerecords/57000/57747 \
             https://assets.science.nasa.gov/content/dam/science/esd/eo/images/bmng/clouds; do
   for f in cloud.W.2001210.21600x21600.png cloud.E.2001210.21600x21600.png cloud_combined_8192.tif cloud_combined_8192.jpg \
            cloud_combined_4096.jpg cloud_combined_2048.jpg; do
@@ -96,6 +96,13 @@ if [[ -n "${CLOUD_W:-}" && -n "${CLOUD_E:-}" ]]; then
   vips join "$TMP/cw.v" "$TMP/ce.v" "$TMP/cg.v" horizontal
   w=$(vipsheader -f width "$TMP/cg.v"); echo "cloud source ${w}px"
   global8k "$TMP/cg.v" "$OUT/clouds-8k.jpg" "$w" 90
+  crop "$TMP/cg.v" "$OUT/clouds-europe.jpg" "$w" 90
+elif [[ -z "${CLOUD_URL:-}" ]]; then
+  # fallback: Solar System Scope 8K cloud map (CC BY 4.0, as for the planet textures)
+  get -o "$TMP/clouds.src" https://www.solarsystemscope.com/textures/download/8k_earth_clouds.jpg
+  w=$(vipsheader -f width "$TMP/clouds.src"); echo "cloud source ${w}px (Solar System Scope)"
+  vips colourspace "$TMP/clouds.src" "$TMP/cg.v" b-w
+  vips jpegsave "$TMP/cg.v" "$OUT/clouds-8k.jpg" --Q 90 --strip
   crop "$TMP/cg.v" "$OUT/clouds-europe.jpg" "$w" 90
 elif [[ -n "${CLOUD_URL:-}" ]]; then
   get -o "$TMP/clouds.src" "$(abs "$CLOUD_URL")"
