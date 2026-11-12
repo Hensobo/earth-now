@@ -44,6 +44,17 @@ CLOUD_PAGES="https://visibleearth.nasa.gov/images/57747/blue-marble-clouds https
 CLOUD_LINKS=$(for page in $CLOUD_PAGES; do get "$page" 2>/dev/null | grep -oE "(https?://[^\"' ]*|/[^\"' ]*)cloud[^\"' /]*\.(jpg|png|tif)" || true; done | sort -u)
 echo "cloud files linked:"; echo "$CLOUD_LINKS"
 abs() { case "$1" in http*) echo "$1" ;; *) echo "https://visibleearth.nasa.gov$1" ;; esac; }
+# not linked any more? try the known file names of record 57747 on both NASA hosts
+for base in https://assets.science.nasa.gov/content/dam/science/esd/eo/images/imagerecords/57000/57747 \
+            https://eoimages.gsfc.nasa.gov/images/imagerecords/57000/57747 \
+            https://assets.science.nasa.gov/content/dam/science/esd/eo/images/bmng/clouds; do
+  for f in cloud.W.2001210.21600x21600.png cloud.E.2001210.21600x21600.png cloud_combined_8192.tif cloud_combined_8192.jpg \
+           cloud_combined_4096.jpg cloud_combined_2048.jpg; do
+    code=$(curl -s -o /dev/null -w "%{http_code}" -I -L -A "$ua" "$base/$f" || true)
+    echo "probe $code $base/$f"
+    [[ "$code" == 200 ]] && CLOUD_LINKS="$CLOUD_LINKS"$'\n'"$base/$f"
+  done
+done
 CLOUD_W=$(echo "$CLOUD_LINKS" | grep -E 'cloud\.W\.[0-9]+\.21600x21600' | head -1 || true)
 CLOUD_E=$(echo "$CLOUD_LINKS" | grep -E 'cloud\.E\.[0-9]+\.21600x21600' | head -1 || true)
 CLOUD_URL=$(echo "$CLOUD_LINKS" | grep -E 'cloud_combined_(8192|4096)' | head -1 || true)
