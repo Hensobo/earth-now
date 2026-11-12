@@ -75,7 +75,8 @@ async function renderEarth(name, keys, seconds, w, h, scale) {
   const dir = `${B}/${name}/earth`;
   await mkdir(dir, { recursive: true });
   const n = Math.round(seconds * FPS);
-  const r = await openRenderer({ width: w, height: h, scale });
+  // high-resolution textures (design/launch/textures, fetched by CI) for the videos
+  const r = await openRenderer({ width: w, height: h, scale, query: 'detail=../design/launch/textures/' });
   const t0 = Date.now();
   for (let i = 0; i < n; i++) {
     const path = `${dir}/${String(i).padStart(4, '0')}.png`;

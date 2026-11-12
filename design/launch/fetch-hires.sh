@@ -4,8 +4,7 @@
 #
 # WebGL in the software renderer allows at most 8192 px per texture, so:
 #   clouds-8k.jpg     cloud cover, whole globe, 8192x4096 (grey = cover): NASA Blue Marble clouds if
-#                     found, else one snapshot of the live cloud map (matteason/live-cloud-maps, CC0,
-#                     "Contains modified EUMETSAT data"); it is a recorded snapshot, not live
+#                     found, else the app's static cloud map upscaled 4x (Lanczos)
 #   night-8k.jpg      NASA Black Marble 2016, whole globe, 8192x4096
 #   *-europe.jpg      full-resolution crops over Europe (lon -32..48, lat 22..74) for the close views:
 #                     day (Blue Marble NG, October 2004, the month of web/textures/day.jpg),
@@ -99,15 +98,14 @@ if [[ -n "${CLOUD_W:-}" && -n "${CLOUD_E:-}" ]]; then
   global8k "$TMP/cg.v" "$OUT/clouds-8k.jpg" "$w" 90
   crop "$TMP/cg.v" "$OUT/clouds-europe.jpg" "$w" 90
 elif [[ -z "${CLOUD_URL:-}" ]]; then
-  # fallback: one snapshot of the live cloud map the app uses (matteason/live-cloud-maps, CC0,
-  # "Contains modified EUMETSAT data"), 8192x4096; cloud cover is in the alpha channel
-  get -o "$TMP/clouds.png" https://clouds.matteason.co.uk/images/8192x4096/clouds-alpha.png
-  w=$(vipsheader -f width "$TMP/clouds.png"); echo "cloud source ${w}px (live-cloud-maps snapshot, $(date -u +%FT%H:%MZ))"
-  bands=$(vipsheader -f bands "$TMP/clouds.png"); echo "bands: $bands"
-  vips extract_band "$TMP/clouds.png" "$TMP/cg.v" $((bands - 1))   # alpha is the last band
+  # fallback: the app's own static cloud map (web/textures/clouds.png, cover in alpha), upscaled to
+  # 8K with Lanczos and lightly sharpened, so close views show soft clouds instead of texel steps.
+  # (A live-cloud snapshot was tried: November weather covers Europe, and its haze greys the ground.)
+  vips extract_band web/textures/clouds.png "$TMP/ca.v" 3
+  vips resize "$TMP/ca.v" "$TMP/cb.v" 4 --kernel lanczos3
+  vips sharpen "$TMP/cb.v" "$TMP/cg.v" --sigma 1.2
   vips jpegsave "$TMP/cg.v" "$OUT/clouds-8k.jpg" --Q 92 --strip
-  crop "$TMP/cg.v" "$OUT/clouds-europe.jpg" "$w" 92
-  date -u +%FT%H:%MZ > "$OUT/clouds-snapshot-time.txt"
+  crop "$TMP/cg.v" "$OUT/clouds-europe.jpg" 8192 92
 elif [[ -n "${CLOUD_URL:-}" ]]; then
   get -o "$TMP/clouds.src" "$(abs "$CLOUD_URL")"
   w=$(vipsheader -f width "$TMP/clouds.src"); echo "cloud source ${w}px"

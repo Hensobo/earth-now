@@ -36,3 +36,7 @@ How it works
   (`assets/settings-scroll/`, taken by CI with `EARTHNOW_SETTINGS_SCROLL=<points>`; the overlaps
   are pixel-identical). The preview above it (`assets/settings-preview.png`) is from the earlier
   CI screenshot of the same window, because the live preview had not loaded in those captures.
+- Textures for the videos (`textures/`, made by `fetch-hires.sh` in CI, used with `?detail=`):
+  NASA Blue Marble NG (October 2004) at full resolution over Europe, NASA Black Marble 2016 at 8K
+  plus a full-resolution crop over Europe, and the app's static cloud map upscaled to 8K. The
+  software renderer allows at most 8192 px per texture, hence the crops for the close views.
