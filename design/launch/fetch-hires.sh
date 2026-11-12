@@ -18,7 +18,7 @@ mkdir -p "$OUT" "$TMP"
 LON0=-32; LON1=48; LAT0=22; LAT1=74
 
 ua="Mozilla/5.0 (compatible; earth-now-textures)"
-get() { curl -fsSL --retry 3 -A "$ua" "$@"; }
+get() { curl -fsSL --http1.1 --retry 5 --retry-all-errors -A "$ua" "$@"; }
 # find the first link matching a pattern on one of the given pages
 find_link() {
   local pattern=$1; shift
