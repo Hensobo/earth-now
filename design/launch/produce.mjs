@@ -20,50 +20,53 @@ const OUT = 'design/launch/out';
 const B = 'build/launch';
 await mkdir(OUT, { recursive: true });
 
-// 20 March 2026 (equinox), 03:00 UTC: night over Europe, sunrise line near 43° E, India in daylight.
-const T0 = Date.parse('2026-03-20T03:00:00Z');
+// 20 March 2026 (equinox), 05:50 UTC: the sunrise line runs through Europe at about 4° E:
+// Germany, Denmark and Italy in the first light, the UK, France, Spain, Portugal and the Atlantic
+// still at night with their city lights. (The stills keep 03:00 UTC.)
+const T0 = Date.parse('2026-03-20T05:50:00Z');
 const iso = (ms) => new Date(ms).toISOString();
 const V = (v) => ({ pitch: 0, heading: 0, tilt: 0, fov: 30, x: 0, y: 0, ...v });
 
 // --- Camera paths --------------------------------------------------------------
 const storyKeys = [
-  { t: 0.0, view: V({ lat: 49, lon: -3, zoom: 1.05, heading: 90, tilt: -8, y: -0.62 }) },
-  { t: 4.0, view: V({ lat: 46, lon: 8, zoom: 1.3, pitch: 10, heading: 92, tilt: -4, y: -0.44 }), ease: 'linear' },
-  // THE REVEAL: tip toward the eastern horizon (dawn glow over the city lights) ...
-  { t: 7.0, view: V({ lat: 38, lon: 14, zoom: 4.0, pitch: 66, heading: 92, fov: 50, y: 0.1 }), ease: 'sine' },
-  // ... then glide slowly across the sunrise line (≈ 43° E) into the morning light
-  { t: 11.0, view: V({ lat: 34, lon: 46, zoom: 4.0, pitch: 66, heading: 96, fov: 50, y: 0.1 }), ease: 'sine' },
+  // THE NIGHT: Europe, north up; city lights in the west, the first light in the east
+  { t: 0.0, view: V({ lat: 47, lon: -12, zoom: 1.05, tilt: -8, y: -0.62 }) },
+  { t: 4.0, view: V({ lat: 45, lon: -8, zoom: 1.3, pitch: 10, heading: 20, tilt: -4, y: -0.44 }), ease: 'linear' },
+  // THE REVEAL: dawn glow on the horizon over the lights of Portugal and Spain ...
+  { t: 7.0, view: V({ lat: 40, lon: -8, zoom: 4.0, pitch: 66, heading: 30, fov: 50, y: 0.1 }), ease: 'sine' },
+  // ... then glide north-east across the sunrise line, over France into the morning light of the Alps
+  { t: 11.0, view: V({ lat: 46.5, lon: 11, zoom: 4.0, pitch: 66, heading: 70, fov: 50, y: 0.1 }), ease: 'sine' },
   // YOUR PERSPECTIVE: first the message over the horizon, then four of the app's views, each held
-  { t: 16.2, view: V({ lat: 33.3, lon: 50, zoom: 4.0, pitch: 66, heading: 96, fov: 50, y: 0.1 }), ease: 'linear' },
-  { t: 18.2, view: V({ lat: 31, lon: 52, zoom: 2.4, pitch: 20, heading: 40, fov: 34, y: -0.1 }), ease: 'sine' },
-  { t: 20.6, view: V({ lat: 30.5, lon: 53.5, zoom: 2.3, pitch: 18, heading: 38, fov: 34, y: -0.1 }), ease: 'linear' },
-  { t: 22.6, view: V({ lat: 22, lon: 51, zoom: 0.5, tilt: 14, y: 0.04 }), ease: 'sine' },
-  { t: 25.0, view: V({ lat: 21.5, lon: 49.5, zoom: 0.5, tilt: 14, y: 0.04 }), ease: 'linear' },
-  { t: 27.0, view: V({ lat: 22, lon: 48, zoom: 0.95, tilt: 18, x: 0.55, y: 0.05 }), ease: 'sine' },
-  { t: 29.4, view: V({ lat: 22, lon: 46.5, zoom: 0.95, tilt: 18, x: 0.55, y: 0.05 }), ease: 'linear' },
-  // behind the settings card: settle into the closing frame (half day, half night)
-  { t: 35.4, view: V({ lat: 18, lon: 46, zoom: 0.40, tilt: 16, y: 0.058 }), ease: 'sine' },
-  { t: 41.0, view: V({ lat: 18, lon: 43, zoom: 0.40, tilt: 16, y: 0.058 }), ease: 'linear' },
+  { t: 16.2, view: V({ lat: 47, lon: 13.5, zoom: 4.0, pitch: 66, heading: 72, fov: 50, y: 0.1 }), ease: 'linear' },
+  { t: 18.2, view: V({ lat: 52, lon: 11, zoom: 2.4, pitch: 20, heading: 10, fov: 34, y: -0.1 }), ease: 'sine' },
+  { t: 20.6, view: V({ lat: 52.5, lon: 12, zoom: 2.3, pitch: 18, heading: 10, fov: 34, y: -0.1 }), ease: 'linear' },
+  { t: 22.6, view: V({ lat: 38, lon: 6, zoom: 0.5, tilt: 14, y: 0.04 }), ease: 'sine' },
+  { t: 25.0, view: V({ lat: 37.5, lon: 5, zoom: 0.5, tilt: 14, y: 0.04 }), ease: 'linear' },
+  { t: 27.0, view: V({ lat: 40, lon: 4, zoom: 0.95, tilt: 18, x: 0.55, y: 0.05 }), ease: 'sine' },
+  { t: 29.4, view: V({ lat: 40, lon: 3, zoom: 0.95, tilt: 18, x: 0.55, y: 0.05 }), ease: 'linear' },
+  // behind the settings card: settle into the closing frame (half day, half night, Europe and Africa)
+  { t: 35.4, view: V({ lat: 30, lon: 4, zoom: 0.40, tilt: 16, y: 0.058 }), ease: 'sine' },
+  { t: 41.0, view: V({ lat: 30, lon: 2, zoom: 0.40, tilt: 16, y: 0.058 }), ease: 'linear' },
 ];
 
 const landKeys = [
-  { t: 0.0, view: V({ lat: 49, lon: -4, zoom: 1.0, heading: 90, tilt: -6, y: 0.1 }) },
-  { t: 4.0, view: V({ lat: 46, lon: 7, zoom: 1.22, pitch: 10, heading: 92, tilt: -3, y: 0.08 }), ease: 'linear' },
-  { t: 7.0, view: V({ lat: 38, lon: 14, zoom: 4.0, pitch: 66, heading: 92, fov: 50, y: 0.15 }), ease: 'sine' },
-  { t: 11.0, view: V({ lat: 34, lon: 46, zoom: 4.0, pitch: 66, heading: 96, fov: 50, y: 0.15 }), ease: 'sine' },
-  { t: 12.0, view: V({ lat: 33.8, lon: 47.2, zoom: 4.0, pitch: 66, heading: 96, fov: 50, y: 0.15 }), ease: 'linear' },
+  { t: 0.0, view: V({ lat: 50, lon: -15, zoom: 1.0, tilt: -6, y: 0.1 }) },
+  { t: 4.0, view: V({ lat: 47, lon: -9, zoom: 1.22, pitch: 10, heading: 20, tilt: -3, y: 0.08 }), ease: 'linear' },
+  { t: 7.0, view: V({ lat: 40, lon: -8, zoom: 4.0, pitch: 66, heading: 30, fov: 50, y: 0.15 }), ease: 'sine' },
+  { t: 11.0, view: V({ lat: 46.5, lon: 11, zoom: 4.0, pitch: 66, heading: 70, fov: 50, y: 0.15 }), ease: 'sine' },
+  { t: 12.0, view: V({ lat: 46.7, lon: 12, zoom: 4.0, pitch: 66, heading: 71, fov: 50, y: 0.15 }), ease: 'linear' },
   // desktop segment: the app's “Side View” preset (Earth on the right) as the wallpaper
-  { t: 14.0, view: V({ lat: 25, lon: 62, zoom: 1.25, tilt: 20, x: 0.55 }), ease: 'sine' },
-  { t: 21.0, view: V({ lat: 25, lon: 55, zoom: 1.25, tilt: 20, x: 0.55 }), ease: 'linear' },
+  { t: 14.0, view: V({ lat: 42, lon: 18, zoom: 1.25, tilt: 20, x: 0.55 }), ease: 'sine' },
+  { t: 21.0, view: V({ lat: 42, lon: 13, zoom: 1.25, tilt: 20, x: 0.55 }), ease: 'linear' },
   // the message first (over the whole Earth), then the app's views one by one
-  { t: 23.0, view: V({ lat: 18, lon: 52, zoom: 0.62, tilt: 18, y: -0.12 }), ease: 'sine' },
-  { t: 26.8, view: V({ lat: 18, lon: 49.5, zoom: 0.62, tilt: 18, y: -0.12 }), ease: 'linear' },
-  { t: 28.8, view: V({ lat: 30, lon: 58, zoom: 2.2, pitch: 20, y: -0.35 }), ease: 'sine' },
-  { t: 31.2, view: V({ lat: 29.5, lon: 59.5, zoom: 2.2, pitch: 20, y: -0.35 }), ease: 'linear' },
-  { t: 33.2, view: V({ lat: 31, lon: 55, zoom: 4.2, pitch: 66, heading: 95, fov: 50 }), ease: 'sine' },
-  { t: 35.6, view: V({ lat: 30.7, lon: 58, zoom: 4.2, pitch: 66, heading: 95, fov: 50 }), ease: 'linear' },
-  { t: 37.6, view: V({ lat: 18, lon: 47, zoom: 0.78, tilt: 16, x: 0.42 }), ease: 'sine' },
-  { t: 44.0, view: V({ lat: 18, lon: 42, zoom: 0.78, tilt: 16, x: 0.42 }), ease: 'linear' },
+  { t: 23.0, view: V({ lat: 35, lon: 8, zoom: 0.62, tilt: 18, y: -0.12 }), ease: 'sine' },
+  { t: 26.8, view: V({ lat: 35, lon: 6, zoom: 0.62, tilt: 18, y: -0.12 }), ease: 'linear' },
+  { t: 28.8, view: V({ lat: 51, lon: 10, zoom: 2.2, pitch: 20, y: -0.35 }), ease: 'sine' },
+  { t: 31.2, view: V({ lat: 51.5, lon: 11, zoom: 2.2, pitch: 20, y: -0.35 }), ease: 'linear' },
+  { t: 33.2, view: V({ lat: 47, lon: 5, zoom: 4.2, pitch: 66, heading: 95, fov: 50 }), ease: 'sine' },
+  { t: 35.6, view: V({ lat: 47.2, lon: 7.5, zoom: 4.2, pitch: 66, heading: 95, fov: 50 }), ease: 'linear' },
+  { t: 37.6, view: V({ lat: 30, lon: 6, zoom: 0.78, tilt: 16, x: 0.42 }), ease: 'sine' },
+  { t: 44.0, view: V({ lat: 30, lon: 2, zoom: 0.78, tilt: 16, x: 0.42 }), ease: 'linear' },
 ];
 
 // --- Helpers ---------------------------------------------------------------------

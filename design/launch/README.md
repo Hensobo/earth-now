@@ -24,7 +24,7 @@ How it works
 - `capture.mjs` opens `web/index.html?capture=1`. Only in that mode the renderer exposes
   `window.__captureFrame(time, sec, view)` and stops drawing on its own; the app never sets it.
   Every frame gets an exact simulation time and an exact camera (keyframes with easing).
-- The time is a real date (20 March 2026, 03:00 UTC, running in real time), so sunlight, the
+- The time is a real date (videos: 20 March 2026, 05:50 UTC, sunrise over central Europe; stills: 03:00 UTC; running in real time), so sunlight, the
   sunrise line and the city lights are physically correct in every frame; only the camera is flown.
   The GIF is a time-lapse of one full day (camera locked to the Sun).
 - Clouds come from the bundled static cloud map, not from the live cloud service.
