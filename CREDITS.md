@@ -2,6 +2,9 @@
 
 Earth Now is built on the work of others. Thank you!
 
+The MIT License in [`LICENSE`](LICENSE) covers the source code of Earth Now. Third-party images, data
+and libraries keep their own licenses, listed below.
+
 ## Images & data
 
 | Content | Source | License / notice |
