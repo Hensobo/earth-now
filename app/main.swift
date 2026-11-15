@@ -114,6 +114,13 @@ enum Planet: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+/// Texture detail for Earth: high = 8K night lights and clouds (sharper, more graphics memory)
+enum TextureDetail: String, Codable, CaseIterable, Identifiable {
+    case standard, high
+    var id: String { rawValue }
+    var title: String { self == .standard ? L("Standard") : L("High") }
+}
+
 enum CloudMode: String, Codable, CaseIterable, Identifiable {
     case live, `static`, off
     var id: String { rawValue }
@@ -146,6 +153,9 @@ struct EarthConfig: Codable, Equatable {
     var clouds: CloudMode = .live
     /// Aurora and storm animations
     var fx: Bool = true
+    /// Earth's auroras as 3D curtains (uses more GPU) instead of flat (default, saves power)
+    var aurora3d: Bool = false
+    var detail: TextureDetail = .standard
     /// International Space Station: marker and its orbit
     var iss: Bool = true
     var issPath: Bool = true
@@ -161,7 +171,7 @@ struct EarthConfig: Codable, Equatable {
         lat = v(.lat, d.lat); lon = v(.lon, d.lon); place = v(.place, d.place); zoom = v(.zoom, d.zoom)
         pitch = v(.pitch, d.pitch); heading = v(.heading, d.heading); tilt = v(.tilt, d.tilt); fov = v(.fov, d.fov)
         x = v(.x, d.x); y = v(.y, d.y); fps = v(.fps, d.fps); hud = v(.hud, d.hud); clouds = v(.clouds, d.clouds)
-        fx = v(.fx, d.fx); iss = v(.iss, d.iss); issPath = v(.issPath, d.issPath)
+        fx = v(.fx, d.fx); aurora3d = v(.aurora3d, d.aurora3d); detail = v(.detail, d.detail); iss = v(.iss, d.iss); issPath = v(.issPath, d.issPath)
     }
 
     var json: String {
@@ -683,6 +693,16 @@ struct SettingsView: View {
             }
             if [.earth, .jupiter, .saturn].contains(store.config.currentBody) {
                 Toggle(L("Aurora & storm animations"), isOn: $store.config.fx)
+            }
+            if store.config.currentBody == .earth && store.config.fx {
+                Toggle(L("3D auroras (uses more graphics power)"), isOn: $store.config.aurora3d)
+            }
+            if store.config.currentBody == .earth {
+                Picker(L("Texture detail"), selection: $store.config.detail) {
+                    ForEach(TextureDetail.allCases) { Text($0.title).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                .help(L("High: sharper night lights and clouds in 8K – uses more graphics memory"))
             }
             Toggle(L("Show time & sun position"), isOn: $store.config.hud)
             Toggle(L("Maximum quality (60 fps, full resolution – uses more battery)"), isOn: Binding(

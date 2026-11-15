@@ -106,6 +106,11 @@
 "Show the ISS (live position)" = "ISS anzeigen (Live-Position)";
 "Show its orbit" = "Ihre Flugbahn anzeigen";
 "Aurora & storm animations" = "Polarlichter & Sturm-Animationen";
+"3D auroras (uses more graphics power)" = "3D-Polarlichter (braucht mehr Grafikleistung)";
+"Texture detail" = "Texturdetail";
+"Standard" = "Standard";
+"High" = "Hoch";
+"High: sharper night lights and clouds in 8K – uses more graphics memory" = "Hoch: schärfere Nachtlichter und Wolken in 8K – braucht mehr Grafikspeicher";
 "Sun" = "Sonne";
 "Earth & Moon" = "Erde & Mond";
 "Earth and Moon side by side from far away – real sizes, real distance, real phase." = "Erde und Mond nebeneinander aus großer Entfernung – echte Größen, echter Abstand, echte Phase.";

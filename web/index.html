@@ -45,6 +45,8 @@ import { ISS } from './iss.js';
 //   x,y      Verschiebung des Bildausschnitts (-1..1)
 //   fps, hud (0/1), clouds (live|static|off), warp (Zeitraffer-Faktor)
 //   fx       Polarlichter & Sturm-Animationen (0/1); kp=0..9 legt die Polarlicht-Aktivität fest (Tests)
+//   aurora3d Erde: Polarlichter als 3D-Vorhänge (1, mehr GPU) statt flach (0, sparsam)
+//   detail   standard | high: Nachtlichter und Wolken in 8K (schärfer, ~0,6 GB mehr Grafikspeicher)
 //   iss      ISS mit Live-Position einblenden (0/1), issPath: ihre Flugbahn (0/1)
 //            motion=iss-chase: Kamera fliegt hinter der ISS her, Horizont voraus
 //            motion=iss-above: Kamera schwebt über der ISS und folgt ihr
@@ -55,7 +57,7 @@ const P = new URLSearchParams(location.search);
 const cfg = {
   body: 'earth', motion: 'orbit', speed: 0.4, lat: 28, lon: 10, place: '',
   zoom: 0.62, pitch: 0, heading: 0, tilt: 18, fov: 30, x: 0, y: 0,
-  fps: 30, hud: false, clouds: 'live', warp: 1, fx: true, iss: true, issPath: true,
+  fps: 30, hud: false, clouds: 'live', warp: 1, fx: true, aurora3d: false, detail: 'standard', iss: true, issPath: true,
   ...(window.__initialConfig || {}),
 };
 for (const [k, v] of P) {
@@ -119,13 +121,30 @@ const DETAIL = P.has('capture') && P.get('detail') ? P.get('detail') : '';
 const DETAIL_RECT = [-32, 22, 48, 74];   // lon0, lat0, lon1, lat1 of the *-europe.jpg crops
 
 const dayTex = tex('textures/day.jpg');
-const nightTex = tex(DETAIL ? DETAIL + 'night-8k.jpg' : 'textures/night.jpg');
+const nightFile = () => DETAIL ? DETAIL + 'night-8k.jpg' : cfg.detail === 'high' ? 'textures/night-8k.jpg' : 'textures/night.jpg';
+let nightTex = tex(nightFile()), nightFileLoaded = nightFile();
 const specTex = tex('textures/specular.jpg', false);
 const normalTex = tex('textures/normal.jpg', false);
-let cloudTex = null;  // statische Wolken, erst bei Bedarf geladen
+// Statische Wolken, erst bei Bedarf geladen: 2K mit Deckung im Alphakanal, oder (Detail „Hoch“)
+// 8K als Graustufen-JPEG (Deckung im Grauwert)
+const staticCloudTex = {};
 function staticClouds() {
-  if (!cloudTex) { cloudTex = tex(DETAIL ? DETAIL + 'clouds-8k.jpg' : 'textures/clouds.png', false); cloudTex.wrapS = THREE.RepeatWrapping; }
-  return cloudTex;
+  const grey = !!DETAIL || cfg.detail === 'high';
+  const file = DETAIL ? DETAIL + 'clouds-8k.jpg' : grey ? 'textures/clouds-8k.jpg' : 'textures/clouds.png';
+  if (!staticCloudTex[file]) {
+    const t = tex(file, false); t.wrapS = THREE.RepeatWrapping; t.userData.grey = grey;
+    staticCloudTex[file] = t;
+  }
+  return staticCloudTex[file];
+}
+// Detailstufe gewechselt: Nachtlichter tauschen (die Wolken folgen über applyCloudMode)
+function applyDetail() {
+  if (nightFile() === nightFileLoaded) return;
+  const old = nightTex;
+  nightTex = tex(nightFile()); nightFileLoaded = nightFile();
+  earthMat.uniforms.nightMap.value = nightTex;
+  old.dispose();
+  for (const [f, t] of Object.entries(staticCloudTex)) if (t !== staticClouds()) { t.dispose(); delete staticCloudTex[f]; }
 }
 const detailUniforms = DETAIL ? {
   dayDetail: { value: tex(DETAIL + 'day-europe.jpg') },
@@ -147,7 +166,8 @@ const DETAIL_GLSL = DETAIL ? `
       vec3 dt = detailAt(uv);
       return mix(texture2D(base, uv).r, texture2D(cloudDetail, dt.xy).r, dt.z);
     }` : `
-    float cloudAt(sampler2D base, vec2 uv) { return texture2D(base, uv).a; }`;
+    uniform float cloudGrey;   // 1: Deckung im Grauwert (8K-JPEG), 0: im Alphakanal
+    float cloudAt(sampler2D base, vec2 uv) { vec4 t = texture2D(base, uv); return cloudGrey > 0.5 ? t.r : t.a; }`;
 // live clouds (alpha) also work with DETAIL: they are only used without it
 
 const emptyTex = new THREE.DataTexture(new Uint8Array(4), 1, 1);
@@ -167,6 +187,7 @@ const earthMat = new THREE.ShaderMaterial({
     moonPos: { value: new THREE.Vector3(60, 0, 0) },
     sunDir: { value: sunDir },
     camPos: { value: camera.position },
+    cloudGrey: { value: 0 },
     ...detailUniforms,
   },
   vertexShader: /* glsl */`
@@ -263,7 +284,7 @@ scene.add(earth);
 
 // --- Wolken ------------------------------------------------------------------
 const cloudMat = new THREE.ShaderMaterial({
-  uniforms: { cloudMap: { value: emptyTex }, sunDir: { value: sunDir }, drift: { value: 0 }, moonPos: { value: new THREE.Vector3(60, 0, 0) }, ...detailUniforms },
+  uniforms: { cloudMap: { value: emptyTex }, sunDir: { value: sunDir }, drift: { value: 0 }, moonPos: { value: new THREE.Vector3(60, 0, 0) }, cloudGrey: { value: 0 }, ...detailUniforms },
   transparent: true,
   depthWrite: false,
   vertexShader: /* glsl */`
@@ -304,11 +325,12 @@ scene.add(clouds);
 // Live-Wolkenbild (alle ~3 h aktualisiert, Quelle: github.com/matteason/live-cloud-maps).
 // 8K nur für nahe Ansichten – spart sonst ~200 MB Grafikspeicher.
 const liveCloudsUrl = (res) => `https://clouds.matteason.co.uk/images/${res}/clouds-alpha.png`;
-const wantedCloudRes = () => (cfg.zoom > 1.5 || String(cfg.motion).startsWith('iss') ? '8192x4096' : '4096x2048');
+const wantedCloudRes = () => (cfg.detail === 'high' || cfg.zoom > 1.5 || String(cfg.motion).startsWith('iss') ? '8192x4096' : '4096x2048');
 let liveCloudTex = null, liveCloudRes = null, liveCloudLoading = false;
 function setCloudTex(t) {
   cloudMat.uniforms.cloudMap.value = t;
   earthMat.uniforms.cloudMap.value = t;
+  cloudMat.uniforms.cloudGrey.value = earthMat.uniforms.cloudGrey.value = t?.userData?.grey ? 1 : 0;
   requestRender();
 }
 // Nach einem Fehlschlag (offline, Server nicht erreichbar) statische Wolken zeigen und
@@ -532,6 +554,7 @@ const auroraMat = new THREE.ShaderMaterial({
     colat: { value: 0.4 }, width: { value: 0.06 }, strength: { value: 0 },
     colorLow: { value: new THREE.Color(0.15, 1.0, 0.45) }, colorHigh: { value: new THREE.Color(0.9, 0.2, 0.45) },
     nightOnly: { value: 1 }, rayAmt: { value: 0.55 }, layer: { value: 0 },
+    ovMap: { value: null }, useOv: { value: 0 },   // Erde: Stärke und Ort aus NOAA OVATION
   },
   transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
   vertexShader: /* glsl */`
@@ -539,7 +562,8 @@ const auroraMat = new THREE.ShaderMaterial({
     void main() { vPos = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
   fragmentShader: /* glsl */`
     uniform vec3 sunDir, camPos, poleN, poleS, colorLow, colorHigh;
-    uniform float time, colat, width, strength, nightOnly, rayAmt, layer;
+    uniform float time, colat, width, strength, nightOnly, rayAmt, layer, useOv;
+    uniform sampler2D ovMap;
     varying vec3 vPos;
     float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
     float noise(vec2 p) {
@@ -548,7 +572,7 @@ const auroraMat = new THREE.ShaderMaterial({
     }
     float oval(vec3 P, vec3 pole, float seed) {
       float c = acos(clamp(dot(P, pole), -1.0, 1.0));
-      if (abs(c - colat) > colat * 0.2 + width * 4.0) return 0.0;  // weit weg vom Oval: nichts zu tun
+      if (useOv < 0.5 && abs(c - colat) > colat * 0.2 + width * 4.0) return 0.0;  // weit weg vom Oval: nichts zu tun
       vec3 r1 = normalize(cross(pole, abs(pole.y) < 0.99 ? vec3(0, 1, 0) : vec3(1, 0, 0)));
       vec3 r2 = cross(pole, r1);
       float phi = atan(dot(P, r2), dot(P, r1));
@@ -561,14 +585,23 @@ const auroraMat = new THREE.ShaderMaterial({
       float rays = 1.0 - rayAmt + rayAmt * pow(noise(vec2(phi * 60.0 + n1 * 8.0, time * 0.25 + seed)), 1.5);
       // Helle Bögen und dunkle Lücken entlang des Ovals
       float arcs = smoothstep(0.25, 0.75, noise(vec2(phi * 4.0 + seed * 3.0, time * 0.02)));
-      return band * rays * (0.15 + 0.85 * arcs) * (0.35 + 0.9 * n2);
+      return (useOv > 0.5 ? 1.0 : band) * rays * (0.15 + 0.85 * arcs) * (0.35 + 0.9 * n2);
+    }
+    float ovAt(vec3 P) {
+      float lat = asin(clamp(P.y, -1.0, 1.0)), lon = atan(-P.z, P.x);
+      return texture2D(ovMap, vec2(fract(lon / 6.2831853), (lat / 3.1415927 + 0.5) * (180.0 / 181.0) + 0.5 / 181.0)).r;
     }
     void main() {
       vec3 P = normalize(vPos);
       vec3 V = normalize(camPos - vPos);
       float dark = 1.0 - smoothstep(-0.14, 0.06, dot(P, sunDir));
       if (nightOnly > 0.5 && dark <= 0.0) discard;
-      float a = oval(P, poleN, 0.0) + oval(P, poleS, 17.0);
+      float a;
+      if (useOv > 0.5) {   // Erde: nur wo die NOAA Polarlichter sieht, Strahlen und Bögen wie gehabt
+        float ov = ovAt(P);
+        if (ov < 0.01) discard;
+        a = ov * (P.y > 0.0 ? oval(P, poleN, 0.0) : oval(P, poleS, 17.0));
+      } else a = oval(P, poleN, 0.0) + oval(P, poleS, 17.0);
       if (a <= 0.0) discard;
       a *= mix(1.0, dark, nightOnly);
       // Schräg gesehen wirkt der Vorhang dichter
@@ -767,19 +800,18 @@ setInterval(loadKp, 15 * 60 * 1000);
 function applyAurora() {
   const a = AURORA[shownBody];
   const isEarth = shownBody === 'earth';
-  // Erde: nur echte Polarlichter (NOAA OVATION, oder ?kp im Test); ohne Daten keine
-  earthAurora.visible = !!(isEarth && cfg.fx && (ovationLive || P.has('kp')));
+  // Erde: nur echte Polarlichter (NOAA OVATION, oder ?kp im Test); ohne Daten keine.
+  // aurora3d: als 3D-Vorhänge (Raymarching, mehr GPU), sonst flach auf drei Schalen (sparsam).
+  const earthOn = !!(isEarth && cfg.fx && (ovationLive || P.has('kp')));
+  earthAurora.visible = earthOn && !!cfg.aurora3d;
   earthAuroraMat.uniforms.steps.value = cfg.fps >= 60 || P.has('capture') ? 96 : 56;
   if (isEarth) {
     latLonToVec(...a.n, earthAuroraMat.uniforms.poleN.value);
     latLonToVec(...a.s, earthAuroraMat.uniforms.poleS.value);
-    aurora.visible = false;
     if (cfg.fx) { loadOvation(); loadKp(); }
-    requestRender();
-    return;
   }
-  aurora.visible = !!(a && cfg.fx);
-  if (!aurora.visible) return;
+  aurora.visible = isEarth ? earthOn && !cfg.aurora3d : !!(a && cfg.fx);
+  if (!aurora.visible) { requestRender(); return; }
   for (const m of [auroraMat, ...auroraLayers.map((l) => l.material)]) {
     const u = m.uniforms;
     latLonToVec(a.n[0], a.n[1], u.poleN.value);
@@ -789,11 +821,13 @@ function applyAurora() {
     u.nightOnly.value = a.nightOnly;
     u.rayAmt.value = a.rays ?? 0.55;
     u.colorLow.value.setRGB(...a.low); u.colorHigh.value.setRGB(...a.high);
+    u.useOv.value = isEarth ? 1 : 0;
+    u.ovMap.value = ovationTex;
   }
   // Gasplaneten: nur die unterste Schicht (ihre Polarlichter sehen wir von außen als Ring)
   auroraLayers.forEach((l, i) => {
     l.visible = isEarth || i === 0;
-    l.material.uniforms.strength.value = (isEarth ? 0.12 + 0.075 * kp : a.strength) * l.userData.k;
+    l.material.uniforms.strength.value = (isEarth ? 0.75 : a.strength) * l.userData.k;
   });
   requestRender();
 }
@@ -801,7 +835,7 @@ function applyAurora() {
 // Ist gerade ein Teil der Polarlicht-Ovale zu sehen (Kamera zugewandt und, auf der Erde, im Dunkeln)?
 const _q = new THREE.Vector3(), _r1 = new THREE.Vector3(), _r2 = new THREE.Vector3(), _cn = new THREE.Vector3();
 function auroraInView() {
-  if (earthAurora.visible) {
+  if (earthAurora.visible || (aurora.visible && shownBody === 'earth')) {
     _cn.copy(camera.position).normalize();
     return ovationSpots.some((q) => q.dot(_cn) > 0.12 && q.dot(sunDir) < 0.05);
   }
@@ -1194,13 +1228,14 @@ window.applyConfig = (c) => {
                 ('motion' in c && c.motion !== cfg.motion) || ('body' in c && c.body !== cfg.body);
   // Beim Ortswechsel fliegt die Kamera hin und kreist (im Orbit-Modus) von dort weiter
   if (moved) orbitLon = 0;
-  const cloudsChanged = 'clouds' in c && c.clouds !== cfg.clouds;
+  const cloudsChanged = ('clouds' in c && c.clouds !== cfg.clouds) || ('detail' in c && c.detail !== cfg.detail);
   Object.assign(cfg, c);
   hud.style.display = cfg.hud ? 'block' : 'none';
   applyPixelRatio();
   renderer.setSize(innerWidth, innerHeight);
   applyBody();
   applyEffects();
+  applyDetail();
   if (shownBody === 'earth' && (cloudsChanged || (liveCloudRes && liveCloudRes !== wantedCloudRes()))) applyCloudMode();
   boostUntil = performance.now() + 1500;
   requestRender();

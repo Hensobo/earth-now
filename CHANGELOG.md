@@ -37,7 +37,10 @@ The whole Solar System – and the space station – on your desktop.
   placed and brightened by NOAA's OVATION aurora nowcast (updated every few minutes): where NOAA
   sees no aurora, Earth Now shows none. Drawn as glowing curtains between 90 and 300 km altitude,
   with rays and a green lower edge, so they stand up above the horizon instead of lying flat on the
-  ground. Jupiter and Saturn show their polar auroras too.
+  ground (switch *3D auroras* on; it uses more graphics power, the flat style is the default).
+  Jupiter and Saturn show their polar auroras too.
+- **Texture detail.** *High* shows the night lights and clouds in 8K (sharper, uses more graphics
+  memory); *Standard* stays as light as before.
 - **Moving storms:** Jupiter's and Saturn's cloud bands drift, the Great Red Spot turns.
 - New switches: *Show the ISS*, *Show its orbit*, *Aurora & storm animations*. Animations only run
   while they're on screen.
