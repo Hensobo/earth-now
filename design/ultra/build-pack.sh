@@ -18,8 +18,8 @@ tiles() {  # src  outdir  tile-px  quality
   local src=$1 dir=$2 px=$3 q=$4
   vips dzsave "$src" "$OUT/dz" --tile-size "$px" --overlap 0 --depth one --suffix ".jpg[Q=$q,strip]" --layout dz
   # dz names tiles <col>_<row>.jpg in dz_files/<level>/ (single level with --depth one)
-  local lvl; lvl=$(ls "$OUT/dz_files" | sort -n | tail -1)
-  mv "$OUT/dz_files/$lvl"/*.jpg "$dir/"; rm -rf "$OUT/dz_files" "$OUT/dz.dzi"
+  local lvl; lvl=$(find "$OUT/dz_files" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)
+  mv "$lvl"/*.jpg "$dir/"; rm -rf "$OUT/dz_files" "$OUT/dz.dzi"
   echo "$(ls "$dir" | wc -l) tiles in $dir"
 }
 tiles "$OUT/day.jpg" "$PACK/day" 600 86      # 60 px per degree

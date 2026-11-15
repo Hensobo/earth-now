@@ -7,6 +7,7 @@
 
 import AppKit
 import Combine
+import CryptoKit
 import MapKit
 import ServiceManagement
 import SwiftUI
@@ -116,9 +117,199 @@ enum Planet: String, Codable, CaseIterable, Identifiable {
 
 /// Texture detail for Earth: high = 8K night lights and clouds (sharper, more graphics memory)
 enum TextureDetail: String, Codable, CaseIterable, Identifiable {
-    case standard, high
+    case standard, high, ultra
     var id: String { rawValue }
-    var title: String { self == .standard ? L("Standard") : L("High") }
+    var title: String {
+        switch self {
+        case .standard: return L("Standard")
+        case .high: return L("High")
+        case .ultra: return L("Ultra")
+        }
+    }
+}
+
+/// Ultra texture detail: NASA's full-resolution maps as 10°×10° tiles, downloaded once on request
+/// (GitHub release "textures-ultra-<n>", built by .github/workflows/ultra-pack.yml), checked against
+/// its SHA-256 and unpacked to ~/Library/Application Support/Earth Now/ultra-<n>. The renderer loads
+/// the tiles around the view through earth://app/ultra/….
+final class UltraPack: NSObject, ObservableObject, URLSessionDownloadDelegate {
+    static let shared = UltraPack()
+    static let version = 1
+    static let zipURL = URL(string: "https://github.com/Hensobo/earth-now/releases/download/textures-ultra-\(version)/earth-now-ultra-\(version).zip")!
+    static let shaURL = URL(string: zipURL.absoluteString + ".sha256")!
+    static let approxSize = "55 MB"
+
+    enum State: Equatable { case notInstalled, downloading(Double), installing, installed(Int64), failed(String) }
+    @Published private(set) var state: State = .notInstalled
+    let directory: URL
+    private var session: URLSession?
+    private var task: URLSessionDownloadTask?
+    private var expectedSHA: String?
+
+    override init() {
+        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        directory = support.appendingPathComponent("Earth Now/ultra-\(Self.version)", isDirectory: true)
+        super.init()
+        refresh()
+    }
+
+    var isInstalled: Bool { FileManager.default.fileExists(atPath: directory.appendingPathComponent("manifest.json").path) }
+    /// Path for the renderer ("" = not installed)
+    var rendererBase: String { isInstalled ? "ultra/" : "" }
+
+    private func refresh() {
+        state = isInstalled ? .installed(Self.folderSize(directory)) : .notInstalled
+        EarthViews.shared.eval("window.applyConfig && applyConfig({ultraBase: \"\(rendererBase)\"})")
+    }
+
+    func download() {
+        state = .downloading(0)
+        // First the small checksum file, then the pack with progress
+        URLSession.shared.dataTask(with: Self.shaURL) { data, response, _ in
+            DispatchQueue.main.async {
+                guard let data, (response as? HTTPURLResponse)?.statusCode == 200,
+                      let sha = String(data: data, encoding: .utf8)?.split(separator: " ").first.map({ String($0).lowercased() }),
+                      sha.count == 64 else {
+                    self.state = .failed(L("The detail pack is not available right now. Please try again later.")); return
+                }
+                self.expectedSHA = sha
+                let session = URLSession(configuration: .default, delegate: self, delegateQueue: .main)
+                self.session = session
+                self.task = session.downloadTask(with: Self.zipURL)
+                self.task?.resume()
+            }
+        }.resume()
+    }
+
+    func cancel() { task?.cancel(); task = nil; refresh() }
+
+    func remove() {
+        try? FileManager.default.removeItem(at: directory)
+        refresh()
+    }
+
+    /// For testing or offline installs: a pack downloaded by hand (e.g. from a CI run)
+    func installFromFile() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.zip]
+        panel.message = L("Choose an Earth Now detail pack (.zip)")
+        NSApp.activate(ignoringOtherApps: true)
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        install(zip: url, expectedSHA: nil, deleteAfter: false)
+    }
+
+    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didWriteData _: Int64,
+                    totalBytesWritten written: Int64, totalBytesExpectedToWrite total: Int64) {
+        if total > 0 { state = .downloading(Double(written) / Double(total)) }
+    }
+
+    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {
+        guard (downloadTask.response as? HTTPURLResponse)?.statusCode == 200 else {
+            state = .failed(L("The detail pack is not available right now. Please try again later.")); return
+        }
+        // The file at `location` is deleted when this method returns: move it first
+        let zip = FileManager.default.temporaryDirectory.appendingPathComponent("earth-now-ultra-\(Self.version).zip")
+        try? FileManager.default.removeItem(at: zip)
+        do { try FileManager.default.moveItem(at: location, to: zip) } catch {
+            state = .failed(L("The detail pack could not be saved.")); return
+        }
+        install(zip: zip, expectedSHA: expectedSHA, deleteAfter: true)
+    }
+
+    func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+        session.finishTasksAndInvalidate()
+        if let error = error as NSError?, error.code != NSURLErrorCancelled {
+            state = .failed(L("The download was interrupted. Please check your connection and try again."))
+        }
+    }
+
+    private func install(zip: URL, expectedSHA: String?, deleteAfter: Bool) {
+        state = .installing
+        let directory = self.directory
+        DispatchQueue.global(qos: .userInitiated).async {
+            let error: String? = {
+                defer { if deleteAfter { try? FileManager.default.removeItem(at: zip) } }
+                if let expectedSHA, Self.sha256(of: zip) != expectedSHA { return L("The download is damaged. Please try again.") }
+                let fm = FileManager.default
+                let staging = directory.deletingLastPathComponent().appendingPathComponent("ultra-staging", isDirectory: true)
+                try? fm.removeItem(at: staging)
+                try? fm.createDirectory(at: staging.deletingLastPathComponent(), withIntermediateDirectories: true)
+                let unzip = Process()
+                unzip.executableURL = URL(fileURLWithPath: "/usr/bin/ditto")
+                unzip.arguments = ["-x", "-k", zip.path, staging.path]
+                do { try unzip.run() } catch { return L("The detail pack is not valid.") }
+                unzip.waitUntilExit()
+                guard unzip.terminationStatus == 0,
+                      fm.fileExists(atPath: staging.appendingPathComponent("manifest.json").path),
+                      fm.fileExists(atPath: staging.appendingPathComponent("day/0_0.jpg").path) else {
+                    try? fm.removeItem(at: staging)
+                    return L("The detail pack is not valid.")
+                }
+                try? fm.removeItem(at: directory)
+                do { try fm.moveItem(at: staging, to: directory) } catch { return L("The detail pack could not be saved.") }
+                return nil
+            }()
+            DispatchQueue.main.async {
+                if let error { self.state = .failed(error) } else { self.refresh() }
+            }
+        }
+    }
+
+    private static func sha256(of url: URL) -> String? {
+        guard let h = try? FileHandle(forReadingFrom: url) else { return nil }
+        defer { try? h.close() }
+        var hasher = SHA256()
+        while let chunk = try? h.read(upToCount: 1 << 20), !chunk.isEmpty { hasher.update(data: chunk) }
+        return hasher.finalize().map { String(format: "%02x", $0) }.joined()
+    }
+
+    private static func folderSize(_ url: URL) -> Int64 {
+        let keys: [URLResourceKey] = [.fileSizeKey]
+        let files = FileManager.default.enumerator(at: url, includingPropertiesForKeys: keys)?.allObjects as? [URL] ?? []
+        return files.reduce(0) { $0 + Int64((try? $1.resourceValues(forKeys: Set(keys)).fileSize) ?? 0) }
+    }
+}
+
+/// Settings row for the Ultra detail pack: download with progress, or installed with size and Remove
+struct UltraPackRow: View {
+    @ObservedObject private var pack = UltraPack.shared
+    var body: some View {
+        switch pack.state {
+        case .notInstalled:
+            VStack(alignment: .leading, spacing: 6) {
+                Text(String(format: L("Ultra shows NASA's maps in full resolution around the place you look at. It needs a detail pack (about %@, downloaded once from GitHub)."), UltraPack.approxSize))
+                    .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                HStack {
+                    Button(L("Download Detail Pack")) { pack.download() }
+                    Button(L("Choose File…")) { pack.installFromFile() }.buttonStyle(.link)
+                }
+            }
+        case .downloading(let f):
+            HStack(spacing: 10) {
+                ProgressView(value: f)
+                Text("\(Int(f * 100)) %").monospacedDigit().foregroundStyle(.secondary).frame(width: 44, alignment: .trailing)
+                Button(L("Cancel")) { pack.cancel() }
+            }
+        case .installing:
+            HStack(spacing: 8) { ProgressView().controlSize(.small); Text(L("Installing detail pack…")).foregroundStyle(.secondary) }
+        case .installed(let bytes):
+            HStack {
+                Label(L("Detail pack installed"), systemImage: "checkmark.circle.fill")
+                Text(ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)).foregroundStyle(.secondary)
+                Spacer()
+                Button(L("Remove")) { pack.remove() }
+            }
+        case .failed(let message):
+            VStack(alignment: .leading, spacing: 6) {
+                Label(message, systemImage: "exclamationmark.triangle").foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                HStack {
+                    Button(L("Try Again")) { pack.download() }
+                    Button(L("Choose File…")) { pack.installFromFile() }.buttonStyle(.link)
+                }
+            }
+        }
+    }
 }
 
 enum CloudMode: String, Codable, CaseIterable, Identifiable {
@@ -371,6 +562,7 @@ final class BundleSchemeHandler: NSObject, WKURLSchemeHandler {
     func webView(_ webView: WKWebView, start task: WKURLSchemeTask) {
         guard let url = task.request.url else { return }
         if url.path.hasPrefix("/remote/sdo/") { return remote(url, name: url.lastPathComponent, task: task) }
+        if url.path.hasPrefix("/ultra/") { return serve(url, base: UltraPack.shared.directory, path: String(url.path.dropFirst("/ultra/".count)), task: task) }
         var path = url.path
         if path.isEmpty || path == "/" { path = "/index.html" }
         let file = root.appendingPathComponent(String(path.dropFirst())).standardizedFileURL
@@ -388,6 +580,19 @@ final class BundleSchemeHandler: NSObject, WKURLSchemeHandler {
     }
 
     func webView(_ webView: WKWebView, stop task: WKURLSchemeTask) { stopped.insert(ObjectIdentifier(task)) }
+
+    /// A file from a folder outside the bundle (the Ultra detail pack)
+    private func serve(_ url: URL, base: URL, path: String, task: WKURLSchemeTask) {
+        let file = base.appendingPathComponent(path).standardizedFileURL
+        guard file.path.hasPrefix(base.standardizedFileURL.path), let data = try? Data(contentsOf: file) else {
+            task.didFailWithError(URLError(.fileDoesNotExist)); return
+        }
+        let mime = UTType(filenameExtension: file.pathExtension)?.preferredMIMEType ?? "application/octet-stream"
+        task.didReceive(HTTPURLResponse(url: url, statusCode: 200, httpVersion: "HTTP/1.1",
+                                        headerFields: ["Content-Type": mime, "Access-Control-Allow-Origin": "*"])!)
+        task.didReceive(data)
+        task.didFinish()
+    }
 }
 
 final class JSLogger: NSObject, WKScriptMessageHandler {
@@ -420,7 +625,7 @@ final class EarthViews {
         let startTime = ProcessInfo.processInfo.environment["EARTHNOW_TIME"].map { "window.__startTime = \"\($0)\";" } ?? ""
         ucc.addUserScript(WKUserScript(source: """
             \(startTime)
-            window.__initialConfig = \(Store.shared.config.json);
+            window.__initialConfig = Object.assign(\(Store.shared.config.json), {ultraBase: "\(UltraPack.shared.rendererBase)"});
             const _l = m => window.webkit.messageHandlers.log.postMessage(String(m));
             addEventListener('error', e => _l('error: ' + e.message + ' @ ' + e.filename + ':' + e.lineno));
             addEventListener('unhandledrejection', e => _l('rejection: ' + e.reason));
@@ -703,6 +908,7 @@ struct SettingsView: View {
                 }
                 .pickerStyle(.segmented)
                 .help(L("High: sharper night lights and clouds in 8K – uses more graphics memory"))
+                if store.config.detail == .ultra { UltraPackRow() }
             }
             Toggle(L("Show time & sun position"), isOn: $store.config.hud)
             Toggle(L("Maximum quality (60 fps, full resolution – uses more battery)"), isOn: Binding(

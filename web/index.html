@@ -46,7 +46,8 @@ import { ISS } from './iss.js';
 //   fps, hud (0/1), clouds (live|static|off), warp (Zeitraffer-Faktor)
 //   fx       Polarlichter & Sturm-Animationen (0/1); kp=0..9 legt die Polarlicht-Aktivität fest (Tests)
 //   aurora3d Erde: Polarlichter als 3D-Vorhänge (1, mehr GPU) statt flach (0, sparsam)
-//   detail   standard | high: Nachtlichter und Wolken in 8K (schärfer, ~0,6 GB mehr Grafikspeicher)
+//   detail   standard | high | ultra: high = Nachtlichter und Wolken in 8K; ultra = dazu volle
+//            NASA-Auflösung rund um den Blickpunkt (Kacheln aus ultraBase, z. B. ultraBase=ultra/)
 //   iss      ISS mit Live-Position einblenden (0/1), issPath: ihre Flugbahn (0/1)
 //            motion=iss-chase: Kamera fliegt hinter der ISS her, Horizont voraus
 //            motion=iss-above: Kamera schwebt über der ISS und folgt ihr
@@ -57,7 +58,7 @@ const P = new URLSearchParams(location.search);
 const cfg = {
   body: 'earth', motion: 'orbit', speed: 0.4, lat: 28, lon: 10, place: '',
   zoom: 0.62, pitch: 0, heading: 0, tilt: 18, fov: 30, x: 0, y: 0,
-  fps: 30, hud: false, clouds: 'live', warp: 1, fx: true, aurora3d: false, detail: 'standard', iss: true, issPath: true,
+  fps: 30, hud: false, clouds: 'live', warp: 1, fx: true, aurora3d: false, detail: 'standard', ultraBase: '', iss: true, issPath: true,
   ...(window.__initialConfig || {}),
 };
 for (const [k, v] of P) {
@@ -121,7 +122,7 @@ const DETAIL = P.has('capture') && P.get('detail') ? P.get('detail') : '';
 const DETAIL_RECT = [-32, 22, 48, 74];   // lon0, lat0, lon1, lat1 of the *-europe.jpg crops
 
 const dayTex = tex('textures/day.jpg');
-const nightFile = () => DETAIL ? DETAIL + 'night-8k.jpg' : cfg.detail === 'high' ? 'textures/night-8k.jpg' : 'textures/night.jpg';
+const nightFile = () => DETAIL ? DETAIL + 'night-8k.jpg' : cfg.detail !== 'standard' ? 'textures/night-8k.jpg' : 'textures/night.jpg';
 let nightTex = tex(nightFile()), nightFileLoaded = nightFile();
 const specTex = tex('textures/specular.jpg', false);
 const normalTex = tex('textures/normal.jpg', false);
@@ -129,7 +130,7 @@ const normalTex = tex('textures/normal.jpg', false);
 // 8K als Graustufen-JPEG (Deckung im Grauwert)
 const staticCloudTex = {};
 function staticClouds() {
-  const grey = !!DETAIL || cfg.detail === 'high';
+  const grey = !!DETAIL || cfg.detail !== 'standard';
   const file = DETAIL ? DETAIL + 'clouds-8k.jpg' : grey ? 'textures/clouds-8k.jpg' : 'textures/clouds.png';
   if (!staticCloudTex[file]) {
     const t = tex(file, false); t.wrapS = THREE.RepeatWrapping; t.userData.grey = grey;
@@ -146,37 +147,121 @@ function applyDetail() {
   old.dispose();
   for (const [f, t] of Object.entries(staticCloudTex)) if (t !== staticClouds()) { t.dispose(); delete staticCloudTex[f]; }
 }
-const detailUniforms = DETAIL ? {
-  dayDetail: { value: tex(DETAIL + 'day-europe.jpg') },
-  nightDetail: { value: tex(DETAIL + 'night-europe.jpg') },
-  cloudDetail: { value: tex(DETAIL + 'clouds-europe.jpg', false) },
-  detailRect: { value: new THREE.Vector4((DETAIL_RECT[0] + 180) / 360, (DETAIL_RECT[1] + 90) / 180,
-                                         (DETAIL_RECT[2] + 180) / 360, (DETAIL_RECT[3] + 90) / 180) },
-} : {};
-// GLSL for the detail crops (only compiled in with DETAIL): weight w fades the crop in over its edge
-const DETAIL_GLSL = DETAIL ? `
-    uniform sampler2D dayDetail, nightDetail, cloudDetail; uniform vec4 detailRect;
-    vec3 detailAt(vec2 uv) {
-      vec2 d = (uv - detailRect.xy) / (detailRect.zw - detailRect.xy);
-      float w = smoothstep(0.0, 0.05, d.x) * smoothstep(0.0, 0.05, 1.0 - d.x) * smoothstep(0.0, 0.07, d.y) * smoothstep(0.0, 0.07, 1.0 - d.y);
-      return vec3(clamp(d, 0.0, 1.0), w);
-    }
-    // the static 8K cloud map stores cover in its grey value (the bundled one in alpha)
-    float cloudAt(sampler2D base, vec2 uv) {
-      vec3 dt = detailAt(uv);
-      return mix(texture2D(base, uv).r, texture2D(cloudDetail, dt.xy).r, dt.z);
-    }` : `
+// Detailkarten, die über die Weltkarte geblendet werden (Mitte und Spannweite in Grad):
+//  – Aufnahmen (?capture=1&detail=…): feste Ausschnitte über Europa (Tag, Nacht, Wolken)
+//  – Texturdetail „Ultra“: Kacheln in voller NASA-Auflösung rund um den Blickpunkt (siehe Ultra unten)
+// Ohne beides wird der Code gar nicht erst kompiliert (USE_DETAIL).
+const detailUniforms = {
+  dayDetail: { value: DETAIL ? tex(DETAIL + 'day-europe.jpg') : null },
+  nightDetail: { value: DETAIL ? tex(DETAIL + 'night-europe.jpg') : null },
+  cloudDetail: { value: DETAIL ? tex(DETAIL + 'clouds-europe.jpg', false) : null },
+  detailRect: { value: new THREE.Vector4((DETAIL_RECT[0] + DETAIL_RECT[2]) / 2, (DETAIL_RECT[1] + DETAIL_RECT[3]) / 2,
+                                         DETAIL_RECT[2] - DETAIL_RECT[0], DETAIL_RECT[3] - DETAIL_RECT[1]) },
+  detailAmt: { value: DETAIL ? 1 : 0 },
+  cloudDetailOn: { value: DETAIL ? 1 : 0 },
+};
+const DETAIL_GLSL = `
     uniform float cloudGrey;   // 1: Deckung im Grauwert (8K-JPEG), 0: im Alphakanal
-    float cloudAt(sampler2D base, vec2 uv) { vec4 t = texture2D(base, uv); return cloudGrey > 0.5 ? t.r : t.a; }`;
+    #ifdef USE_DETAIL
+    uniform sampler2D dayDetail, nightDetail, cloudDetail; uniform vec4 detailRect; uniform float detailAmt, cloudDetailOn;
+    // Position in der Detailkarte (xy) und Gewicht (z), das zum Rand hin ausblendet
+    vec3 detailAt(vec2 uv) {
+      float lon = uv.x * 360.0 - 180.0, lat = uv.y * 180.0 - 90.0;
+      vec2 d = vec2((mod(lon - detailRect.x + 540.0, 360.0) - 180.0) / detailRect.z, (lat - detailRect.y) / detailRect.w) + 0.5;
+      float w = smoothstep(0.0, 0.06, d.x) * smoothstep(0.0, 0.06, 1.0 - d.x) * smoothstep(0.0, 0.06, d.y) * smoothstep(0.0, 0.06, 1.0 - d.y);
+      return vec3(clamp(d, 0.0, 1.0), w * detailAmt);
+    }
+    #endif
+    float cloudAt(sampler2D base, vec2 uv) {
+      vec4 t = texture2D(base, uv);
+      float c = cloudGrey > 0.5 ? t.r : t.a;
+      #ifdef USE_DETAIL
+      if (cloudDetailOn > 0.5) { vec3 dt = detailAt(uv); c = mix(c, texture2D(cloudDetail, dt.xy).r, dt.z); }
+      #endif
+      return c;
+    }`;
+
+// --- Ultra: volle NASA-Auflösung rund um den Blickpunkt --------------------------------------
+// Das Paket (von der App geladen, siehe design/ultra) enthält Kacheln von 10°×10°:
+// day/<Spalte>_<Zeile>.jpg (600 px, 60 px/°) und night/… (375 px), Spalte 0 ab 180° W, Zeile 0 ab 90° N.
+// Bei nahen Ansichten werden 8×8 Kacheln (80°×80°) um den Blickpunkt zu einer Detailkarte
+// zusammengesetzt und weich über die 8K-Weltkarte geblendet; weit weg genügt die Weltkarte.
+const ULTRA_SPAN = 80, ULTRA_TILES = ULTRA_SPAN / 10;
+const ultra = { center: null, loading: false, dayTex: null, nightTex: null, failed: 0 };
+const ultraActive = () => !DETAIL && cfg.detail === 'ultra' && !!cfg.ultraBase;
+function setDetailDefine(on) {
+  for (const m of [earthMat, cloudMat]) {
+    const has = 'USE_DETAIL' in m.defines;
+    if (on && !has) { m.defines.USE_DETAIL = ''; m.needsUpdate = true; }
+    if (!on && has) { delete m.defines.USE_DETAIL; m.needsUpdate = true; }
+  }
+}
+// Punkt auf der Erde in Bildmitte (oder unter der Kamera, falls die Bildmitte am Himmel liegt)
+const _vd = new THREE.Vector3(), _vp = new THREE.Vector3();
+function viewTarget() {
+  camera.getWorldDirection(_vd);
+  const o = camera.position, b = o.dot(_vd), c = o.lengthSq() - 1, h = b * b - c;
+  _vp.copy(o);
+  if (h > 0 && -b - Math.sqrt(h) > 0) _vp.addScaledVector(_vd, -b - Math.sqrt(h));
+  _vp.normalize();
+  return { lat: Math.asin(_vp.y) / DEG, lon: Math.atan2(-_vp.z, _vp.x) / DEG };
+}
+function loadImage(src) {
+  return new Promise((ok, fail) => { const i = new Image(); i.onload = () => ok(i); i.onerror = fail; i.src = src; });
+}
+async function loadUltraWindow(cLat, cLon) {
+  ultra.loading = true;
+  const mk = (px) => { const c = document.createElement('canvas'); c.width = c.height = px * ULTRA_TILES; return c; };
+  const day = mk(600), night = mk(375), dctx = day.getContext('2d'), nctx = night.getContext('2d');
+  const jobs = [];
+  for (let j = 0; j < ULTRA_TILES; j++) for (let i = 0; i < ULTRA_TILES; i++) {
+    const lon0 = cLon - ULTRA_SPAN / 2 + i * 10, latTop = cLat + ULTRA_SPAN / 2 - j * 10;
+    const col = ((Math.round((lon0 + 180) / 10) % 36) + 36) % 36, row = Math.round((90 - latTop) / 10);
+    if (row < 0 || row > 17) continue;
+    jobs.push(loadImage(`${cfg.ultraBase}day/${col}_${row}.jpg`).then((im) => dctx.drawImage(im, i * 600, j * 600)));
+    jobs.push(loadImage(`${cfg.ultraBase}night/${col}_${row}.jpg`).then((im) => nctx.drawImage(im, i * 375, j * 375)));
+  }
+  const res = await Promise.allSettled(jobs);
+  ultra.loading = false;
+  if (res.some((r) => r.status === 'rejected')) { ultra.failed++; return; }   // Paket fehlt/kaputt: Weltkarte bleibt
+  const swap = (key, canvas, uniform) => {
+    const t = new THREE.CanvasTexture(canvas);
+    t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = maxAniso;
+    ultra[key]?.dispose(); ultra[key] = t; detailUniforms[uniform].value = t;
+  };
+  swap('dayTex', day, 'dayDetail'); swap('nightTex', night, 'nightDetail');
+  detailUniforms.detailRect.value.set(cLon, cLat, ULTRA_SPAN, ULTRA_SPAN);
+  detailUniforms.cloudDetailOn.value = 0;
+  ultra.center = { lat: cLat, lon: cLon };
+  requestRender();
+}
+function updateUltra() {
+  if (DETAIL) return;
+  const on = ultraActive() && shownBody === 'earth' && ultra.failed < 3;
+  setDetailDefine(on);
+  if (!on) { detailUniforms.detailAmt.value = 0; return; }
+  // erst ab näheren Ansichten (ganze Erde: die 8K-Weltkarte ist scharf genug)
+  const near = cam.zoom * bodyFit() >= 1.1 || issMode();
+  detailUniforms.detailAmt.value = near && ultra.dayTex ? 1 : 0;
+  if (!near || ultra.loading) return;
+  const t = viewTarget();
+  const cLon = Math.round(t.lon / 10) * 10, cLat = Math.max(-50, Math.min(50, Math.round(t.lat / 10) * 10));
+  const c = ultra.center;
+  if (c && Math.abs(((t.lon - c.lon + 540) % 360) - 180) < 22 && Math.abs(t.lat - c.lat) < 22) return;
+  loadUltraWindow(cLat, cLon);
+}
+
 // live clouds (alpha) also work with DETAIL: they are only used without it
 
 const emptyTex = new THREE.DataTexture(new Uint8Array(4), 1, 1);
 emptyTex.needsUpdate = true;
+for (const k of ['dayDetail', 'nightDetail', 'cloudDetail']) detailUniforms[k].value ||= emptyTex;
 
 const sunDir = new THREE.Vector3(1, 0, 0);
 
 // --- Erde --------------------------------------------------------------------
 const earthMat = new THREE.ShaderMaterial({
+  defines: DETAIL ? { USE_DETAIL: '' } : {},
   uniforms: {
     dayMap: { value: dayTex },
     nightMap: { value: nightTex },
@@ -242,9 +327,11 @@ const earthMat = new THREE.ShaderMaterial({
 
       vec3 dayTexel = texture2D(dayMap, vUv).rgb;
       vec3 night = texture2D(nightMap, vUv).rgb;
-      ${DETAIL ? `vec3 dt = detailAt(vUv);
+      #ifdef USE_DETAIL
+      vec3 dt = detailAt(vUv);
       dayTexel = mix(dayTexel, texture2D(dayDetail, dt.xy).rgb, dt.z);
-      night = mix(night, texture2D(nightDetail, dt.xy).rgb, dt.z);` : ''}
+      night = mix(night, texture2D(nightDetail, dt.xy).rgb, dt.z);
+      #endif
       vec3 day = pow(dayTexel, vec3(1.12)) * 0.92;
       float ocean = texture2D(specMap, vUv).r;
 
@@ -284,6 +371,7 @@ scene.add(earth);
 
 // --- Wolken ------------------------------------------------------------------
 const cloudMat = new THREE.ShaderMaterial({
+  defines: DETAIL ? { USE_DETAIL: '' } : {},
   uniforms: { cloudMap: { value: emptyTex }, sunDir: { value: sunDir }, drift: { value: 0 }, moonPos: { value: new THREE.Vector3(60, 0, 0) }, cloudGrey: { value: 0 }, ...detailUniforms },
   transparent: true,
   depthWrite: false,
@@ -325,7 +413,7 @@ scene.add(clouds);
 // Live-Wolkenbild (alle ~3 h aktualisiert, Quelle: github.com/matteason/live-cloud-maps).
 // 8K nur für nahe Ansichten – spart sonst ~200 MB Grafikspeicher.
 const liveCloudsUrl = (res) => `https://clouds.matteason.co.uk/images/${res}/clouds-alpha.png`;
-const wantedCloudRes = () => (cfg.detail === 'high' || cfg.zoom > 1.5 || String(cfg.motion).startsWith('iss') ? '8192x4096' : '4096x2048');
+const wantedCloudRes = () => (cfg.detail !== 'standard' || cfg.zoom > 1.5 || String(cfg.motion).startsWith('iss') ? '8192x4096' : '4096x2048');
 let liveCloudTex = null, liveCloudRes = null, liveCloudLoading = false;
 function setCloudTex(t) {
   cloudMat.uniforms.cloudMap.value = t;
@@ -1320,6 +1408,7 @@ function frame() {
   if (issWanted()) iss.update(date, sunDir, sec);
   applyISS();
   updateCamera(Math.min(dt, 2), st);
+  updateUltra();
   // „Von der Erde aus“ kurz vor/nach der unteren Konjunktion: fast nur die Nachtseite ist zu sehen.
   // Dann die Silhouette schwach aufhellen, damit der Bildschirm nicht einfach schwarz wirkt.
   litFromEarth = 1;

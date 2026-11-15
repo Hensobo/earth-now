@@ -40,7 +40,8 @@ The whole Solar System – and the space station – on your desktop.
   ground (switch *3D auroras* on; it uses more graphics power, the flat style is the default).
   Jupiter and Saturn show their polar auroras too.
 - **Texture detail.** *High* shows the night lights and clouds in 8K (sharper, uses more graphics
-  memory); *Standard* stays as light as before.
+  memory); *Standard* stays as light as before. *Ultra* adds NASA's full-resolution maps around
+  the place you look at, from a detail pack downloaded once (with progress, removable).
 - **Moving storms:** Jupiter's and Saturn's cloud bands drift, the Great Red Spot turns.
 - New switches: *Show the ISS*, *Show its orbit*, *Aurora & storm animations*. Animations only run
   while they're on screen.
