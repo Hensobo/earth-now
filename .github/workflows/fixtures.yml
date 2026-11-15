@@ -1,0 +1,35 @@
+# Saves current NOAA data as test fixtures (web/tests/fixtures). Runs on demand, or on a push
+# whose commit message contains "[fixtures]".
+name: Test fixtures
+
+on:
+  workflow_dispatch:
+  push:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[fixtures]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - name: Fetch the OVATION aurora nowcast and the Kp index
+        run: |
+          mkdir -p web/tests/fixtures
+          stamp=$(date -u +%Y%m%dT%H%MZ)
+          curl -fsSL --retry 3 https://services.swpc.noaa.gov/json/ovation_aurora_latest.json -o web/tests/fixtures/ovation-$stamp.json
+          curl -fsSL --retry 3 https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json -o web/tests/fixtures/kp-$stamp.json
+          gzip -9 web/tests/fixtures/ovation-$stamp.json
+          ls -la web/tests/fixtures
+          tail -c 300 web/tests/fixtures/kp-$stamp.json
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add web/tests/fixtures
+          git commit -m "Add NOAA test fixtures" || exit 0
+          git pull --rebase
+          git push
