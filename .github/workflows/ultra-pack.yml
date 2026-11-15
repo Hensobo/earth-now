@@ -1,0 +1,40 @@
+# Builds the Ultra texture pack (design/ultra/build-pack.sh) and attaches it to a DRAFT release
+# "textures-ultra-<n>" (not public until someone publishes it). Also kept as a workflow artifact.
+# Runs on demand, or on a push whose commit message contains "[ultra-pack]".
+name: Ultra texture pack
+
+on:
+  workflow_dispatch:
+  push:
+
+permissions:
+  contents: write
+
+jobs:
+  pack:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[ultra-pack]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      ULTRA_VERSION: 1
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install libvips and zip
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libvips-tools zip
+      - name: Build the pack
+        run: bash design/ultra/build-pack.sh
+      - uses: actions/upload-artifact@v5
+        with:
+          name: earth-now-ultra
+          path: build/ultra/earth-now-ultra-*.zip*
+          retention-days: 14
+      - name: Attach to a draft release
+        run: |
+          tag=textures-ultra-$ULTRA_VERSION
+          if ! gh release view "$tag" >/dev/null 2>&1; then
+            gh release create "$tag" --draft --target "$GITHUB_SHA" --title "Ultra texture pack $ULTRA_VERSION" \
+              --notes "Full-resolution NASA Blue Marble and Black Marble tiles for Earth Now's Ultra texture detail. Downloaded by the app when you choose Ultra."
+          fi
+          gh release upload "$tag" build/ultra/earth-now-ultra-$ULTRA_VERSION.zip build/ultra/earth-now-ultra-$ULTRA_VERSION.zip.sha256 --clobber
+          gh release view "$tag" --json isDraft,assets --jq '{isDraft, assets: [.assets[] | {name, size}]}'
