@@ -33,8 +33,11 @@ The whole Solar System – and the space station – on your desktop.
   floats high above it as it crosses continents and oceans.
 - **When to look up:** the info line shows when the ISS will next be visible from your place with the
   naked eye, and how high it will climb.
-- **Auroras.** Northern and southern lights on Earth's night side, sized and brightened by NOAA's
-  live geomagnetic activity (Kp index). Jupiter and Saturn show their polar auroras too.
+- **Auroras, only when they are really there.** Northern and southern lights on Earth's night side,
+  placed and brightened by NOAA's OVATION aurora nowcast (updated every few minutes): where NOAA
+  sees no aurora, Earth Now shows none. Drawn as glowing curtains between 90 and 300 km altitude,
+  with rays and a green lower edge, so they stand up above the horizon instead of lying flat on the
+  ground. Jupiter and Saturn show their polar auroras too.
 - **Moving storms:** Jupiter's and Saturn's cloud bands drift, the Great Red Spot turns.
 - New switches: *Show the ISS*, *Show its orbit*, *Aurora & storm animations*. Animations only run
   while they're on screen.
@@ -43,7 +46,7 @@ The whole Solar System – and the space station – on your desktop.
 ### Notes
 - Planet and Moon textures: Solar System Scope, CC BY 4.0 (based on NASA mission data).
 - New network requests, each only while the feature is on: `celestrak.org` (ISS orbit),
-  `services.swpc.noaa.gov` (aurora activity) and `sdo.gsfc.nasa.gov` (image of the Sun). See SECURITY.md.
+  `services.swpc.noaa.gov` (aurora activity and nowcast, every 30 minutes) and `sdo.gsfc.nasa.gov` (image of the Sun). See SECURITY.md.
 - Your settings from version 1 are kept.
 
 [2.0.0]: https://github.com/Hensobo/earth-now/releases/tag/v2.0.0

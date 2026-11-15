@@ -18,7 +18,7 @@ To make reviews easier, here is everything the app touches:
 
 - **Network:** only downloads public data – cloud images from `clouds.matteason.co.uk` (every three
   hours), the ISS orbit from `celestrak.org` (twice a day, while the ISS is shown) and the aurora
-  activity from `services.swpc.noaa.gov` (every three hours, while auroras are on) and an image of the Sun
+  activity and aurora nowcast from `services.swpc.noaa.gov` (every 30 minutes, while auroras are on and Earth is shown) and an image of the Sun
   from `sdo.gsfc.nasa.gov` (hourly, while the Sun is shown). When you search
   for a place, the search text goes to Apple Maps. Nothing else – no analytics, no accounts, no
   update pings.

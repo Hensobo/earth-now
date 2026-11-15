@@ -46,8 +46,8 @@ where the big storms are. It's calm, it's real, and it barely touches your batte
 - 🛰️ **The ISS, live** – the space station's real position and orbit, shown with NASA's official 3D
   model (solar arrays track the Sun), plus two views: *ISS Chase* and *Above the ISS*.
 - 👀 **When to look up** – the info line tells you when the ISS is next visible from your place.
-- 🌌 **Auroras** – northern and southern lights on the night side, sized by NOAA's live geomagnetic
-  activity; polar auroras on Jupiter and Saturn.
+- 🌌 **Auroras** – northern and southern lights only where NOAA's live aurora nowcast sees them,
+  drawn as 3D curtains on the night side; polar auroras on Jupiter and Saturn.
 - 🌀 **Moving storms** on Jupiter and Saturn, the Great Red Spot keeps turning.
 - 📍 **Places on other worlds** – Olympus Mons, Jezero crater, Apollo 11, the Great Red Spot …
 
