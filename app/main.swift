@@ -137,7 +137,7 @@ final class UltraPack: NSObject, ObservableObject, URLSessionDownloadDelegate {
     static let version = 1
     static let zipURL = URL(string: "https://github.com/Hensobo/earth-now/releases/download/textures-ultra-\(version)/earth-now-ultra-\(version).zip")!
     static let shaURL = URL(string: zipURL.absoluteString + ".sha256")!
-    static let approxSize = "55 MB"
+    static let approxSize = "33 MB"
 
     enum State: Equatable { case notInstalled, downloading(Double), installing, installed(Int64), failed(String) }
     @Published private(set) var state: State = .notInstalled
