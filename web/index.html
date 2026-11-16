@@ -682,11 +682,11 @@ const auroraMat = new THREE.ShaderMaterial({
     void main() {
       vec3 P = normalize(vPos);
       vec3 V = normalize(camPos - vPos);
-      float dark = 1.0 - smoothstep(-0.14, 0.06, dot(P, sunDir));
+      float dark = 1.0 - smoothstep(-0.24, 0.06, dot(P, sunDir));
       if (nightOnly > 0.5 && dark <= 0.0) discard;
       float a;
       if (useOv > 0.5) {   // Erde: nur wo die NOAA Polarlichter sieht; weicher Schein mit sanften Bögen
-        float I = smoothstep(0.08, 0.5, ovAt(P));
+        float I = smoothstep(0.04, 0.45, ovAt(P));
         if (I < 0.002) discard;
         vec3 pole = P.y > 0.0 ? poleN : poleS;
         float c = acos(clamp(dot(P, pole), -1.0, 1.0));
@@ -694,9 +694,10 @@ const auroraMat = new THREE.ShaderMaterial({
         float phi = atan(dot(P, cross(pole, q1)), dot(P, q1));
         float fold = (noise(vec2(phi * 4.0 + time * 0.015, 3.1)) - 0.5) * 0.04;
         float k = (c + fold) * 60.0;
-        float arc = smoothstep(0.6, 0.98, 1.0 - abs(fract(k) * 2.0 - 1.0)) *
-                    smoothstep(0.7 - 0.3 * I, 0.95 - 0.2 * I, noise(vec2(floor(k) * 2.3 + time * 0.01, phi * 2.5)));
-        a = I * (0.45 + 1.4 * arc * I) * (0.8 + 0.2 * noise(vec2(phi * 40.0, time * 0.1)));
+        float wv = noise(vec2(phi * 9.0 + floor(k) * 5.1, time * 0.03));
+        float arc = smoothstep(0.82 - 0.25 * wv, 0.98, 1.0 - abs(fract(k) * 2.0 - 1.0)) *
+                    smoothstep(0.45, 0.8, noise(vec2(floor(k) * 2.3 + time * 0.01, phi * 2.5)));
+        a = pow(I, 0.7) * (0.2 + 1.3 * arc) * (0.8 + 0.2 * noise(vec2(phi * 40.0, time * 0.1)));
       } else a = oval(P, poleN, 0.0) + oval(P, poleS, 17.0);
       if (a <= 0.0) discard;
       a *= mix(1.0, dark, nightOnly);
@@ -758,9 +759,9 @@ const earthAuroraMat = new THREE.ShaderMaterial({
       float lat = asin(clamp(P.y, -1.0, 1.0)), lon = atan(-P.z, P.x);
       return texture2D(ovMap, vec2(fract(lon / 6.2831853), (lat / 3.1415927 + 0.5) * (180.0 / 181.0) + 0.5 / 181.0)).r;
     }
-    float dark(vec3 P) { return 1.0 - smoothstep(-0.16, 0.04, dot(P, sunDir)); }
+    float dark(vec3 P) { return 1.0 - smoothstep(-0.24, 0.06, dot(P, sunDir)); }
     // Sichtbarkeit aus der OVATION-Wahrscheinlichkeit: ab ~10 % möglich, ab ~50 % kräftig
-    float visI(float ov) { return smoothstep(0.08, 0.5, ov); }
+    float visI(float ov) { return smoothstep(0.04, 0.45, ov); }
     // Vorhänge: ein weicher, diffuser Schein; einzelne schmale Bögen nur, wo die Aktivität hoch ist.
     // Die Bögen folgen den magnetischen Breitenkreisen, falten sich und reißen ab; leichte Strahlen.
     float curtain(vec3 P, float I) {
@@ -772,10 +773,11 @@ const earthAuroraMat = new THREE.ShaderMaterial({
                  + (noise(vec2(phi * 16.0 - time * 0.04, 7.7)) - 0.5) * 0.01;
       float k = (c + fold) * 60.0;                          // Abstand möglicher Bögen ~1° (110 km)
       float band = 1.0 - abs(fract(k) * 2.0 - 1.0);
-      float sheet = smoothstep(0.86, 0.985, band);          // ~10 km dünne Vorhänge
-      float alive = smoothstep(0.75 - 0.35 * I, 0.95 - 0.2 * I, noise(vec2(floor(k) * 2.3 + time * 0.01, phi * 2.5 + floor(k) * 0.9)));
+      float wv = noise(vec2(phi * 9.0 + floor(k) * 5.1, time * 0.03));          // Breite schwankt entlang des Bogens
+      float sheet = smoothstep(0.93 - 0.16 * wv, 0.99, band);  // ~5–20 km dünne Vorhänge
+      float alive = smoothstep(0.45, 0.8, noise(vec2(floor(k) * 2.3 + time * 0.01, phi * 2.5 + floor(k) * 0.9)));
       float rays = 0.7 + 0.3 * noise(vec2(phi * 300.0 + fold * 600.0, time * 0.3));
-      return 0.35 + sheet * alive * rays * 3.0 * I;
+      return 0.12 + sheet * alive * rays * 2.6;
     }
     void main() {
       vec3 ro = camPos, rd = normalize(vPos - camPos);
@@ -811,7 +813,7 @@ const earthAuroraMat = new THREE.ShaderMaterial({
         float green = smoothstep(94.0, 104.0, h) * exp(-max(h - 104.0, 0.0) / 30.0);
         float red = smoothstep(170.0, 230.0, h) * exp(-max(h - 230.0, 0.0) / 60.0) * I;
         float fringe = smoothstep(90.0, 96.0, h) * (1.0 - smoothstep(96.0, 102.0, h)) * smoothstep(0.5, 0.9, I);
-        float d = I * curtain(P, I) * dt * KM;
+        float d = pow(I, 0.7) * curtain(P, I) * dt * KM;   // Form immer da, Helligkeit nach Aktivität
         col += d * (green * vec3(0.10, 1.0, 0.38) * 0.018 + red * vec3(0.80, 0.12, 0.30) * 0.0016 + fringe * vec3(0.55, 0.15, 0.6) * 0.006);
       }
       if (max(col.r, max(col.g, col.b)) < 0.002) discard;
