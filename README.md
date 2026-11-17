@@ -79,6 +79,8 @@ this repository to be notified.
 Earth Now is free and isn't registered with Apple's paid developer program (yet), so the first time
 you open it macOS says it *could not verify* the app. You only need to confirm once:
 
+![Confirming the first start on macOS 15: Done, Privacy & Security, Open Anyway](docs/screenshots/first-launch.gif)
+
 1. Open Earth Now. When the warning appears, click **Done**.
 2. Open **System Settings › Privacy & Security** and scroll down to **Security**.
 3. Next to "Earth Now was blocked…", click **Open Anyway** and confirm.

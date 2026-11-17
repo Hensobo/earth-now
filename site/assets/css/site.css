@@ -361,6 +361,9 @@ html.earth-ready .hero__still { opacity: 0; }
 .help__body ol { margin: 0 0 14px; padding-left: 1.2em; color: var(--ink); }
 .help__body li { margin: 6px 0; }
 .help__body p + p { margin-top: 12px; }
+.clip { margin: 28px 0 0; }
+.clip__v { display: block; width: 100%; height: auto; aspect-ratio: 16 / 10; border-radius: var(--r); background: var(--space); box-shadow: 0 0 0 1px var(--line); }
+.clip figcaption { margin-top: 10px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 14px; }
 .win { grid-column: 1 / span 5; margin-top: 28px; padding-left: 16px; border-left: 2px solid var(--sodium); color: var(--muted); max-width: 44ch; }
 .win b { color: var(--ink); }
 @media (max-width: 900px) {

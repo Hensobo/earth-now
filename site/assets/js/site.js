@@ -15,6 +15,14 @@
   const qs = (s, r = document) => r.querySelector(s);
   const qsa = (s, r = document) => [...r.querySelectorAll(s)];
 
+  // First-launch clip: plays only while visible; with reduced motion it waits for the play button.
+  qsa('.clip__v').forEach((v) => {
+    if (reduced) { v.removeAttribute('autoplay'); v.pause(); v.controls = true; return; }
+    if (!('IntersectionObserver' in window)) return;
+    new IntersectionObserver(([e]) => { if (e.isIntersecting) v.play().catch(() => {}); else v.pause(); }).observe(v);
+  });
+  qsa('a[href="#first-launch"]').forEach((a) => a.addEventListener('click', () => { const d = qs('#first-launch'); if (d) d.open = true; }));
+
   // ---------------------------------------------------------------- sun (same formula as the app)
   function subsolar(date) {
     const d = date.getTime() / 86400000 + 2440587.5 - 2451545.0;
