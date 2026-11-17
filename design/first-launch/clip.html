@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>First launch clip</title>
+<!--
+  The 20-second "Open Anyway" walkthrough for the download section of the website.
+  render.mjs opens this page, calls window.render(t) for every frame and encodes the result.
+  The macOS dialogs and System Settings are drawn simplified, enlarged so they stay readable
+  when the video is shown small. The wording follows macOS 15 Sequoia.
+-->
+<style>
+@font-face { font-family: 'Bricolage'; src: url('../../site/assets/fonts/bricolage-200_800-normal.woff2') format('woff2'); font-weight: 200 800; font-stretch: 75% 100%; }
+@font-face { font-family: 'Geist Mono'; src: url('../../site/assets/fonts/geist-mono-500-normal.woff2') format('woff2'); font-weight: 500; }
+:root { --sodium: #ff8a3d; --space: #05060d; --star: #f4f2ee; --blue: #0a84ff; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 1280px; height: 800px; overflow: hidden; background: var(--space); }
+body { position: relative; font: 400 20px/1.35 -apple-system, 'Helvetica Neue', 'Inter', 'Bricolage', sans-serif; color: #f2f2f4; -webkit-font-smoothing: antialiased; }
+.abs { position: absolute; }
+#desk { inset: 0; background:
+  radial-gradient(120% 90% at 78% 110%, #33406b 0%, rgba(51,64,107,0) 60%),
+  radial-gradient(90% 80% at 10% -10%, #2a2340 0%, rgba(42,35,64,0) 60%),
+  linear-gradient(160deg, #141a2e, #0b0f1c); }
+#final { inset: 0; background: url('../../site/assets/screenshots/desktop-menu.jpg') center/cover; opacity: 0; }
+.menubar { left: 0; right: 0; top: 0; height: 28px; display: flex; align-items: center; gap: 22px; padding: 0 16px; font-size: 15px; background: rgba(10,12,20,.55); backdrop-filter: blur(20px); }
+.menubar b { font-weight: 700; }
+.menubar .r { margin-left: auto; display: flex; gap: 18px; align-items: center; }
+#globe { width: 20px; height: 20px; opacity: 0; }
+
+/* alerts */
+.alert { width: 380px; padding: 28px 24px 20px; border-radius: 22px; text-align: center;
+  background: rgba(46,46,52,.92); box-shadow: 0 0 0 1px rgba(255,255,255,.12) inset, 0 30px 80px rgba(0,0,0,.55); backdrop-filter: blur(30px); }
+.alert img { width: 84px; height: 84px; display: block; margin: 0 auto 14px; }
+.alert h1 { font-size: 21px; font-weight: 700; margin-bottom: 8px; }
+.alert p { font-size: 15.5px; color: rgba(255,255,255,.82); margin-bottom: 20px; }
+.btn { display: block; height: 40px; line-height: 40px; border-radius: 11px; font-size: 17px; font-weight: 500; margin-top: 9px;
+  background: rgba(255,255,255,.14); color: #fff; }
+.btn.def { background: var(--blue); }
+.btn.press { filter: brightness(.75); }
+
+/* System Settings */
+#settings { left: 150px; top: 48px; width: 980px; height: 560px; border-radius: 16px; overflow: hidden; display: flex;
+  background: #1f1f23; box-shadow: 0 0 0 1px rgba(255,255,255,.12) inset, 0 40px 100px rgba(0,0,0,.6); }
+.side { width: 290px; background: #2a2a30; padding: 16px 12px; flex: none; }
+.lights { display: flex; gap: 9px; margin: 2px 6px 18px; }
+.lights i { width: 14px; height: 14px; border-radius: 50%; background: #ff5f57; }
+.lights i:nth-child(2) { background: #febc2e; } .lights i:nth-child(3) { background: #28c840; }
+.search { height: 34px; border-radius: 9px; background: rgba(255,255,255,.08); color: rgba(255,255,255,.45); font-size: 16px; line-height: 34px; padding-left: 12px; margin-bottom: 14px; }
+.item { display: flex; align-items: center; gap: 12px; height: 38px; padding: 0 10px; border-radius: 9px; font-size: 17px; }
+.item s { width: 24px; height: 24px; border-radius: 7px; flex: none; text-decoration: none; }
+.item.sel { background: var(--blue); }
+.gap { height: 12px; }
+.pane { flex: 1; position: relative; overflow: hidden; }
+.pane h2 { position: absolute; left: 0; right: 0; top: 0; height: 58px; line-height: 58px; padding-left: 28px; font-size: 20px; font-weight: 700; background: #1f1f23; z-index: 2; border-bottom: 1px solid rgba(255,255,255,.08); }
+.scroll { position: absolute; left: 0; right: 0; top: 58px; padding: 20px 28px; }
+.group { background: rgba(255,255,255,.055); border-radius: 12px; margin-bottom: 18px; }
+.row { display: flex; align-items: center; gap: 14px; min-height: 52px; padding: 10px 16px; font-size: 17px; border-top: 1px solid rgba(255,255,255,.07); }
+.row:first-child { border-top: 0; }
+.row s { width: 26px; height: 26px; border-radius: 7px; flex: none; }
+.row .v { margin-left: auto; color: rgba(255,255,255,.5); font-size: 16px; }
+.ghead { font-size: 17px; font-weight: 700; margin: 26px 4px 10px; }
+.row.block { flex-wrap: wrap; }
+.row.block > span:first-child { flex: 1; }
+.small { height: 36px; line-height: 36px; padding: 0 16px; border-radius: 9px; background: rgba(255,255,255,.16); font-size: 16px; font-weight: 500; }
+.small.press { filter: brightness(.7); }
+#home { position: absolute; inset: 58px 0 0 0; padding: 30px; color: rgba(255,255,255,.5); font-size: 17px; }
+
+/* password sheet */
+#pw { width: 400px; padding: 26px 26px 22px; }
+#pw .lock { width: 64px; height: 64px; margin: 0 auto 12px; border-radius: 16px; background: linear-gradient(#8e8e96, #5e5e66); display: grid; place-items: center; font-size: 34px; }
+.field { height: 38px; border-radius: 9px; background: rgba(0,0,0,.35); box-shadow: 0 0 0 1px rgba(255,255,255,.14) inset; text-align: left; padding: 0 12px; line-height: 38px; font-size: 17px; margin-bottom: 10px; color: rgba(255,255,255,.9); }
+.field.focus { box-shadow: 0 0 0 3px rgba(10,132,255,.55); }
+.two { display: flex; gap: 10px; } .two .btn { flex: 1; }
+
+/* cursor */
+#cursor { left: 0; top: 0; width: 30px; height: 40px; z-index: 50; transform-origin: 3px 3px; }
+#ring { width: 56px; height: 56px; margin: -28px 0 0 -28px; border-radius: 50%; border: 3px solid var(--sodium); opacity: 0; z-index: 49; }
+
+/* caption, in the website style */
+.cap { left: 44px; bottom: 40px; max-width: 760px; padding: 18px 24px 20px; border-radius: 16px; background: rgba(5,6,13,.84);
+  box-shadow: 0 0 0 1px rgba(244,242,238,.14) inset; backdrop-filter: blur(16px); opacity: 0; z-index: 40; }
+.cap .k { font: 500 17px/1 'Geist Mono', monospace; color: var(--sodium); letter-spacing: .04em; text-transform: uppercase; margin-bottom: 10px; }
+.cap .t { font: 650 34px/1.12 'Bricolage', sans-serif; font-stretch: 85%; color: var(--star); }
+.cap .t b { color: var(--sodium); font-weight: 700; }
+</style>
+</head>
+<body>
+<div id="desk" class="abs"></div>
+<div id="final" class="abs"></div>
+<div class="menubar abs" id="mb">
+  <span style="font-weight:700">Finder</span><span>File</span><span>Edit</span><span>View</span><span>Go</span><span>Window</span><span>Help</span>
+  <span class="r"><svg id="globe" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18"/></svg><span>Mon 17 Nov&nbsp; 9:41</span></span>
+</div>
+
+<!-- 1: the warning -->
+<div id="dlg1" class="alert abs" style="left:450px;top:150px">
+  <img src="../../site/assets/icon/earth-now-512.png" alt="">
+  <h1>&ldquo;Earth Now&rdquo; Not Opened</h1>
+  <p>Apple could not verify &ldquo;Earth Now&rdquo; is free of malware that may harm your Mac or compromise your privacy.</p>
+  <span class="btn def" id="done1">Done</span>
+  <span class="btn">Move to Trash</span>
+</div>
+
+<!-- 2: System Settings -->
+<div id="settings" class="abs">
+  <div class="side">
+    <div class="lights"><i></i><i></i><i></i></div>
+    <div class="search">Search</div>
+    <div class="item"><s style="background:#0a84ff"></s>Wi-Fi</div>
+    <div class="item"><s style="background:#0a84ff"></s>Bluetooth</div>
+    <div class="item"><s style="background:#0a84ff"></s>Network</div>
+    <div class="gap"></div>
+    <div class="item"><s style="background:#ff453a"></s>Notifications</div>
+    <div class="item"><s style="background:#ff375f"></s>Sound</div>
+    <div class="item"><s style="background:#5e5ce6"></s>Focus</div>
+    <div class="gap"></div>
+    <div class="item" id="general"><s style="background:#8e8e93"></s>General</div>
+    <div class="item"><s style="background:#3a3a3c"></s>Appearance</div>
+    <div class="item"><s style="background:#0a84ff"></s>Accessibility</div>
+    <div class="item"><s style="background:#8e8e93"></s>Control Center</div>
+    <div class="item" id="privacy"><s style="background:#0a84ff"></s>Privacy &amp; Security</div>
+  </div>
+  <div class="pane">
+    <h2 id="ptitle">General</h2>
+    <div id="home">About, Software Update, Storage …</div>
+    <div class="scroll" id="scroll">
+      <div class="group">
+        <div class="row"><s style="background:#0a84ff"></s>Location Services<span class="v">On ›</span></div>
+        <div class="row"><s style="background:#8e8e93"></s>Contacts<span class="v">›</span></div>
+        <div class="row"><s style="background:#ff453a"></s>Calendars<span class="v">›</span></div>
+        <div class="row"><s style="background:#ff9f0a"></s>Photos<span class="v">›</span></div>
+        <div class="row"><s style="background:#0a84ff"></s>Full Disk Access<span class="v">›</span></div>
+        <div class="row"><s style="background:#bf5af2"></s>Screen Recording<span class="v">›</span></div>
+      </div>
+      <div class="ghead">Security</div>
+      <div class="group">
+        <div class="row">Allow applications from<span class="v">App Store &amp; Known Developers ⌃</span></div>
+        <div class="row block"><span>&ldquo;Earth Now&rdquo; was blocked to protect your Mac.</span><span class="small" id="openAny">Open Anyway</span></div>
+      </div>
+      <div class="group">
+        <div class="row">FileVault<span class="v">On ›</span></div>
+        <div class="row">Lockdown Mode<span class="v">Off ›</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 3: password, then the last confirmation -->
+<div id="pw" class="alert abs" style="left:440px;top:150px">
+  <div class="lock">🔒</div>
+  <h1>Privacy &amp; Security</h1>
+  <p>You are making changes to your Security &amp; Privacy settings. Enter your password to allow this.</p>
+  <div class="field">You</div>
+  <div class="field focus" id="pwf">&nbsp;</div>
+  <div class="two"><span class="btn">Cancel</span><span class="btn def" id="modify">Modify Settings</span></div>
+</div>
+<div id="dlg2" class="alert abs" style="left:450px;top:130px">
+  <img src="../../site/assets/icon/earth-now-512.png" alt="">
+  <h1>Open &ldquo;Earth Now&rdquo;?</h1>
+  <p>Apple is not able to verify that it is free from malware that could harm your Mac or compromise your privacy.</p>
+  <span class="btn" id="open2">Open Anyway</span>
+  <span class="btn">Move to Trash</span>
+  <span class="btn def">Done</span>
+</div>
+
+<div class="cap abs" id="c1"><div class="k">Step 1 of 3</div><div class="t">The warning appears. Click <b>Done</b>.</div></div>
+<div class="cap abs" id="c2"><div class="k">Step 2 of 3</div><div class="t">System Settings, <b>Privacy &amp; Security</b>. Scroll down, click <b>Open Anyway</b>.</div></div>
+<div class="cap abs" id="c3"><div class="k">Step 3 of 3</div><div class="t">Enter your password, then <b>Open Anyway</b> once more.</div></div>
+<div class="cap abs" id="c4"><div class="k">macOS 15 Sequoia</div><div class="t">That&rsquo;s it. Only the first time.</div></div>
+
+<div id="ring" class="abs"></div>
+<svg id="cursor" class="abs" viewBox="0 0 30 40"><path d="M3 3v29l7.5-7 5 11.5 5-2.2-5-11.2H26z" fill="#000" stroke="#fff" stroke-width="2.2" stroke-linejoin="round"/></svg>
+
+<script>
+const $ = id => document.getElementById(id);
+const DUR = 22;
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const ease = x => (x = clamp(x), x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+const ramp = (t, a, b) => ease((t - a) / (b - a));
+// opacity of something that fades in over [a, a+f] and out over [b, b+f]
+const win = (t, a, b, f = .35) => Math.min(ramp(t, a, a + f), 1 - ramp(t, b, b + f));
+const center = el => { const r = el.getBoundingClientRect(); return [r.left + r.width / 2 - 4, r.top + r.height / 2 - 4]; };
+
+function pop(el, o, from = .94) {
+  el.style.opacity = o;
+  el.style.transform = `scale(${from + (1 - from) * o})`;
+  el.style.visibility = o > .001 ? 'visible' : 'hidden';
+}
+
+// cursor path: [time, target] — the cursor eases between consecutive points
+const path = [
+  [0, () => [980, 640]], [0.9, () => [980, 640]],
+  [2.2, () => center($('done1'))], [3.6, () => center($('done1'))],
+  [4.8, () => center($('privacy'))], [7.3, () => center($('privacy'))],
+  [8.5, () => center($('openAny'))], [10.6, () => center($('openAny'))],
+  [11.7, () => center($('modify'))], [13.1, () => center($('modify'))],
+  [14.3, () => center($('open2'))], [15.2, () => center($('open2'))],
+  [16.6, () => [1180, 380]], [21.2, () => [1180, 380]], [22, () => [980, 640]],
+];
+const clicks = [2.4, 5.0, 8.75, 11.9, 14.5];
+
+window.render = function (t) {
+  t = ((t % DUR) + DUR) % DUR;
+
+  pop($('dlg1'), win(t, 0.25, 2.55));
+  const sOpen = win(t, 2.9, 15.0, .45);
+  pop($('settings'), sOpen, .96);
+
+  // settings pane: General until the click on Privacy & Security, then scrolled down
+  const priv = t >= 5.05;
+  $('general').classList.toggle('sel', !priv);
+  $('privacy').classList.toggle('sel', priv);
+  $('ptitle').textContent = priv ? 'Privacy & Security' : 'General';
+  $('home').style.display = priv ? 'none' : 'block';
+  $('scroll').style.display = priv ? 'block' : 'none';
+  $('scroll').style.transform = `translateY(${-300 * ramp(t, 5.6, 7.2)}px)`;
+
+  pop($('pw'), win(t, 9.0, 12.05));
+  const dots = Math.floor(clamp((t - 9.6) / 1.2) * 8);
+  $('pwf').textContent = dots ? '•'.repeat(dots) : ' ';
+  pop($('dlg2'), win(t, 12.4, 14.75));
+
+  const fin = win(t, 15.2, 21.1, .9);
+  $('final').style.opacity = fin;
+  $('mb').style.opacity = 1 - fin;
+  $('globe').style.opacity = 0;
+
+  $('c1').style.opacity = win(t, 0.3, 2.75);
+  $('c2').style.opacity = win(t, 2.95, 8.95);
+  $('c3').style.opacity = win(t, 9.0, 14.75);
+  $('c4').style.opacity = win(t, 15.6, 21.0, .6);
+
+  // cursor
+  let i = 0; while (i < path.length - 2 && t >= path[i + 1][0]) i++;
+  const [t0, p0] = path[i], [t1, p1] = path[i + 1];
+  const a = p0(), b = p1(), k = ease((t - t0) / (t1 - t0));
+  const x = a[0] + (b[0] - a[0]) * k, y = a[1] + (b[1] - a[1]) * k;
+  let press = 0, ring = 0, rs = 1;
+  for (const c of clicks) {
+    const d = t - c;
+    if (d > -0.12 && d < 0.12) press = 1 - Math.abs(d) / 0.12;
+    if (d >= 0 && d < 0.5) { ring = 1 - d / 0.5; rs = 0.5 + d * 1.6; }
+  }
+  const cur = $('cursor');
+  cur.style.transform = `translate(${x}px, ${y}px) scale(${1 - .14 * press})`;
+  cur.style.opacity = 1 - win(t, 16.8, 21.0, .5);
+  const r = $('ring');
+  r.style.left = (x + 4) + 'px'; r.style.top = (y + 4) + 'px';
+  r.style.opacity = ring; r.style.transform = `scale(${rs})`;
+  for (const [id, c] of [['done1', 2.4], ['openAny', 8.75], ['modify', 11.9], ['open2', 14.5]])
+    $(id).classList.toggle('press', t > c - .1 && t < c + .15);
+};
+window.DUR = DUR;
+document.fonts.ready.then(() => { window.render(0); window.ready = true; });
+</script>
+</body>
+</html>
